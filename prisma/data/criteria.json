@@ -1,0 +1,76 @@
+[
+  {
+    "id": "A",
+    "code": "A",
+    "title": "A. Persistent deficits in social communication and social interaction across multiple contexts, as manifested by all of the following:",
+    "subcriteria": [
+      {
+        "id": "A1",
+        "code": "A1",
+        "title": "A1. Deficits in social-emotional reciprocity",
+        "entries": []
+      },
+      {
+        "id": "A2",
+        "code": "A2",
+        "title": "A2. Deficits in nonverbal communicative behaviors used for social interaction",
+        "entries": []
+      },
+      {
+        "id": "A3",
+        "code": "A3",
+        "title": "A3. Deficits in developing, maintaining, and understanding relationships",
+        "entries": []
+      }
+    ]
+  },
+  {
+    "id": "B",
+    "code": "B",
+    "title": "B. Restricted, repetitive patterns of behavior, interests, or activities, as manifested by at least two of the following:",
+    "subcriteria": [
+      {
+        "id": "B1",
+        "code": "B1",
+        "title": "B1. Stereotyped or repetitive motor movements, use of objects, or speech",
+        "entries": []
+      },
+      {
+        "id": "B2",
+        "code": "B2",
+        "title": "B2. Insistence on sameness, inflexible adherence to routines, or ritualized patterns of verbal or nonverbal behavior",
+        "entries": []
+      },
+      {
+        "id": "B3",
+        "code": "B3",
+        "title": "B3. Highly restricted, fixated interests that are abnormal in intensity or focus",
+        "entries": []
+      },
+      {
+        "id": "B4",
+        "code": "B4",
+        "title": "B4. Hyper- or hyporeactivity to sensory input or unusual interest in sensory aspects of the environment",
+        "entries": []
+      }
+    ]
+  },
+  {
+    "id": "C",
+    "code": "C",
+    "title": "C. Symptoms must be present in the early developmental period (but may not become fully manifest until social demands exceed limited capacities, or may be masked by learned strategies in later life).",
+    "subcriteria": []
+  },
+  {
+    "id": "D",
+    "code": "D",
+    "title": "D. Symptoms cause clinically significant impairment in social, occupational, or other important areas of current functioning.",
+    "subcriteria": []
+  },
+  {
+    "id": "E",
+    "code": "E",
+    "title": "E. These disturbances are not better explained by intellectual disability (intellectual developmental disorder) or global developmental delay.",
+    "subcriteria": []
+  }
+]
