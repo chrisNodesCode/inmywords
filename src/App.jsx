@@ -4,44 +4,73 @@ import React, { useState, useEffect } from 'react';
 import CriteriaList from './components/CriteriaList';
 import EntryEditor from './components/EntryEditor';
 import LandingPage from './components/LandingPage';
-export default function App() {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingTarget, setEditingTarget] = useState({ criterionId: null, subId: null });
-  const [editorContent, setEditorContent] = useState('');
-  const [editorBg, setEditorBg] = useState('#FFFFFF');
-  const [editorWidthOption, setEditorWidthOption] = useState('concise');
-  const [editorTitle, setEditorTitle] = useState('');
-  const [allEntries, setAllEntries] = useState([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+import { CSSTransition } from 'react-transition-group';
 
-  // Keep all hooks!
+export default function App() {
+  const [tags, setTags] = useState([]);
+  const [entries, setEntries] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [editorTitle, setEditorTitle] = useState('');
+  const [editorContent, setEditorContent] = useState('');
+  const [selectedSubcriteria, setSelectedSubcriteria] = useState('');
+  const [selectedGroupTags, setSelectedGroupTags] = useState([]);
+  const [editorMode, setEditorMode] = useState('subcriteria'); // 'subcriteria' or 'criteriaE'
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [expandedEntryId, setExpandedEntryId] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState('demo-user-1'); // Simulated logged-in user
+  // Collapse state for criteria and subcriteria
+  const [openStates, setOpenStates] = useState({});
+  const toggleOpen = (id) => {
+    setOpenStates(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
-      fetch('/api/entries')
+      fetch('/api/tags', { credentials: 'include' })
         .then(res => res.json())
-        .then(data => setAllEntries(data.entries || []))
+        .then(data => setTags(data || []))
+        .catch(err => console.error('Error fetching tags:', err));
+
+      fetch('/api/entries', { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => setEntries(data || []))
         .catch(err => console.error('Error fetching entries:', err));
     }
-  }, [allEntries.length, isLoggedIn]);
+  }, [isLoggedIn, currentUserId]);
 
-  const handleAddEntry = (criterionId, subId) => {
-    setEditingTarget({ criterionId, subId });
-    setEditorContent('');
+  const handleAddEntry = (mode = 'subcriteria', subcriteriaId = null) => {
+    setEditingEntry(null);
     setEditorTitle('');
-    setEditorBg('#FFFFFF');
+    setEditorContent('');
+    setEditorMode(mode);
+    setSelectedSubcriteria(subcriteriaId || '');
+    setSelectedGroupTags([]);
+    setIsEditing(true);
+  };
+
+  const handleEditEntry = (entry) => {
+    setEditingEntry(entry);
+    setEditorTitle(entry.title);
+    setEditorContent(entry.content);
+    const subTag = entry.tags.find(tag => tag.parentId && (tag.code.startsWith('A') || tag.code.startsWith('B')));
+    setSelectedSubcriteria(subTag ? subTag.id : '');
+    const groupTags = entry.tags.filter(tag => ['C', 'D'].includes(tag.code)).map(tag => tag.id);
+    setSelectedGroupTags(groupTags);
+    setEditorMode(subTag ? 'subcriteria' : 'criteriaE');
     setIsEditing(true);
   };
 
   const handleDeleteEntry = async (entryId) => {
     try {
-      const response = await fetch(`/api/entry/${entryId}`, {
+      const response = await fetch(`/api/entries/${entryId}`, {
         method: 'DELETE',
       });
       if (!response.ok) {
         console.error('Failed to delete entry', await response.text());
         return;
       }
-      setAllEntries(prev => prev.filter(entry => entry.id !== entryId));
+      setEntries(prev => prev.filter(entry => entry.id !== entryId));
     } catch (error) {
       console.error('Error deleting entry:', error);
     }
@@ -49,32 +78,55 @@ export default function App() {
 
   const handleSave = async () => {
     try {
-      if (!editingTarget?.criterionId || !editingTarget?.subId) {
-        console.error('Missing criterionId or subId');
-        alert('Missing criterionId or subId. Please select a valid target.');
-        return;
+      let finalTagIds = [];
+
+      if (editorMode === 'subcriteria' && selectedSubcriteria) {
+        finalTagIds.push(selectedSubcriteria);
+        const parentTag = tags.find(tag => tag.id === selectedSubcriteria)?.parentId;
+        if (parentTag) {
+          finalTagIds.push(parentTag);
+        }
+        finalTagIds = finalTagIds.concat(selectedGroupTags);
+      } else if (editorMode === 'criteriaE') {
+        const criteriaETag = tags.find(tag => tag.code === 'E');
+        if (criteriaETag) {
+          finalTagIds.push(criteriaETag.id);
+        }
       }
-      const timestamp = new Date().toISOString();
-      const response = await fetch('/api/entry', {
-        method: 'POST',
+
+      const payload = {
+        title: editorTitle || 'Untitled Entry',
+        content: editorContent,
+        tagIds: finalTagIds,
+      };
+
+      const response = await fetch(editingEntry ? `/api/entries/${editingEntry.id}` : '/api/entries', {
+        method: editingEntry ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: editorContent,
-          title: editorTitle || 'Placeholder Title',
-          criterionId: editingTarget.criterionId,
-          subcriterionId: editingTarget.subId,
-          userId: 'placeholder-user-id',
-          createdAt: timestamp
-        }),
+        body: JSON.stringify(payload),
       });
+
       if (!response.ok) {
         console.error('Failed to save entry', await response.text());
         return;
       }
-      const newEntry = await response.json();
-      setAllEntries(prev => [...prev, newEntry.entry]);
+
+      const savedEntry = await response.json();
+
+      setEntries(prev => {
+        if (editingEntry) {
+          return prev.map(e => (e.id === savedEntry.id ? savedEntry : e));
+        }
+        return [...prev, savedEntry];
+      });
+
       setIsEditing(false);
-      setEditingTarget(null);
+      setEditingEntry(null);
+      setEditorTitle('');
+      setEditorContent('');
+      setSelectedSubcriteria('');
+      setSelectedGroupTags([]);
+      setExpandedEntryId(null);
     } catch (error) {
       console.error('Error saving entry:', error);
     }
@@ -82,9 +134,12 @@ export default function App() {
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditingTarget(null);
-    setEditorContent('');
+    setEditingEntry(null);
     setEditorTitle('');
+    setEditorContent('');
+    setSelectedSubcriteria('');
+    setSelectedGroupTags([]);
+    setExpandedEntryId(null); // Collapse any expanded entry
   };
 
   if (!isLoggedIn) {
@@ -93,26 +148,42 @@ export default function App() {
 
   return (
     <>
-      <EntryEditor
-        isEditing={isEditing}
-        editingTarget={editingTarget}
-        editorTitle={editorTitle}
-        setEditorTitle={setEditorTitle}
-        editorContent={editorContent}
-        setEditorContent={setEditorContent}
-        editorBg={editorBg}
-        setEditorBg={setEditorBg}
-        editorWidthOption={editorWidthOption}
-        setEditorWidthOption={setEditorWidthOption}
-        handleSave={handleSave}
-        onCancel={handleCancel}
-      />
+      <CSSTransition
+        in={isEditing}
+        timeout={300}
+        classNames="slide"
+        mountOnEnter
+        unmountOnExit
+      >
+        <EntryEditor
+          isEditing={isEditing}
+          editingEntry={editingEntry}
+          editorTitle={editorTitle}
+          setEditorTitle={setEditorTitle}
+          editorContent={editorContent}
+          setEditorContent={setEditorContent}
+          selectedSubcriteria={selectedSubcriteria}
+          setSelectedSubcriteria={setSelectedSubcriteria}
+          selectedGroupTags={selectedGroupTags}
+          setSelectedGroupTags={setSelectedGroupTags}
+          tags={tags}
+          handleSave={handleSave}
+          onCancel={handleCancel}
+          mode={editorMode}
+        />
+      </CSSTransition>
       <div className="container">
         <div className="header">Autism Spectrum Disorder DSM-V-TR</div>
         <CriteriaList
+          tags={tags}
+          entries={entries}
+          handleEditEntry={handleEditEntry}
           handleDeleteEntry={handleDeleteEntry}
-          allEntries={allEntries}
           handleAddEntry={handleAddEntry}
+          expandedEntryId={expandedEntryId}
+          setExpandedEntryId={setExpandedEntryId}
+          openStates={openStates}
+          toggleOpen={toggleOpen}
         />
       </div>
     </>

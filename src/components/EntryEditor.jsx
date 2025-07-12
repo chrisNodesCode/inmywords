@@ -1,62 +1,137 @@
 // src/components/EntryEditor.jsx
 
-import React from 'react';
-
-const calmingColors = ['#FFFFFF', '#000000', '#F5F5DC', '#E0FFFF', '#FFF0F5'];
+import React, { useState } from 'react';
 
 export default function EntryEditor({
   isEditing,
-  editingTarget,
+  editingEntry,
+  editorTitle,
+  setEditorTitle,
   editorContent,
   setEditorContent,
-  editorBg,
-  setEditorBg,
-  editorWidthOption,
-  setEditorWidthOption,
+  selectedSubcriteria,
+  setSelectedSubcriteria,
+  selectedGroupTags,
+  setSelectedGroupTags,
+  tags,
   handleSave,
   onCancel,
+  mode,
 }) {
-  if (!isEditing) return null;
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [textColor, setTextColor] = useState('#000000');
+
+
+  const subcriteriaTags = tags.filter(tag => tag.parentId && (tag.code.startsWith('A') || tag.code.startsWith('B')));
+  const groupTags = tags.filter(tag => ['C', 'D'].includes(tag.code));
+
+  const colors = [
+    { bg: '#ffffff', text: '#000000' },
+    { bg: '#f0f4ff', text: '#000000' },
+    { bg: '#f5fff0', text: '#000000' },
+    { bg: '#fff9f0', text: '#000000' },
+    { bg: '#000000', text: '#ffffff' },
+  ];
+
+  const handleColorChange = (bg, text) => {
+    setBackgroundColor(bg);
+    setTextColor(text);
+  };
 
   return (
     <div
-      className={`editor-overlay ${editorBg === '#000000' ? 'dark-mode' : ''}`}
-      style={{ backgroundColor: editorBg }}
+      className="editor-overlay"
+      style={{ backgroundColor: backgroundColor, color: textColor }}
     >
-      <div className="editor-toolbar">
-        <div className="color-picker">
-          {calmingColors.map(color => (
-            <div
-              key={color}
-              className="color-swatch"
-              style={{ backgroundColor: color }}
-              onClick={() => setEditorBg(color)}
-            />
-          ))}
-        </div>
-        <div className="width-controls">
-          {['full', 'comfortable', 'concise'].map(opt => (
+      <div className="toolbar-container">
+        <div className="editor-toolbar">
+          <div className="color-picker">
+            {colors.map((c, idx) => (
+              <div
+                key={idx}
+                className="color-swatch"
+                style={{
+                  backgroundColor: c.bg,
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  margin: '0 4px',
+                  cursor: 'pointer',
+                  border: c.bg === backgroundColor ? '2px solid #666' : '1px solid #ccc'
+                }}
+                onClick={() => handleColorChange(c.bg, c.text)}
+              ></div>
+            ))}
+          </div>
+
+
+
+          <div className="buttons-container">
+            <button onClick={onCancel}>Cancel</button>
             <button
-              key={opt}
-              className={`width-button ${editorWidthOption === opt ? 'active' : ''}`}
-              onClick={() => setEditorWidthOption(opt)}
+              onClick={e => {
+                e.preventDefault();
+                handleSave();
+              }}
             >
-              {opt.charAt(0).toUpperCase() + opt.slice(1)}
+              Save
             </button>
-          ))}
-        </div>
-        <div>
-          <button onClick={onCancel}>Cancel</button>
-          <button onClick={handleSave}>Save</button>
+          </div>
+
         </div>
       </div>
-      <div className={`editor-content-container editor-width-${editorWidthOption}`}>
+      <div className="editor-content-container">
+        <input
+          type="text"
+          placeholder="Entry Title"
+          value={editorTitle}
+          onChange={e => setEditorTitle(e.target.value)}
+          className="editor-title-input"
+          style={{ color: textColor, borderBottom: `1px solid ${textColor}`, paddingBlockEnd: '0.5em' }}
+        />
+        {mode === 'subcriteria' && (
+          <div className="selector-container">
+            <div className="tag-selector">
+              <select
+                className='custom-select'
+                value={selectedSubcriteria || ''}
+                onChange={e => setSelectedSubcriteria(e.target.value)}
+              >
+                <option value={""}>Select subcriteria</option>
+                {subcriteriaTags.map(tag => (
+                  <option key={tag.id} value={tag.id}>
+                    {tag.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="tag-selector">
+              <select
+                className='custom-select'
+                value={selectedGroupTags || ""}
+                onChange={e =>
+                  setSelectedGroupTags(
+                    Array.from(e.target.selectedOptions, option => option.value)
+                  )
+                }
+              >
+                <option value={""}>Select Group By</option>
+                {groupTags.map(tag => (
+                  <option key={tag.id} value={tag.id}>
+                    {tag.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+        )}
         <textarea
-          id="user-input"
           className="editor-content"
           value={editorContent}
           onChange={e => setEditorContent(e.target.value)}
-          autoFocus
+          placeholder="Write your reflections here..."
+          style={{ color: textColor }}
         />
       </div>
     </div>
