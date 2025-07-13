@@ -37,6 +37,11 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   pages: { signIn: '/' },
   debug: process.env.NODE_ENV !== 'production',
+  logger: {
+    error(code, ...rest) { },
+    warn(code, ...rest) { },
+    debug(code, ...rest) { },
+  },
   events: {
     async signIn(message) {
       console.log('User signed in:', message);
@@ -71,5 +76,5 @@ export const authOptions = {
     }
   }
 };
-
+console.log("ENV:", process.env.NODE_ENV, process.env.NEXTAUTH_URL);
 export default NextAuth(authOptions);
