@@ -1,9 +1,9 @@
 // pages/api/auth/[...nextauth].js
 
 import NextAuth from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
+import { PrismaClient } from '../../../prisma/generated';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { PrismaClient } from '../../../src/generated/prisma';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();

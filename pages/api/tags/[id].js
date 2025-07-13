@@ -1,4 +1,4 @@
-import { PrismaClient } from '../../../src/generated/prisma';
+import { PrismaClient } from '../../../prisma/generated';
 import { getSession } from 'next-auth/react';
 
 const prisma = new PrismaClient();

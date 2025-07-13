@@ -1,5 +1,5 @@
 import React from 'react';
-import { PrismaClient } from '../../../src/generated/prisma';
+import { PrismaClient } from '../../../prisma/generated';
 import { authOptions } from "../auth/[...nextauth]"; // Ensure this path is correct
 import { getServerSession } from 'next-auth/next';
 
