@@ -1,6 +1,6 @@
 // src/pages/api/entries/index.js
 
-import { PrismaClient } from '../../../prisma/generated';
+import { PrismaClient } from '@prisma/client';
 import { authOptions } from "../auth/[...nextauth]"; // Ensure this path is correct
 import { getServerSession } from 'next-auth/next';
 
