@@ -13,7 +13,7 @@ export default function LandingPage({ onLogin }) {
       redirect: false,
     }).then(({ ok, error: signError }) => {
       if (ok) {
-        onLogin();
+        () => onLogin();
       } else {
         setError(signError || "Invalid credentials");
       }

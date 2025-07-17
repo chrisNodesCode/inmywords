@@ -39,39 +39,19 @@ export default async function handler(req, res) {
 
     case 'POST':
       try {
-        const { name, code, description, parentId, notebookId: bodyNotebookId } = req.body;
-        // Validate inputs
+        const { name, notebookId: bodyNotebookId, code: bodyCode } = req.body;
+        // Generate a slug-style code from name if none provided
+        const code = typeof bodyCode === 'string' && bodyCode.trim() !== ''
+          ? bodyCode.trim()
+          : name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
         if (!name || typeof name !== 'string') {
           return res.status(400).json({ error: 'Name is required' });
         }
-        if (!code || typeof code !== 'string') {
-          return res.status(400).json({ error: 'Code is required' });
+        if (!bodyNotebookId || typeof bodyNotebookId !== 'string') {
+          return res.status(400).json({ error: 'notebookId is required' });
         }
-        if (description !== undefined && typeof description !== 'string') {
-          return res.status(400).json({ error: 'Invalid description' });
-        }
-        if (parentId !== undefined && parentId !== null && typeof parentId !== 'string') {
-          return res.status(400).json({ error: 'Invalid parentId' });
-        }
-        if (bodyNotebookId !== undefined && bodyNotebookId !== null && typeof bodyNotebookId !== 'string') {
-          return res.status(400).json({ error: 'Invalid notebookId' });
-        }
-        // If tag is scoped to a notebook, verify ownership
-        if (bodyNotebookId) {
-          const notebook = await prisma.notebook.findUnique({ where: { id: bodyNotebookId } });
-          if (!notebook || notebook.userId !== userId) {
-            return res.status(404).json({ error: 'Notebook not found' });
-          }
-        }
-        // Create the tag
         const tag = await prisma.tag.create({
-          data: {
-            name,
-            code,
-            description: description || null,
-            parentId: parentId || null,
-            notebookId: bodyNotebookId || null,
-          },
+          data: { name, notebookId: bodyNotebookId, code },
         });
         return res.status(201).json(tag);
       } catch (error) {

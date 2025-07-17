@@ -1,34 +1,38 @@
+// UserEntry.jsx
 import React from 'react';
 
-export default function UserEntry({ entry, handleEditEntry, handleDeleteEntry, expandedEntryId, setExpandedEntryId }) {
-  const isExpanded = expandedEntryId === entry.id;
-
-  // Find first subcriteria tag (has a parentId)
-  const subTag = entry.tags.find(t => t.parentId);
+export default function UserEntry({ entry, onEdit }) {
+  // Prepare content preview: take first line or truncated to 200 chars
+  let preview = entry.content || '';
+  const newlineIndex = preview.indexOf('\n');
+  if (newlineIndex !== -1) {
+    preview = preview.substring(0, newlineIndex);
+  }
+  if (preview.length > 200) {
+    preview = preview.substring(0, 200) + '...';
+  }
 
   return (
-    <div
-      onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)}
-      className={`user-entry ${isExpanded ? 'expanded' : ''}`}
-      style={{ cursor: 'pointer', transition: 'all 0.3s ease' }}
-    >
-      <div className='user-entry-row-container'>
-        <div className="entry-subcode-column">
-          <span className="entry-subcode-label">{subTag ? subTag.code : ''}</span>
-        </div>
-        <div className='entry-content-column'>
-          <div className="entry-header">
-            <div className="entry-title"><strong>{entry.title.slice(0, 25)}...</strong></div>
-            <div className="entry-actions" onClick={e => e.stopPropagation()}>
-              <button onClick={() => handleEditEntry(entry)}>Edit</button>
-              <button onClick={() => handleDeleteEntry(entry.id)}>Delete</button>
-            </div>
-          </div>
-          <div className="entry-content">
-            {isExpanded ? entry.content : `${entry.content.slice(0, 75)}...`}
-          </div>
-        </div>
+    <div className="entry-card">
+      <div className="entry-card-header">
+        <h3 className="entry-card-title">{entry.title}</h3>
+        <button
+          className="entry-card-edit-button"
+          onClick={() => onEdit(entry)}
+        >
+          Edit
+        </button>
       </div>
+      <div className="entry-card-content">{preview}</div>
+      {entry.tags && entry.tags.length > 0 && (
+        <div className="entry-card-tags">
+          {entry.tags.map(tag => (
+            <span key={tag.id} className="entry-card-tag">
+              {tag.name}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

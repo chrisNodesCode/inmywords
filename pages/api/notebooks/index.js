@@ -1,54 +1,32 @@
-import React from 'react';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from "../auth/[...nextauth]"; // Ensure this path is correct
-import { getServerSession } from 'next-auth/next';
-
-import Link from 'next/link';
+// pages/api/notebooks/index.js
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../auth/[...nextauth]";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function getServerSideProps(ctx) {
-  const session = await getSession({ req: ctx.req });
-  if (!session) {
-    return {
-      redirect: {
-        destination: '/api/auth/signin',
-        permanent: false,
-      },
-    };
-  }
-  const userId = session.user.id;
-  const notebooks = await prisma.notebook.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-  });
-  return {
-    props: { notebooks },
-  };
-}
+export default async function handler(req, res) {
+  const session = await getServerSession(req, res, authOptions);
+  if (!session) return res.status(401).json({ error: "Unauthorized" });
 
-export default function NotebooksIndexPage({ notebooks }) {
-  return (
-    <Layout>
-      <header>
-        <h1>Your Notebooks</h1>
-      </header>
-      <div className="notebook-actions" style={{ margin: '1rem 0' }}>
-        <Link href="/notebooks/new">
-          <button type="button" className="create-notebook-button">
-            Create New Notebook
-          </button>
-        </Link>
-      </div>
-      <ul>
-        {notebooks.map((nb) => (
-          <li key={nb.id}>
-            <Link href={`/notebooks/${nb.id}`}>
-              {nb.title}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </Layout>
-  );
+  const userId = session.user.id;
+  if (req.method === "GET") {
+    const notebooks = await prisma.notebook.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    });
+    return res.status(200).json(notebooks);
+  }
+
+  if (req.method === "POST") {
+    const { title } = req.body;
+    if (!title) return res.status(400).json({ error: "Missing title" });
+    const newNb = await prisma.notebook.create({
+      data: { title, userId },
+    });
+    return res.status(201).json(newNb);
+  }
+
+  res.setHeader("Allow", ["GET", "POST"]);
+  res.status(405).end(`Method ${req.method} Not Allowed`);
 }

@@ -1,3 +1,5 @@
+
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,58 +10,79 @@ datasource db {
 }
 
 model User {
-  id           String      @id @default(uuid()) @db.Uuid
-  username     String?    @unique
-  email        String      @unique
-  passwordHash String
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  entries      Entry[]
-  preference   Preference?
-  notebooks    Notebook[]  @relation("UserNotebooks")
+  id           String       @id @default(uuid())
+  username     String       @unique
+  email        String       @unique
+  passwordHash String?
+  notebooks    Notebook[]   // User → Notebooks
+  entries      Entry[]      // Quick access to user-owned entries
+  preference   Preference?  // One-to-one user preference
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 }
 
 model Preference {
-  id          String   @id @default(uuid()) @db.Uuid
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String   @unique @db.Uuid
-  editorBg    String   @default("#FFFFFF")
-  editorWidth String   @default("comfortable")
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String @unique
+  editorBg      String
+  editorWidth   String
 }
 
 model Notebook {
-  id          String    @id @default(uuid()) @db.Uuid
-  user        User      @relation("UserNotebooks", fields: [userId], references: [id])
-  userId      String    @db.Uuid
-  title       String
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  tags        Tag[]
+  id           String    @id @default(uuid())
+  title        String
+  description  String?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  groups       Group[]   // Notebook → Groups
+  tags         Tag[]     // Metadata tags scoped to this notebook
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
-model Tag {
-  id          String     @id @default(uuid()) @db.Uuid
-  name        String
-  code        String     @unique
-  description String?
-  parentId    String?    @db.Uuid
-  parent      Tag?       @relation("TagToParent", fields: [parentId], references: [id])
-  children    Tag[]      @relation("TagToParent")
-  entries     Entry[]    @relation("EntryTags")
-  notebookId  String?    @db.Uuid
-  notebook    Notebook?  @relation(fields: [notebookId], references: [id])
+model Group {
+  id           String     @id @default(uuid())
+  name         String
+  description  String?
+  notebook     Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  notebookId   String
+  subgroups    Subgroup[] // Group → Subgroups
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
 
-  @@index([notebookId])
+model Subgroup {
+  id           String     @id @default(uuid())
+  name         String
+  description  String?
+  group        Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId      String
+  entries      Entry[]    // Subgroup → Entries
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model Entry {
-  id        String   @id @default(uuid()) @db.Uuid
-  title     String
-  content   String
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String   @db.Uuid
-  tags      Tag[]    @relation("EntryTags")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String     @id @default(uuid())
+  title        String
+  content      String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  subgroup     Subgroup   @relation(fields: [subgroupId], references: [id], onDelete: Cascade)
+  subgroupId   String
+  tags         Tag[]      @relation("EntryTags") // Metadata tags
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Tag {
+  id           String     @id @default(uuid())
+  name         String
+  code         String     @unique
+  description  String?
+  notebook     Notebook?  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  notebookId   String?    // Tags scoped to a notebook; null if global
+  entries      Entry[]    @relation("EntryTags") // Entries tagged with this metadata
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }

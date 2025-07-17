@@ -1,6 +1,7 @@
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from "../auth/[...nextauth]"; // Ensure this path is correct
+// pages/api/entries/[id].js
 import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -13,74 +14,80 @@ export default async function handler(req, res) {
   const userId = session.user.id;
   const { id } = req.query;
 
-  switch (req.method) {
-    case 'GET':
-      try {
-        const entry = await prisma.entry.findUnique({
-          where: { id },
-          include: { tags: true },
-        });
-        if (!entry || entry.userId !== userId) {
-          return res.status(404).json({ error: 'Entry not found' });
-        }
-        return res.status(200).json(entry);
-      } catch (error) {
-        console.error('GET /api/entries/[id] error', error);
-        return res.status(500).json({ error: 'Failed to fetch entry' });
-      }
+  try {
+    // Fetch entry and verify ownership
+    const entry = await prisma.entry.findUnique({
+      where: { id },
+      include: {
+        tags: true,
+        subgroup: { include: { group: true } },
+      },
+    });
+    if (!entry || entry.userId !== userId) {
+      return res.status(404).json({ error: 'Entry not found' });
+    }
 
-    case 'PUT':
-      try {
-        const { title, content, tagIds } = req.body;
-        // Basic validation
+    switch (req.method) {
+      case 'GET':
+        // Return entry details
+        return res.status(200).json(entry);
+
+      case 'PUT':
+        // Parse and validate input
+        const { title, content, subgroupId, tagIds } = req.body;
         if (title !== undefined && typeof title !== 'string') {
           return res.status(400).json({ error: 'Invalid title' });
         }
         if (content !== undefined && typeof content !== 'string') {
           return res.status(400).json({ error: 'Invalid content' });
         }
-        if (!Array.isArray(tagIds) || !tagIds.every(t => typeof t === 'string')) {
+        if (subgroupId !== undefined && typeof subgroupId !== 'string') {
+          return res.status(400).json({ error: 'Invalid subgroupId' });
+        }
+        if (tagIds !== undefined && (!Array.isArray(tagIds) || !tagIds.every(id => typeof id === 'string'))) {
           return res.status(400).json({ error: 'Invalid tagIds' });
         }
-        // Verify ownership
-        const existing = await prisma.entry.findUnique({ where: { id } });
-        if (!existing || existing.userId !== userId) {
-          return res.status(404).json({ error: 'Entry not found' });
+
+        // If subgroup change requested, verify new subgroup ownership
+        if (subgroupId) {
+          const target = await prisma.subgroup.findUnique({
+            where: { id: subgroupId },
+            include: { group: { include: { notebook: true } } },
+          });
+          if (!target || target.group.notebook.userId !== userId) {
+            return res.status(404).json({ error: 'Target subgroup not found' });
+          }
         }
-        // Update entry
+
+        // Perform update
         const updated = await prisma.entry.update({
           where: { id },
           data: {
             ...(title !== undefined ? { title } : {}),
             ...(content !== undefined ? { content } : {}),
-            tags: {
-              set: tagIds.map(tagId => ({ id: tagId })),
-            },
+            ...(subgroupId !== undefined ? { subgroupId } : {}),
+            ...(tagIds !== undefined
+              ? { tags: { set: tagIds.map(id => ({ id })) } }
+              : {}),
           },
-          include: { tags: true },
+          include: {
+            tags: true,
+            subgroup: { include: { group: true } },
+          },
         });
         return res.status(200).json(updated);
-      } catch (error) {
-        console.error('PUT /api/entries/[id] error', error);
-        return res.status(500).json({ error: 'Failed to update entry' });
-      }
 
-    case 'DELETE':
-      try {
-        // Verify ownership
-        const existing = await prisma.entry.findUnique({ where: { id } });
-        if (!existing || existing.userId !== userId) {
-          return res.status(404).json({ error: 'Entry not found' });
-        }
+      case 'DELETE':
+        // Delete the entry
         await prisma.entry.delete({ where: { id } });
         return res.status(204).end();
-      } catch (error) {
-        console.error('DELETE /api/entries/[id] error', error);
-        return res.status(500).json({ error: 'Failed to delete entry' });
-      }
 
-    default:
-      res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
-      return res.status(405).end(`Method ${req.method} Not Allowed`);
+      default:
+        res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
+        return res.status(405).end(`Method ${req.method} Not Allowed`);
+    }
+  } catch (error) {
+    console.error(`Error in /api/entries/[id] (${req.method})`, error);
+    return res.status(500).json({ error: 'Server error' });
   }
 }
