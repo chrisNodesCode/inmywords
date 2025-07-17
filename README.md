@@ -23,6 +23,7 @@
 - we will start with two themes that the user can select from the top NavBar component that changes background color and font color. The two themes are light/dark (white bg with black font/black bg with white font)
 - border-radius value greater than zero applied to all cards, buttons and container backgrounds
 - preferred to use <div> whereever possible and to rely on css classNames rather than preset h1, h2, h3 etc. 
+- all transforms should have a smooth ease animation transition type look and when cards expand, the rest of the layout should move smoothly as well to make room
 
 ## User Experience and Component Breakdown
 
@@ -82,8 +83,7 @@
 
 ### Other Components Not Fully Developed
 
-- NotebookTree.jsx - intended to show a concise, but fully expanded representation of the nested models Notebook > Groups > Subgroups > Entries [tags]
-- ThemeSelector.jsx - intended to allow for more settings in the future than simply light/dark
+- ThemeSelector.jsx - intended to allow for more settings in the future than simply light/dark and intended to be modular so that if we want to include it in the EntryEditor, we can, since that modal component covers the glabl NavBar
 
 ## NextJS
 
@@ -107,8 +107,10 @@
 - groups
 - - [id].js
 - - index.js
-- notebooks/[id]/
-- - tree.js
+- notebooks/
+- - [id].js
+- - [id]/
+- - - tree.js
 - subgroups
 - - [id].js
 - - index.js
