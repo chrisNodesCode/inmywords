@@ -393,3 +393,51 @@ button,
 .notebook-list-item {
   user-select: none;
 }
+/* NavBar styles */
+.navbar {
+  width: 100%;
+  padding: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #ccc;
+}
+
+.navbar-link {
+  margin-right: var(--spacing-md);
+  text-decoration: none;
+  color: inherit;
+}
+
+.navbar-right button {
+  margin-left: var(--spacing-md);
+}
+
+/* Dashboard notebook list */
+.notebook-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: var(--spacing-md);
+}
+
+.notebook-card {
+  border: 1px solid #ccc;
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+}
+
+.notebook-card:hover {
+  transform: scale(1.02);
+  background: var(--bg-highlight);
+}
+
+.add-notebook-btn {
+  margin: var(--spacing-md);
+}
