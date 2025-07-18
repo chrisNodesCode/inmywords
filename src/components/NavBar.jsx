@@ -1,40 +1,39 @@
-// src/components/NavBar.jsx
-import React from 'react';
-import { useRouter } from 'next/router';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { signOut } from 'next-auth/react';
-import ThemeSelector from './ThemeSelector';
 
-export default function NavBar({ title, backPath }) {
-  const router = useRouter();
+export default function NavBar() {
+  const [theme, setTheme] = useState('light');
 
-  const handleLogout = async () => {
-    await signOut({ redirect: false });
-    localStorage.removeItem('token');
-    router.push('/');
+  useEffect(() => {
+    const stored = localStorage.getItem('theme') || 'light';
+    setTheme(stored);
+    document.documentElement.setAttribute('data-theme', stored);
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setTheme(next);
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
   };
 
   return (
-    <div style={{
-      width: '100%',
-      padding: '1rem 2rem',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      borderBottom: '1px solid #ccc'
-    }}>
-      {backPath ? (
-        <span
-          style={{ fontWeight: 'bold', cursor: 'pointer' }}
-          onClick={() => router.push(backPath)}
-        >
-          {title}
-        </span>
-      ) : (
-        <span style={{ fontWeight: 'bold' }}>{title}</span>
-      )}
-      {/* theme switcher pills */}
-      <ThemeSelector style={{ margin: '0 1rem' }} />
-      <button onClick={handleLogout}>Logout</button>
-    </div>
+    <nav className="navbar">
+      <div className="navbar-left">
+        <Link href="/dashboard" className="navbar-link">Dashboard</Link>
+      </div>
+      <div className="navbar-center">
+        <Link href="#" className="navbar-link">Profile</Link>
+      </div>
+      <div className="navbar-right">
+        <button onClick={toggleTheme} className="theme-toggle-btn">
+          {theme === 'light' ? 'Dark' : 'Light'} Mode
+        </button>
+        <button onClick={() => signOut({ callbackUrl: '/' })} className="logout-btn">
+          Logout
+        </button>
+      </div>
+    </nav>
   );
 }
