@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
+
+
 import EntryEditor from './EntryEditor';
 
 export default function Notebook() {
@@ -34,6 +36,7 @@ export default function Notebook() {
 
     fetchNotebook();
   }, []);
+
 
   const handleSave = (entry) => {
     // TODO: integrate with API
@@ -87,6 +90,8 @@ export default function Notebook() {
         </div>
       )}
 
+      <h1>Notebook</h1>
+      <button onClick={() => setShowEditor(true)}>Add Entry</button>
       {showEditor && (
         <EntryEditor onSave={handleSave} onCancel={handleCancel} />
       )}
