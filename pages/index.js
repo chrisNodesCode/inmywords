@@ -1,7 +1,13 @@
-import React from 'react';
-import App from '../src/App.jsx';
+import { useSession } from 'next-auth/react';
+import LandingPage from '../src/components/LandingPage';
+import Notebook from '../src/components/Notebook';
 
-// Next.js page simply renders your existing App component
 export default function HomePage() {
-  return <App />;
+  const { data: session, status } = useSession();
+
+  if (status === 'loading') {
+    return null;
+  }
+
+  return session ? <Notebook /> : <LandingPage />;
 }
