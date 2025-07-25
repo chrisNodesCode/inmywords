@@ -61,36 +61,49 @@ export default function Notebook() {
       {!loading && notebook && (
         <div style={{ marginTop: '2rem' }}>
           {notebook.groups.map(group => (
-            <div key={group.id} style={{ marginBottom: '1rem' }}>
-              <h2>{group.name}</h2>
-              <div style={{ paddingLeft: '1rem' }}>
-                {group.subgroups.map(sub => (
-                  <div key={sub.id} style={{ marginBottom: '0.5rem' }}>
-                    <h3>{sub.name}</h3>
-                    <div style={{ paddingLeft: '1rem' }}>
-                      {sub.entries.map(entry => (
-                        <div key={entry.id} style={{ marginBottom: '0.25rem' }}>
-                          <h4>{entry.title}</h4>
-                          <p>{entry.content}</p>
-                          {entry.tags.length > 0 && (
-                            <ul>
-                              {entry.tags.map(tag => (
-                                <li key={tag.id}>{tag.name}</li>
-                              ))}
-                            </ul>
-                          )}
+            <div>
+              <div key={group.id} style={{ marginBottom: '1rem' }}>
+                <h2>{group.name}</h2>
+                <div style={{ paddingLeft: '1rem' }}>
+                  {group.subgroups.map(sub => (
+                    <div>
+                      <div key={sub.id} style={{ marginBottom: '0.5rem' }}>
+                        <h3>{sub.name}</h3>
+                        <div style={{ paddingLeft: '1rem' }}>
+                          {sub.entries.map(entry => (
+                            <div>
+                              <div key={entry.id} style={{ marginBottom: '0.25rem' }}>
+                                <h4>{entry.title}</h4>
+                                <p>{entry.content}</p>
+                                {entry.tags.length > 0 && (
+                                  <div>
+                                    {entry.tags.map(tag => (
+                                      <div>
+                                        <div key={tag.id}>{tag.name}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {entry && <button onClick={() => setShowEditor(true)}>Add Tag</button>}
+                              </div>
+                              {sub && <button onClick={() => setShowEditor(true)}>Add Entry</button>}
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                      <button onClick={() => setShowEditor(true)}>Add Subgroup</button>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
+              <button onClick={() => setShowEditor(true)}>Add Group</button>
+
             </div>
           ))}
         </div>
       )}
 
-      <h1>Notebook</h1>
+
       <button onClick={() => setShowEditor(true)}>Add Entry</button>
       {showEditor && (
         <EntryEditor onSave={handleSave} onCancel={handleCancel} />
