@@ -1,24 +1,32 @@
 // src/components/EntryEditor.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
-export default function EntryEditor({ entry, onSave, onCancel }) {
-  const [title, setTitle] = useState(entry?.title || '');
-  const [content, setContent] = useState(entry?.content || '');
-
-  // Synchronize local state when entry changes
-  useEffect(() => {
-    if (entry) {
-      setTitle(entry.title);
-      setContent(entry.content);
-    }
-  }, [entry]);
+/**
+ * Reusable modal editor for creating new entities in the notebook tree.
+ * `type` determines which fields are shown and how the save payload is shaped.
+ * parent information (such as subgroupId) is passed through `parent`.
+ */
+export default function EntryEditor({ type, parent, onSave, onCancel }) {
+  const [title, setTitle] = useState(''); // for entries
+  const [content, setContent] = useState('');
+  const [name, setName] = useState(''); // for groups, subgroups, tags
+  const [description, setDescription] = useState('');
 
   const handleSave = () => {
-    if (!title.trim() || !content.trim()) {
-      alert('Title and content cannot be empty.');
+    if (type === 'entry') {
+      if (!title.trim() || !content.trim()) {
+        alert('Title and content cannot be empty.');
+        return;
+      }
+      onSave({ title: title.trim(), content: content.trim(), parent });
       return;
     }
-    onSave({ ...entry, title: title.trim(), content: content.trim() });
+
+    if (!name.trim()) {
+      alert('Name cannot be empty.');
+      return;
+    }
+    onSave({ name: name.trim(), description: description.trim(), parent });
   };
 
   // Close on background click
@@ -33,26 +41,55 @@ export default function EntryEditor({ entry, onSave, onCancel }) {
       <div className="editor-modal-content slide-up">
         <div className="editor-modal-header">
           <h2 className="editor-modal-title">
-            {entry.id ? 'Edit Entry' : 'New Entry'}
+            {type === 'entry' && 'New Entry'}
+            {type === 'group' && 'New Group'}
+            {type === 'subgroup' && 'New Subgroup'}
+            {type === 'tag' && 'New Tag'}
           </h2>
           <button className="editor-modal-close" onClick={onCancel}>
             ×
           </button>
         </div>
         <div className="editor-modal-body">
-          <input
-            className="editor-input-title"
-            type="text"
-            placeholder="Entry Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <textarea
-            className="editor-textarea-content"
-            placeholder="Write your entry..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
+          {type === 'entry' && (
+            <>
+              <input
+                className="editor-input-title"
+                type="text"
+                placeholder="Entry Title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+              <textarea
+                className="editor-textarea-content"
+                placeholder="Write your entry..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+              />
+            </>
+          )}
+          {type !== 'entry' && (
+            <>
+              {parent?.label && (
+                <div style={{ marginBottom: '0.5rem' }}>{parent.label}</div>
+              )}
+              <input
+                className="editor-input-title"
+                type="text"
+                placeholder="Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              {(type === 'group' || type === 'subgroup') && (
+                <textarea
+                  className="editor-textarea-content"
+                  placeholder="Description (optional)"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              )}
+            </>
+          )}
         </div>
         <div className="editor-modal-footer">
           <button className="editor-button" onClick={handleSave}>
