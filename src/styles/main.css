@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=Cutive+Mono&display=swap');
+
+body {
+  font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
+  margin: 0;
+  background: #fff;
+  color: #000;
+}
+
+.notebook-container {
+  padding: 2rem;
+}
+
+.groups-container {
+  margin-top: 2rem;
+}
+
+.group-card,
+.subgroup-card,
+.entry-card {
+  border-radius: 1em;
+  padding: 1em;
+  margin-bottom: 1em;
+  background-color: #f8f8f8;
+  border: 1px solid #e0e0e0;
+}
+
+.subgroup-card {
+  background-color: #f4f4f4;
+  margin-left: 1em;
+}
+
+.entry-card {
+  background-color: #f0f0f0;
+  margin-left: 2em;
+}
+
+.editor-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.editor-modal-content {
+  background: #fff;
+  color: #000;
+  padding: 1em;
+  border-radius: 1em;
+  width: 90%;
+  max-width: 500px;
+}
+
+.editor-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1em;
+}
+
+.editor-modal-title {
+  margin: 0;
+}
+
+.editor-modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.editor-modal-body input,
+.editor-modal-body textarea {
+  width: 100%;
+  margin-bottom: 0.5em;
+  padding: 0.5em;
+  border-radius: 0.5em;
+  border: 1px solid #ccc;
+  font-family: inherit;
+}
+
+.editor-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5em;
+}
+
+.editor-button {
+  padding: 0.5em 1em;
+  border-radius: 0.5em;
+  border: 1px solid #000;
+  background: #fff;
+  cursor: pointer;
+}
+
+.editor-button.secondary {
+  background: #eee;
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.25em 0.5em;
+  border-radius: 0.5em;
+  background: #ddd;
+  margin-right: 0.25em;
+  margin-bottom: 0.25em;
+}
