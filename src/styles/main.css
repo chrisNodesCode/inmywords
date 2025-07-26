@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=Cutive+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
 
 body {
   font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
@@ -9,6 +9,13 @@ body {
 
 .notebook-container {
   padding: 2rem;
+  max-width: 75vw;
+  margin: auto;
+  display: flex;
+  align-self: stretch;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
 }
 
 .groups-container {
@@ -19,20 +26,26 @@ body {
 .subgroup-card,
 .entry-card {
   border-radius: 1em;
-  padding: 1em;
   margin-bottom: 1em;
   background-color: #f8f8f8;
   border: 1px solid #e0e0e0;
 }
 
+.group-card {
+  padding: 2rem;
+  margin-top: 2rem;
+}
+
 .subgroup-card {
   background-color: #f4f4f4;
-  margin-left: 1em;
+  margin: 1rem;
+  padding: 2rem;
 }
 
 .entry-card {
   background-color: #f0f0f0;
-  margin-left: 2em;
+  margin: 2rem;
+  padding: 2rem;
 }
 
 .editor-modal-overlay {
@@ -41,7 +54,9 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  /* background: rgba(0, 0, 0, 0.5); darkened background for non full width modal*/
+
+  background: rgba(255, 255, 255, 1);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -51,10 +66,11 @@ body {
 .editor-modal-content {
   background: #fff;
   color: #000;
-  padding: 1em;
-  border-radius: 1em;
-  width: 90%;
-  max-width: 500px;
+  padding: 10rem;
+  /* border-radius: 2rem; */
+  height: 100%;
+  width: 100%;
+  max-width: 100vw;
 }
 
 .editor-modal-header {
@@ -66,6 +82,12 @@ body {
 
 .editor-modal-title {
   margin: 0;
+  font-weight: 600;
+  height: 5rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 .editor-modal-close {
@@ -81,8 +103,20 @@ body {
   margin-bottom: 0.5em;
   padding: 0.5em;
   border-radius: 0.5em;
-  border: 1px solid #ccc;
+  /* border: 1px solid #ccc; */
   font-family: inherit;
+}
+
+.editor-modal-body input {
+  height: 2rem;
+  padding: 1rem;
+  border: none;
+}
+
+.editor-modal-body textarea {
+  height: 60vh;
+  padding: 1rem;
+  border: none;
 }
 
 .editor-modal-footer {
@@ -112,6 +146,7 @@ body {
     transform: translateY(20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
