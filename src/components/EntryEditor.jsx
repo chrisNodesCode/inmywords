@@ -36,9 +36,12 @@ export default function EntryEditor({ type, parent, onSave, onCancel }) {
     }
   };
 
+  const overlayClass = `editor-modal-overlay ${type === 'entry' ? 'fullscreen' : 'popup'}`;
+  const contentClass = `editor-modal-content ${type === 'entry' ? 'fullscreen' : 'popup'} slide-up`;
+
   return (
-    <div className="editor-modal-overlay" onClick={handleOverlayClick}>
-      <div className="editor-modal-content slide-up">
+    <div className={overlayClass} onClick={handleOverlayClick}>
+      <div className={contentClass}>
         <div className="editor-modal-header">
           <h2 className="editor-modal-title">
             {type === 'entry' && 'New Entry'}
