@@ -54,20 +54,34 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  /* background: rgba(0, 0, 0, 0.5); darkened background for non full width modal*/
-
-  background: rgba(255, 255, 255, 1);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
 }
 
+.editor-modal-overlay.popup {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.editor-modal-overlay.fullscreen {
+  background: rgba(255, 255, 255, 1);
+}
+
 .editor-modal-content {
   background: #fff;
   color: #000;
+}
+
+.editor-modal-content.popup {
+  padding: 1em;
+  border-radius: 1em;
+  width: 90%;
+  max-width: 500px;
+}
+
+.editor-modal-content.fullscreen {
   padding: 10rem;
-  /* border-radius: 2rem; */
   height: 100%;
   width: 100%;
   max-width: 100vw;
