@@ -155,6 +155,91 @@ export default function Notebook() {
     setEditorState({ isOpen: true, type, parent, index });
   };
 
+  const handleDeleteGroup = async (groupId) => {
+    try {
+      const res = await fetch(`/api/groups/${groupId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete group');
+      setNotebook((prev) => {
+        const groups = prev.groups.filter((g) => g.id !== groupId);
+        return { ...prev, groups };
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteSubgroup = async (groupId, subgroupId) => {
+    try {
+      const res = await fetch(`/api/subgroups/${subgroupId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete subgroup');
+      setNotebook((prev) => {
+        const groups = prev.groups.map((g) => {
+          if (g.id !== groupId) return g;
+          return {
+            ...g,
+            subgroups: g.subgroups.filter((s) => s.id !== subgroupId),
+          };
+        });
+        return { ...prev, groups };
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteEntry = async (groupId, subgroupId, entryId) => {
+    try {
+      const res = await fetch(`/api/entries/${entryId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete entry');
+      setNotebook((prev) => {
+        const groups = prev.groups.map((g) => {
+          if (g.id !== groupId) return g;
+          return {
+            ...g,
+            subgroups: g.subgroups.map((s) => {
+              if (s.id !== subgroupId) return s;
+              return { ...s, entries: s.entries.filter((e) => e.id !== entryId) };
+            }),
+          };
+        });
+        return { ...prev, groups };
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRemoveTag = async (groupId, subgroupId, entryId, tagId, tagIds) => {
+    try {
+      const newIds = tagIds.filter((id) => id !== tagId);
+      const res = await fetch(`/api/entries/${entryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tagIds: newIds }),
+      });
+      if (!res.ok) throw new Error('Failed to remove tag');
+      const updated = await res.json();
+      setNotebook((prev) => {
+        const groups = prev.groups.map((g) => {
+          if (g.id !== groupId) return g;
+          return {
+            ...g,
+            subgroups: g.subgroups.map((s) => {
+              if (s.id !== subgroupId) return s;
+              const entries = s.entries.map((e) =>
+                e.id === entryId ? { ...updated } : e
+              );
+              return { ...s, entries };
+            }),
+          };
+        });
+        return { ...prev, groups };
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="notebook-container">
       <h1>{notebook ? notebook.title : 'Notebook'}</h1>
@@ -170,11 +255,17 @@ export default function Notebook() {
             <div>
               <div key={group.id} className="group-card">
                 <h2>{group.name}</h2>
+                {group.subgroups.length === 0 && (
+                  <button onClick={() => handleDeleteGroup(group.id)}>Delete</button>
+                )}
                 <div>
                   {group.subgroups.map((sub, sIdx) => (
                     <div>
                       <div key={sub.id} className="subgroup-card">
                         <h3>{sub.name}</h3>
+                        {sub.entries.length === 0 && (
+                          <button onClick={() => handleDeleteSubgroup(group.id, sub.id)}>Delete</button>
+                        )}
                         <div>
                           {sub.entries.map((entry, eIdx) => (
                             <div>
@@ -183,11 +274,29 @@ export default function Notebook() {
                                 <p>{entry.content}</p>
                                 {entry.tags.length > 0 && (
                                   <div>
-                                    {entry.tags.map(tag => (
-                                      <div key={tag.id} className="tag">{tag.name}</div>
+                                    {entry.tags.map((tag) => (
+                                      <div
+                                        key={tag.id}
+                                        className="tag"
+                                        onClick={() =>
+                                          handleRemoveTag(
+                                            group.id,
+                                            sub.id,
+                                            entry.id,
+                                            tag.id,
+                                            entry.tags.map((t) => t.id)
+                                          )
+                                        }
+                                      >
+                                        <span className="close-icon">×</span>
+                                        {tag.name}
+                                      </div>
                                     ))}
                                   </div>
                                 )}
+                                <button onClick={() => handleDeleteEntry(group.id, sub.id, entry.id)}>
+                                  Delete
+                                </button>
                                 {entry && (
                                   <button
                                     onClick={() =>

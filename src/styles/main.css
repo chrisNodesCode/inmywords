@@ -168,10 +168,18 @@ body {
 }
 
 .tag {
-  display: inline-block;
   padding: 0.25em 0.5em;
   border-radius: 0.5em;
   background: #ddd;
   margin-right: 0.25em;
   margin-bottom: 0.25em;
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tag .close-icon {
+  margin-right: 0.25em;
+  font-weight: bold;
 }
