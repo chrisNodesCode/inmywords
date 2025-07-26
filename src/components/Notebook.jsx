@@ -8,6 +8,9 @@ export default function Notebook() {
   const [editorState, setEditorState] = useState({ isOpen: false, type: null, parent: null, index: null });
   const [notebook, setNotebook] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState([]); // ids of expanded groups
+  const [expandedSubgroups, setExpandedSubgroups] = useState([]); // ids of expanded subgroups
+  const [expandedEntries, setExpandedEntries] = useState([]); // ids of expanded entries
 
   useEffect(() => {
     async function fetchNotebook() {
@@ -155,6 +158,46 @@ export default function Notebook() {
     setEditorState({ isOpen: true, type, parent, index });
   };
 
+  const toggleGroup = (group) => {
+    setExpandedGroups((prev) => {
+      const isOpen = prev.includes(group.id);
+      if (isOpen) {
+        setExpandedSubgroups((subs) =>
+          subs.filter((id) => !group.subgroups.some((s) => s.id === id))
+        );
+        setExpandedEntries((ents) =>
+          ents.filter(
+            (id) =>
+              !group.subgroups.some((s) => s.entries.some((e) => e.id === id))
+          )
+        );
+        return prev.filter((id) => id !== group.id);
+      }
+      return [...prev, group.id];
+    });
+  };
+
+  const toggleSubgroup = (subgroup) => {
+    setExpandedSubgroups((prev) => {
+      const isOpen = prev.includes(subgroup.id);
+      if (isOpen) {
+        setExpandedEntries((ents) =>
+          ents.filter((id) => !subgroup.entries.some((e) => e.id === id))
+        );
+        return prev.filter((id) => id !== subgroup.id);
+      }
+      return [...prev, subgroup.id];
+    });
+  };
+
+  const toggleEntry = (entryId) => {
+    setExpandedEntries((prev) =>
+      prev.includes(entryId)
+        ? prev.filter((id) => id !== entryId)
+        : [...prev, entryId]
+    );
+  };
+
   const handleDeleteGroup = async (groupId) => {
     try {
       const res = await fetch(`/api/groups/${groupId}`, { method: 'DELETE' });
@@ -251,101 +294,161 @@ export default function Notebook() {
 
       {!loading && notebook && (
         <div className="groups-container">
-          {notebook.groups.map((group, gIdx) => (
-            <div>
-              <div key={group.id} className="group-card">
-                <h2>{group.name}</h2>
-                {group.subgroups.length === 0 && (
-                  <button onClick={() => handleDeleteGroup(group.id)}>Delete</button>
-                )}
+          {notebook.groups.map((group) => (
+            <div key={group.id} className="group-card" onClick={() => toggleGroup(group)}>
+              <h2>{group.name}</h2>
+              {expandedGroups.includes(group.id) && group.subgroups.length > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleGroup(group);
+                  }}
+                >
+                  Collapse
+                </button>
+              )}
+              {group.subgroups.length === 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteGroup(group.id);
+                  }}
+                >
+                  Delete
+                </button>
+              )}
+
+              {expandedGroups.includes(group.id) && (
                 <div>
-                  {group.subgroups.map((sub, sIdx) => (
-                    <div>
-                      <div key={sub.id} className="subgroup-card">
-                        <h3>{sub.name}</h3>
-                        {sub.entries.length === 0 && (
-                          <button onClick={() => handleDeleteSubgroup(group.id, sub.id)}>Delete</button>
-                        )}
+                  {group.subgroups.map((sub) => (
+                    <div key={sub.id} className="subgroup-card" onClick={(e) => { e.stopPropagation(); toggleSubgroup(sub); }}>
+                      <h3>{sub.name}</h3>
+                      {expandedSubgroups.includes(sub.id) && sub.entries.length > 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSubgroup(sub);
+                          }}
+                        >
+                          Collapse
+                        </button>
+                      )}
+                      {sub.entries.length === 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSubgroup(group.id, sub.id);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      )}
+
+                      {expandedSubgroups.includes(sub.id) && (
                         <div>
-                          {sub.entries.map((entry, eIdx) => (
-                            <div>
-                              <div key={entry.id} className="entry-card">
-                                <h4>{entry.title}</h4>
-                                <p>{entry.content}</p>
-                                {entry.tags.length > 0 && (
-                                  <div>
-                                    {entry.tags.map((tag) => (
-                                      <div
-                                        key={tag.id}
-                                        className="tag"
-                                        onClick={() =>
-                                          handleRemoveTag(
-                                            group.id,
-                                            sub.id,
-                                            entry.id,
-                                            tag.id,
-                                            entry.tags.map((t) => t.id)
-                                          )
-                                        }
-                                      >
-                                        <span className="close-icon">×</span>
-                                        {tag.name}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                <button onClick={() => handleDeleteEntry(group.id, sub.id, entry.id)}>
-                                  Delete
-                                </button>
-                                {entry && (
+                          {sub.entries.map((entry) => (
+                            <div key={entry.id} className="entry-card" onClick={(e) => { e.stopPropagation(); toggleEntry(entry.id); }}>
+                              <h4>{entry.title}</h4>
+                              {expandedEntries.includes(entry.id) && (
+                                <>
+                                  <p>{entry.content}</p>
+                                  {entry.tags.length > 0 && (
+                                    <div>
+                                      {entry.tags.map((tag) => (
+                                        <div
+                                          key={tag.id}
+                                          className="tag"
+                                          onClick={() =>
+                                            handleRemoveTag(
+                                              group.id,
+                                              sub.id,
+                                              entry.id,
+                                              tag.id,
+                                              entry.tags.map((t) => t.id)
+                                            )
+                                          }
+                                        >
+                                          <span className="close-icon">×</span>
+                                          {tag.name}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                   <button
-                                    onClick={() =>
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteEntry(group.id, sub.id, entry.id);
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       openEditor(
                                         'tag',
                                         {
                                           entryId: entry.id,
                                           subgroupId: sub.id,
                                           groupId: group.id,
-                                          tagIds: entry.tags.map(t => t.id),
+                                          tagIds: entry.tags.map((t) => t.id),
                                           label: `Entry: ${entry.title}`,
                                         },
                                         entry.tags.length - 1
-                                      )
-                                    }
+                                      );
+                                    }}
                                   >
                                     Add Tag
                                   </button>
-                                )}
-                              </div>
-                              {sub && (
-                                <button
-                                  onClick={() =>
-                                    openEditor(
-                                      'entry',
-                                      { subgroupId: sub.id, groupId: group.id, label: `Subgroup: ${sub.name}` },
-                                      eIdx
-                                    )
-                                  }
-                                >
-                                  Add Entry
-                                </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleEntry(entry.id);
+                                    }}
+                                  >
+                                    Collapse
+                                  </button>
+                                </>
                               )}
                             </div>
                           ))}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditor(
+                                'entry',
+                                { subgroupId: sub.id, groupId: group.id, label: `Subgroup: ${sub.name}` },
+                                sub.entries.length - 1
+                              );
+                            }}
+                          >
+                            Add Entry
+                          </button>
                         </div>
-                      </div>
-                      <button onClick={() => openEditor('subgroup', { groupId: group.id, label: `Group: ${group.name}` }, sIdx)}>Add Subgroup</button>
+                      )}
                     </div>
                   ))}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditor(
+                        'subgroup',
+                        { groupId: group.id, label: `Group: ${group.name}` },
+                        group.subgroups.length - 1
+                      );
+                    }}
+                  >
+                    Add Subgroup
+                  </button>
                 </div>
-              </div>
-              <button onClick={() => openEditor('group', { label: 'Notebook Root' }, gIdx)}>Add Group</button>
-
+              )}
             </div>
           ))}
+          <button onClick={() => openEditor('group', { label: 'Notebook Root' }, notebook.groups.length - 1)}>
+            Add Group
+          </button>
         </div>
       )}
-
 
       {editorState.isOpen && (
         <EntryEditor type={editorState.type} parent={editorState.parent} onSave={handleSave} onCancel={handleCancel} />
