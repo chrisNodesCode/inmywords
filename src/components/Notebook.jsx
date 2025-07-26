@@ -156,7 +156,7 @@ export default function Notebook() {
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
+    <div className="notebook-container">
       <h1>{notebook ? notebook.title : 'Notebook'}</h1>
       <button onClick={() => signOut({ redirect: false })} style={{ marginLeft: '1rem' }}>
         Logout
@@ -165,28 +165,26 @@ export default function Notebook() {
       {loading && <p>Loading...</p>}
 
       {!loading && notebook && (
-        <div style={{ marginTop: '2rem' }}>
+        <div className="groups-container">
           {notebook.groups.map((group, gIdx) => (
             <div>
-              <div key={group.id} style={{ marginBottom: '1rem' }}>
+              <div key={group.id} className="group-card">
                 <h2>{group.name}</h2>
-                <div style={{ paddingLeft: '1rem' }}>
+                <div>
                   {group.subgroups.map((sub, sIdx) => (
                     <div>
-                      <div key={sub.id} style={{ marginBottom: '0.5rem' }}>
+                      <div key={sub.id} className="subgroup-card">
                         <h3>{sub.name}</h3>
-                        <div style={{ paddingLeft: '1rem' }}>
+                        <div>
                           {sub.entries.map((entry, eIdx) => (
                             <div>
-                              <div key={entry.id} style={{ marginBottom: '0.25rem' }}>
+                              <div key={entry.id} className="entry-card">
                                 <h4>{entry.title}</h4>
                                 <p>{entry.content}</p>
                                 {entry.tags.length > 0 && (
                                   <div>
                                     {entry.tags.map(tag => (
-                                      <div>
-                                        <div key={tag.id}>{tag.name}</div>
-                                      </div>
+                                      <div key={tag.id} className="tag">{tag.name}</div>
                                     ))}
                                   </div>
                                 )}
