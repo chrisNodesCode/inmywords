@@ -43,7 +43,7 @@ export default function EntryEditor({
         content: content.trim(),
         parent,
         mode,
-        id: initialData.id,
+        id: safeData.id,
       });
       return;
     }
@@ -57,7 +57,7 @@ export default function EntryEditor({
       description: description.trim(),
       parent,
       mode,
-      id: initialData.id,
+      id: safeData.id,
     });
   };
 
