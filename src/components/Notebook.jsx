@@ -402,19 +402,21 @@ export default function Notebook() {
         <div className="groups-container">
           {notebook.groups.map((group) => (
             <div key={group.id} className="group-card" onClick={() => toggleGroup(group)}>
-              <h2>
-                <span
-                  className="edit-icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openEditor('group', { groupId: group.id }, null, group, 'edit');
-                  }}
-                >
-                  ✎
-                </span>
-                {group.name}
-              </h2>
-              {expandedGroups.includes(group.id) && group.subgroups.length > 0 && (
+              <div class="group-header">
+                <h2>
+                  <span
+                    className="edit-icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditor('group', { groupId: group.id }, null, group, 'edit');
+                    }}
+                  >
+                    ✎
+                  </span>
+                  {group.name}
+                </h2>
+              </div>
+              {/* {expandedGroups.includes(group.id) && group.subgroups.length > 0 && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -423,7 +425,7 @@ export default function Notebook() {
                 >
                   Collapse
                 </button>
-              )}
+              )} */}
               {group.subgroups.length === 0 && (
                 <button
                   onClick={(e) => {
@@ -439,25 +441,27 @@ export default function Notebook() {
                 <div>
                   {group.subgroups.map((sub) => (
                     <div key={sub.id} className="subgroup-card" onClick={(e) => { e.stopPropagation(); toggleSubgroup(sub); }}>
-                      <h3>
-                        <span
-                          className="edit-icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditor(
-                              'subgroup',
-                              { groupId: group.id, subgroupId: sub.id },
-                              null,
-                              sub,
-                              'edit'
-                            );
-                          }}
-                        >
-                          ✎
-                        </span>
-                        {sub.name}
-                      </h3>
-                      {expandedSubgroups.includes(sub.id) && sub.entries.length > 0 && (
+                      <div class="subgroup-header">
+                        <h3>
+                          <span
+                            className="edit-icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditor(
+                                'subgroup',
+                                { groupId: group.id, subgroupId: sub.id },
+                                null,
+                                sub,
+                                'edit'
+                              );
+                            }}
+                          >
+                            ✎
+                          </span>
+                          {sub.name}
+                        </h3>
+                      </div>
+                      {/* {expandedSubgroups.includes(sub.id) && sub.entries.length > 0 && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -466,7 +470,7 @@ export default function Notebook() {
                         >
                           Collapse
                         </button>
-                      )}
+                      )} */}
                       {sub.entries.length === 0 && (
                         <button
                           onClick={(e) => {

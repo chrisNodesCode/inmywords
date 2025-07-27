@@ -28,17 +28,30 @@ body {
   border-radius: 1em;
   margin-bottom: 1em;
   background-color: #f8f8f8;
-  border: 1px solid #e0e0e0;
+  /* border: 1px solid #e0e0e0; */
 }
 
 .group-card {
   padding: 2rem;
   margin-top: 2rem;
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.group-header {
+  border: 1px solid black;
+  padding: 2rem;
+  border-radius: 2rem;
 }
 
 .subgroup-card {
-  background-color: #f4f4f4;
+  background-color: #fff;
   margin: 1rem;
+  padding: 2rem;
+}
+
+.subgroup-header {
+  border-radius: 2rem;
+  border: 1px solid black;
   padding: 2rem;
 }
 
