@@ -14,17 +14,22 @@ export default function EntryEditor({
   initialData = {},
   mode = 'create',
 }) {
-  const [title, setTitle] = useState(initialData.title || ''); // for entries
-  const [content, setContent] = useState(initialData.content || '');
-  const [name, setName] = useState(initialData.name || ''); // for groups, subgroups, tags
-  const [description, setDescription] = useState(initialData.description || '');
+  // `initialData` may explicitly be passed as `null` when creating a new item.
+  // Normalize it to an empty object so property accesses do not fail.
+  const safeData = initialData || {};
+
+  const [title, setTitle] = useState(safeData.title || ''); // for entries
+  const [content, setContent] = useState(safeData.content || '');
+  const [name, setName] = useState(safeData.name || ''); // for groups, subgroups, tags
+  const [description, setDescription] = useState(safeData.description || '');
 
   // Update state when the modal is opened for a different item
   useEffect(() => {
-    setTitle(initialData.title || '');
-    setContent(initialData.content || '');
-    setName(initialData.name || '');
-    setDescription(initialData.description || '');
+    const data = initialData || {};
+    setTitle(data.title || '');
+    setContent(data.content || '');
+    setName(data.name || '');
+    setDescription(data.description || '');
   }, [initialData]);
 
   const handleSave = () => {
