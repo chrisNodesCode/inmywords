@@ -9,7 +9,7 @@ body {
 
 .notebook-container {
   padding: 2rem;
-  max-width: 75vw;
+  max-width: 65vw;
   margin: auto;
   display: flex;
   align-self: stretch;
@@ -75,13 +75,16 @@ body {
 .editor-modal-content {
   background: #fff;
   color: #000;
+  display: flex;
+  flex-direction: column;
 }
 
 .editor-modal-content.popup {
   padding: 1em;
   border-radius: 1em;
-  width: 90%;
+  width: 100%;
   max-width: 500px;
+  max-height: 50%;
 }
 
 .editor-modal-content.fullscreen {
@@ -94,8 +97,9 @@ body {
 .editor-modal-content.notebook {
   padding: 1em;
   border-radius: 1em;
-  width: 90%;
-  max-width: 400px;
+  width: 800px;
+  max-width: 800px;
+  max-height: 50%;
 }
 
 .editor-modal-header {
@@ -107,8 +111,8 @@ body {
 
 .editor-modal-title {
   margin: 0;
-  font-weight: 600;
-  height: 5rem;
+  font-weight: 900;
+  height: 2rem;
   display: flex;
   flex-direction: row;
   justify-content: flex-start;
@@ -124,24 +128,24 @@ body {
 
 .editor-modal-body input,
 .editor-modal-body textarea {
-  width: 100%;
-  margin-bottom: 0.5em;
+  width: auto;
   padding: 0.5em;
   border-radius: 0.5em;
-  /* border: 1px solid #ccc; */
+  border: 1px solid #ccc;
   font-family: inherit;
 }
 
 .editor-modal-body input {
-  height: 2rem;
-  padding: 1rem;
-  border: none;
+  height: 3em;
+  /* padding: 1em; */
+  width: 100%;
+  margin-bottom: 1em;
 }
 
 .editor-modal-body textarea {
-  height: 60vh;
-  padding: 1rem;
-  border: none;
+  height: 3em;
+  padding: 1em;
+  margin-bottom: 1em;
 }
 
 .editor-modal-footer {
