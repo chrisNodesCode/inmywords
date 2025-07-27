@@ -36,8 +36,12 @@ export default function EntryEditor({ type, parent, onSave, onCancel }) {
     }
   };
 
-  const overlayClass = `editor-modal-overlay ${type === 'entry' ? 'fullscreen' : 'popup'}`;
-  const contentClass = `editor-modal-content ${type === 'entry' ? 'fullscreen' : 'popup'} slide-up`;
+  const overlayClass = `editor-modal-overlay ${
+    type === 'entry' ? 'fullscreen' : type === 'notebook' ? 'notebook' : 'popup'
+  }`;
+  const contentClass = `editor-modal-content ${
+    type === 'entry' ? 'fullscreen' : type === 'notebook' ? 'notebook' : 'popup'
+  } slide-up`;
 
   return (
     <div className={overlayClass} onClick={handleOverlayClick}>
@@ -47,6 +51,7 @@ export default function EntryEditor({ type, parent, onSave, onCancel }) {
             {type === 'entry' && 'New Entry'}
             {type === 'group' && 'New Group'}
             {type === 'subgroup' && 'New Subgroup'}
+            {type === 'notebook' && 'New Notebook'}
             {type === 'tag' && 'New Tag'}
           </h2>
           <button className="editor-modal-close" onClick={onCancel}>
@@ -83,7 +88,7 @@ export default function EntryEditor({ type, parent, onSave, onCancel }) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
-              {(type === 'group' || type === 'subgroup') && (
+              {(type === 'group' || type === 'subgroup' || type === 'notebook') && (
                 <textarea
                   className="editor-textarea-content"
                   placeholder="Description (optional)"
