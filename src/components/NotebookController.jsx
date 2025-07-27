@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { signOut } from 'next-auth/react';
 import EntryEditor from './EntryEditor';
 
 export default function NotebookController({ onSelect }) {
@@ -50,16 +51,24 @@ export default function NotebookController({ onSelect }) {
 
   return (
     <div className="notebook-controller">
-      <select value={selected} onChange={handleChange}>
-        {notebooks.map((nb) => (
-          <option key={nb.id} value={nb.id}>
-            {nb.title}
-          </option>
-        ))}
-      </select>
-      <button onClick={() => setShowModal(true)} style={{ marginLeft: '0.5rem' }}>
-        Add New
-      </button>
+      <div className="controller-left">
+        <select value={selected} onChange={handleChange}>
+          {notebooks.map((nb) => (
+            <option key={nb.id} value={nb.id}>
+              {nb.title}
+            </option>
+          ))}
+        </select>
+        <button onClick={() => setShowModal(true)} style={{ marginLeft: '0.5rem' }}>
+          Add New
+        </button>
+      </div>
+      <div className="profile-menu-container">
+        <button className="profile-icon">&#128100;</button>
+        <div className="profile-menu">
+          <button onClick={() => signOut({ redirect: false })}>Logout</button>
+        </div>
+      </div>
       {showModal && (
         <EntryEditor
           type="notebook"
