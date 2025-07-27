@@ -255,3 +255,43 @@ body {
   margin-right: 0.5rem;
   cursor: pointer;
 }
+
+.notebook-controller {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.controller-left {
+  display: flex;
+  align-items: center;
+}
+
+.profile-menu-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.profile-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+}
+
+.profile-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  z-index: 100;
+}
+
+.profile-menu-container:hover .profile-menu {
+  display: block;
+}

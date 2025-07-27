@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { signOut } from 'next-auth/react';
 
 
 import EntryEditor from './EntryEditor';
@@ -402,9 +401,6 @@ export default function Notebook() {
         )}
         {notebook ? notebook.title : 'Notebook'}
       </h1>
-      <button onClick={() => signOut({ redirect: false })} style={{ marginLeft: '1rem' }}>
-        Logout
-      </button>
 
       {loading && <p>Loading...</p>}
 
