@@ -19,10 +19,10 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const { title } = req.body;
+    const { title, description } = req.body;
     if (!title) return res.status(400).json({ error: "Missing title" });
     const newNb = await prisma.notebook.create({
-      data: { title, userId },
+      data: { title, description, userId },
     });
     return res.status(201).json(newNb);
   }

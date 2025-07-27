@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { signOut } from 'next-auth/react';
 
 
 import EntryEditor from './EntryEditor';
+import NotebookController from './NotebookController';
 
 export default function Notebook() {
   const [editorState, setEditorState] = useState({ isOpen: false, type: null, parent: null, index: null });
@@ -12,33 +13,23 @@ export default function Notebook() {
   const [expandedSubgroups, setExpandedSubgroups] = useState([]); // ids of expanded subgroups
   const [expandedEntries, setExpandedEntries] = useState([]); // ids of expanded entries
 
-  useEffect(() => {
-    async function fetchNotebook() {
-      try {
-        // fetch the user's notebooks and grab the first one
-        const nbRes = await fetch('/api/notebooks');
-        if (!nbRes.ok) throw new Error('Failed to fetch notebooks');
-        const notebooks = await nbRes.json();
-        if (!notebooks.length) {
-          setNotebook(null);
-          setLoading(false);
-          return;
-        }
-        const firstId = notebooks[0].id;
-        const treeRes = await fetch(`/api/notebooks/${firstId}/tree`);
-        if (!treeRes.ok) throw new Error('Failed to fetch notebook tree');
-        const tree = await treeRes.json();
-        setNotebook(tree);
-      } catch (err) {
-        console.error(err);
-        setNotebook(null);
-      } finally {
-        setLoading(false);
-      }
+  const loadNotebook = async (id) => {
+    setLoading(true);
+    try {
+      const treeRes = await fetch(`/api/notebooks/${id}/tree`);
+      if (!treeRes.ok) throw new Error('Failed to fetch notebook tree');
+      const tree = await treeRes.json();
+      setNotebook(tree);
+      setExpandedGroups([]);
+      setExpandedSubgroups([]);
+      setExpandedEntries([]);
+    } catch (err) {
+      console.error(err);
+      setNotebook(null);
+    } finally {
+      setLoading(false);
     }
-
-    fetchNotebook();
-  }, []);
+  };
 
 
   const handleSave = async (data) => {
@@ -285,6 +276,7 @@ export default function Notebook() {
 
   return (
     <div className="notebook-container">
+      <NotebookController onSelect={loadNotebook} />
       <h1>{notebook ? notebook.title : 'Notebook'}</h1>
       <button onClick={() => signOut({ redirect: false })} style={{ marginLeft: '1rem' }}>
         Logout
