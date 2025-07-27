@@ -19,6 +19,8 @@ export default function Notebook() {
   const [expandedGroups, setExpandedGroups] = useState([]); // ids of expanded groups
   const [expandedSubgroups, setExpandedSubgroups] = useState([]); // ids of expanded subgroups
   const [expandedEntries, setExpandedEntries] = useState([]); // ids of expanded entries
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
 
   const loadNotebook = async (id) => {
     setLoading(true);
@@ -379,27 +381,54 @@ export default function Notebook() {
     }
   };
 
+  const handleTitleSave = async () => {
+    if (!notebook) return;
+    const newTitle = titleInput.trim();
+    if (!newTitle) {
+      setIsEditingTitle(false);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/notebooks/${notebook.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle }),
+      });
+      if (!res.ok) throw new Error('Failed to update notebook');
+      const updated = await res.json();
+      setNotebook((prev) => ({ ...prev, ...updated }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsEditingTitle(false);
+    }
+  };
+
   return (
     <div className="notebook-container">
       <NotebookController onSelect={loadNotebook} />
-      <h1>
-        {notebook && (
-          <span
-            className="edit-icon"
-            onClick={() =>
-              openEditor(
-                'notebook',
-                { notebookId: notebook.id },
-                null,
-                notebook,
-                'edit'
-              )
-            }
-          >
-            ✎
-          </span>
+      <h1
+        onClick={() => {
+          if (notebook && !isEditingTitle) {
+            setTitleInput(notebook.title);
+            setIsEditingTitle(true);
+          }
+        }}
+      >
+        {isEditingTitle ? (
+          <input
+            type="text"
+            value={titleInput}
+            onChange={(e) => setTitleInput(e.target.value)}
+            onBlur={handleTitleSave}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleTitleSave();
+            }}
+            autoFocus
+          />
+        ) : (
+          notebook ? notebook.title : 'Notebook'
         )}
-        {notebook ? notebook.title : 'Notebook'}
       </h1>
 
       {loading && <p>Loading...</p>}
@@ -409,9 +438,9 @@ export default function Notebook() {
           {notebook.groups.map((group) => (
             <div key={group.id} className="group-card" onClick={() => toggleGroup(group)}>
               <div class="group-header">
-                <h2>
-                  <span
-                    className="edit-icon"
+                <h2>{group.name}</h2>
+                {expandedGroups.includes(group.id) && (
+                  <button
                     onClick={(e) => {
                       e.stopPropagation();
                       openEditor(
@@ -424,10 +453,9 @@ export default function Notebook() {
                       );
                     }}
                   >
-                    ✎
-                  </span>
-                  {group.name}
-                </h2>
+                    Edit
+                  </button>
+                )}
               </div>
               {/* {expandedGroups.includes(group.id) && group.subgroups.length > 0 && (
                 <button
@@ -446,9 +474,9 @@ export default function Notebook() {
                   {group.subgroups.map((sub) => (
                     <div key={sub.id} className="subgroup-card" onClick={(e) => { e.stopPropagation(); toggleSubgroup(sub); }}>
                       <div class="subgroup-header">
-                        <h3>
-                          <span
-                            className="edit-icon"
+                        <h3>{sub.name}</h3>
+                        {expandedSubgroups.includes(sub.id) && (
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               openEditor(
@@ -461,10 +489,9 @@ export default function Notebook() {
                               );
                             }}
                           >
-                            ✎
-                          </span>
-                          {sub.name}
-                        </h3>
+                            Edit
+                          </button>
+                        )}
                       </div>
                       {/* {expandedSubgroups.includes(sub.id) && sub.entries.length > 0 && (
                         <button
@@ -482,34 +509,7 @@ export default function Notebook() {
                         <div>
                           {sub.entries.map((entry) => (
                             <div key={entry.id} className="entry-card" onClick={(e) => { e.stopPropagation(); toggleEntry(entry.id); }}>
-                              <h4>
-                                <span
-                                  className="edit-icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openEditor(
-                                      'entry',
-                                      {
-                                        subgroupId: sub.id,
-                                        groupId: group.id,
-                                        entryId: entry.id,
-                                      },
-                                      null,
-                                      entry,
-                                      'edit',
-                                      () =>
-                                        handleDeleteEntry(
-                                          group.id,
-                                          sub.id,
-                                          entry.id
-                                        )
-                                    );
-                                  }}
-                                >
-                                  ✎
-                                </span>
-                                {entry.title}
-                              </h4>
+                              <h4>{entry.title}</h4>
                               {expandedEntries.includes(entry.id) && (
                                 <>
                                   <p>{entry.content}</p>
@@ -557,10 +557,26 @@ export default function Notebook() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      toggleEntry(entry.id);
+                                      openEditor(
+                                        'entry',
+                                        {
+                                          subgroupId: sub.id,
+                                          groupId: group.id,
+                                          entryId: entry.id,
+                                        },
+                                        null,
+                                        entry,
+                                        'edit',
+                                        () =>
+                                          handleDeleteEntry(
+                                            group.id,
+                                            sub.id,
+                                            entry.id
+                                          )
+                                      );
                                     }}
                                   >
-                                    Collapse
+                                    Edit
                                   </button>
                                 </>
                               )}
