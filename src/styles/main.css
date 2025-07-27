@@ -231,3 +231,8 @@ body {
   margin-right: 0.25em;
   font-weight: bold;
 }
+
+.edit-icon {
+  margin-right: 0.5rem;
+  cursor: pointer;
+}

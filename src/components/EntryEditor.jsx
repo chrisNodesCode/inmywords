@@ -1,16 +1,31 @@
 // src/components/EntryEditor.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
  * Reusable modal editor for creating new entities in the notebook tree.
  * `type` determines which fields are shown and how the save payload is shaped.
  * parent information (such as subgroupId) is passed through `parent`.
  */
-export default function EntryEditor({ type, parent, onSave, onCancel }) {
-  const [title, setTitle] = useState(''); // for entries
-  const [content, setContent] = useState('');
-  const [name, setName] = useState(''); // for groups, subgroups, tags
-  const [description, setDescription] = useState('');
+export default function EntryEditor({
+  type,
+  parent,
+  onSave,
+  onCancel,
+  initialData = {},
+  mode = 'create',
+}) {
+  const [title, setTitle] = useState(initialData.title || ''); // for entries
+  const [content, setContent] = useState(initialData.content || '');
+  const [name, setName] = useState(initialData.name || ''); // for groups, subgroups, tags
+  const [description, setDescription] = useState(initialData.description || '');
+
+  // Update state when the modal is opened for a different item
+  useEffect(() => {
+    setTitle(initialData.title || '');
+    setContent(initialData.content || '');
+    setName(initialData.name || '');
+    setDescription(initialData.description || '');
+  }, [initialData]);
 
   const handleSave = () => {
     if (type === 'entry') {
@@ -18,7 +33,13 @@ export default function EntryEditor({ type, parent, onSave, onCancel }) {
         alert('Title and content cannot be empty.');
         return;
       }
-      onSave({ title: title.trim(), content: content.trim(), parent });
+      onSave({
+        title: title.trim(),
+        content: content.trim(),
+        parent,
+        mode,
+        id: initialData.id,
+      });
       return;
     }
 
@@ -26,7 +47,13 @@ export default function EntryEditor({ type, parent, onSave, onCancel }) {
       alert('Name cannot be empty.');
       return;
     }
-    onSave({ name: name.trim(), description: description.trim(), parent });
+    onSave({
+      name: name.trim(),
+      description: description.trim(),
+      parent,
+      mode,
+      id: initialData.id,
+    });
   };
 
   // Close on background click
@@ -48,11 +75,13 @@ export default function EntryEditor({ type, parent, onSave, onCancel }) {
       <div className={contentClass}>
         <div className="editor-modal-header">
           <h2 className="editor-modal-title">
-            {type === 'entry' && 'New Entry'}
-            {type === 'group' && 'New Group'}
-            {type === 'subgroup' && 'New Subgroup'}
-            {type === 'notebook' && 'New Notebook'}
-            {type === 'tag' && 'New Tag'}
+            {type === 'entry' && (mode === 'edit' ? 'Edit Entry' : 'New Entry')}
+            {type === 'group' && (mode === 'edit' ? 'Edit Group' : 'New Group')}
+            {type === 'subgroup' &&
+              (mode === 'edit' ? 'Edit Subgroup' : 'New Subgroup')}
+            {type === 'notebook' &&
+              (mode === 'edit' ? 'Edit Notebook' : 'New Notebook')}
+            {type === 'tag' && (mode === 'edit' ? 'Edit Tag' : 'New Tag')}
           </h2>
           <button className="editor-modal-close" onClick={onCancel}>
             ×

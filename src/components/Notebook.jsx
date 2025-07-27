@@ -6,7 +6,14 @@ import EntryEditor from './EntryEditor';
 import NotebookController from './NotebookController';
 
 export default function Notebook() {
-  const [editorState, setEditorState] = useState({ isOpen: false, type: null, parent: null, index: null });
+  const [editorState, setEditorState] = useState({
+    isOpen: false,
+    type: null,
+    parent: null,
+    index: null,
+    item: null,
+    mode: 'create',
+  });
   const [notebook, setNotebook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState([]); // ids of expanded groups
@@ -36,70 +43,145 @@ export default function Notebook() {
     if (!editorState.type) return;
     try {
       if (editorState.type === 'entry') {
-        const res = await fetch('/api/entries', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: data.title,
-            content: data.content,
-            subgroupId: editorState.parent.subgroupId,
-          }),
-        });
-        if (!res.ok) throw new Error('Failed to create entry');
-        const newEntry = await res.json();
-        setNotebook((prev) => {
-          const groups = prev.groups.map((g) => {
-            if (g.id !== editorState.parent.groupId) return g;
-            return {
-              ...g,
-              subgroups: g.subgroups.map((s) => {
-                if (s.id !== editorState.parent.subgroupId) return s;
-                const entries = [...s.entries];
-                entries.splice(editorState.index + 1, 0, { ...newEntry, tags: [] });
-                return { ...s, entries };
-              }),
-            };
+        if (editorState.mode === 'edit') {
+          const res = await fetch(`/api/entries/${editorState.item.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: data.title, content: data.content }),
           });
-          return { ...prev, groups };
-        });
+          if (!res.ok) throw new Error('Failed to update entry');
+          const updated = await res.json();
+          setNotebook((prev) => {
+            const groups = prev.groups.map((g) => {
+              if (g.id !== editorState.parent.groupId) return g;
+              return {
+                ...g,
+                subgroups: g.subgroups.map((s) => {
+                  if (s.id !== editorState.parent.subgroupId) return s;
+                  const entries = s.entries.map((e) =>
+                    e.id === updated.id ? { ...updated } : e
+                  );
+                  return { ...s, entries };
+                }),
+              };
+            });
+            return { ...prev, groups };
+          });
+        } else {
+          const res = await fetch('/api/entries', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: data.title,
+              content: data.content,
+              subgroupId: editorState.parent.subgroupId,
+            }),
+          });
+          if (!res.ok) throw new Error('Failed to create entry');
+          const newEntry = await res.json();
+          setNotebook((prev) => {
+            const groups = prev.groups.map((g) => {
+              if (g.id !== editorState.parent.groupId) return g;
+              return {
+                ...g,
+                subgroups: g.subgroups.map((s) => {
+                  if (s.id !== editorState.parent.subgroupId) return s;
+                  const entries = [...s.entries];
+                  entries.splice(editorState.index + 1, 0, { ...newEntry, tags: [] });
+                  return { ...s, entries };
+                }),
+              };
+            });
+            return { ...prev, groups };
+          });
+        }
       } else if (editorState.type === 'subgroup') {
-        const res = await fetch('/api/subgroups', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: data.name,
-            description: data.description,
-            groupId: editorState.parent.groupId,
-          }),
-        });
-        if (!res.ok) throw new Error('Failed to create subgroup');
-        const newSub = await res.json();
-        setNotebook((prev) => {
-          const groups = prev.groups.map((g) => {
-            if (g.id !== editorState.parent.groupId) return g;
-            const subgroups = [...g.subgroups];
-            subgroups.splice(editorState.index + 1, 0, { ...newSub, entries: [] });
-            return { ...g, subgroups };
+        if (editorState.mode === 'edit') {
+          const res = await fetch(`/api/subgroups/${editorState.item.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: data.name, description: data.description }),
           });
-          return { ...prev, groups };
-        });
+          if (!res.ok) throw new Error('Failed to update subgroup');
+          const updated = await res.json();
+          setNotebook((prev) => {
+            const groups = prev.groups.map((g) => {
+              if (g.id !== editorState.parent.groupId) return g;
+              return {
+                ...g,
+                subgroups: g.subgroups.map((s) =>
+                  s.id === updated.id ? { ...s, ...updated } : s
+                ),
+              };
+            });
+            return { ...prev, groups };
+          });
+        } else {
+          const res = await fetch('/api/subgroups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: data.name,
+              description: data.description,
+              groupId: editorState.parent.groupId,
+            }),
+          });
+          if (!res.ok) throw new Error('Failed to create subgroup');
+          const newSub = await res.json();
+          setNotebook((prev) => {
+            const groups = prev.groups.map((g) => {
+              if (g.id !== editorState.parent.groupId) return g;
+              const subgroups = [...g.subgroups];
+              subgroups.splice(editorState.index + 1, 0, { ...newSub, entries: [] });
+              return { ...g, subgroups };
+            });
+            return { ...prev, groups };
+          });
+        }
       } else if (editorState.type === 'group') {
-        const res = await fetch('/api/groups', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: data.name,
-            description: data.description,
-            notebookId: notebook.id,
-          }),
-        });
-        if (!res.ok) throw new Error('Failed to create group');
-        const newGroup = await res.json();
-        setNotebook((prev) => {
-          const groups = [...prev.groups];
-          groups.splice(editorState.index + 1, 0, { ...newGroup, subgroups: [] });
-          return { ...prev, groups };
-        });
+        if (editorState.mode === 'edit') {
+          const res = await fetch(`/api/groups/${editorState.item.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: data.name, description: data.description }),
+          });
+          if (!res.ok) throw new Error('Failed to update group');
+          const updated = await res.json();
+          setNotebook((prev) => {
+            const groups = prev.groups.map((g) =>
+              g.id === updated.id ? { ...g, ...updated } : g
+            );
+            return { ...prev, groups };
+          });
+        } else {
+          const res = await fetch('/api/groups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: data.name,
+              description: data.description,
+              notebookId: notebook.id,
+            }),
+          });
+          if (!res.ok) throw new Error('Failed to create group');
+          const newGroup = await res.json();
+          setNotebook((prev) => {
+            const groups = [...prev.groups];
+            groups.splice(editorState.index + 1, 0, { ...newGroup, subgroups: [] });
+            return { ...prev, groups };
+          });
+        }
+      } else if (editorState.type === 'notebook') {
+        if (editorState.mode === 'edit') {
+          const res = await fetch(`/api/notebooks/${editorState.item.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: data.name, description: data.description }),
+          });
+          if (!res.ok) throw new Error('Failed to update notebook');
+          const updated = await res.json();
+          setNotebook((prev) => ({ ...prev, ...updated }));
+        }
       } else if (editorState.type === 'tag') {
         const tagRes = await fetch('/api/tags', {
           method: 'POST',
@@ -137,16 +219,30 @@ export default function Notebook() {
     } catch (err) {
       console.error(err);
     } finally {
-      setEditorState({ isOpen: false, type: null, parent: null, index: null });
+      setEditorState({
+        isOpen: false,
+        type: null,
+        parent: null,
+        index: null,
+        item: null,
+        mode: 'create',
+      });
     }
   };
 
   const handleCancel = () => {
-    setEditorState({ isOpen: false, type: null, parent: null, index: null });
+    setEditorState({
+      isOpen: false,
+      type: null,
+      parent: null,
+      index: null,
+      item: null,
+      mode: 'create',
+    });
   };
 
-  const openEditor = (type, parent, index) => {
-    setEditorState({ isOpen: true, type, parent, index });
+  const openEditor = (type, parent, index, item = null, mode = 'create') => {
+    setEditorState({ isOpen: true, type, parent, index, item, mode });
   };
 
   const toggleGroup = (group) => {
@@ -277,7 +373,25 @@ export default function Notebook() {
   return (
     <div className="notebook-container">
       <NotebookController onSelect={loadNotebook} />
-      <h1>{notebook ? notebook.title : 'Notebook'}</h1>
+      <h1>
+        {notebook && (
+          <span
+            className="edit-icon"
+            onClick={() =>
+              openEditor(
+                'notebook',
+                { notebookId: notebook.id },
+                null,
+                notebook,
+                'edit'
+              )
+            }
+          >
+            ✎
+          </span>
+        )}
+        {notebook ? notebook.title : 'Notebook'}
+      </h1>
       <button onClick={() => signOut({ redirect: false })} style={{ marginLeft: '1rem' }}>
         Logout
       </button>
@@ -288,7 +402,18 @@ export default function Notebook() {
         <div className="groups-container">
           {notebook.groups.map((group) => (
             <div key={group.id} className="group-card" onClick={() => toggleGroup(group)}>
-              <h2>{group.name}</h2>
+              <h2>
+                <span
+                  className="edit-icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditor('group', { groupId: group.id }, null, group, 'edit');
+                  }}
+                >
+                  ✎
+                </span>
+                {group.name}
+              </h2>
               {expandedGroups.includes(group.id) && group.subgroups.length > 0 && (
                 <button
                   onClick={(e) => {
@@ -314,7 +439,24 @@ export default function Notebook() {
                 <div>
                   {group.subgroups.map((sub) => (
                     <div key={sub.id} className="subgroup-card" onClick={(e) => { e.stopPropagation(); toggleSubgroup(sub); }}>
-                      <h3>{sub.name}</h3>
+                      <h3>
+                        <span
+                          className="edit-icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditor(
+                              'subgroup',
+                              { groupId: group.id, subgroupId: sub.id },
+                              null,
+                              sub,
+                              'edit'
+                            );
+                          }}
+                        >
+                          ✎
+                        </span>
+                        {sub.name}
+                      </h3>
                       {expandedSubgroups.includes(sub.id) && sub.entries.length > 0 && (
                         <button
                           onClick={(e) => {
@@ -340,7 +482,28 @@ export default function Notebook() {
                         <div>
                           {sub.entries.map((entry) => (
                             <div key={entry.id} className="entry-card" onClick={(e) => { e.stopPropagation(); toggleEntry(entry.id); }}>
-                              <h4>{entry.title}</h4>
+                              <h4>
+                                <span
+                                  className="edit-icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditor(
+                                      'entry',
+                                      {
+                                        subgroupId: sub.id,
+                                        groupId: group.id,
+                                        entryId: entry.id,
+                                      },
+                                      null,
+                                      entry,
+                                      'edit'
+                                    );
+                                  }}
+                                >
+                                  ✎
+                                </span>
+                                {entry.title}
+                              </h4>
                               {expandedEntries.includes(entry.id) && (
                                 <>
                                   <p>{entry.content}</p>
@@ -443,7 +606,14 @@ export default function Notebook() {
       )}
 
       {editorState.isOpen && (
-        <EntryEditor type={editorState.type} parent={editorState.parent} onSave={handleSave} onCancel={handleCancel} />
+        <EntryEditor
+          type={editorState.type}
+          parent={editorState.parent}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          initialData={editorState.item}
+          mode={editorState.mode}
+        />
       )}
     </div>
   );
