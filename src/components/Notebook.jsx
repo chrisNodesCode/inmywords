@@ -13,6 +13,7 @@ export default function Notebook() {
     index: null,
     item: null,
     mode: 'create',
+    onDelete: null,
   });
   const [notebook, setNotebook] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -226,6 +227,7 @@ export default function Notebook() {
         index: null,
         item: null,
         mode: 'create',
+        onDelete: null,
       });
     }
   };
@@ -238,11 +240,19 @@ export default function Notebook() {
       index: null,
       item: null,
       mode: 'create',
+      onDelete: null,
     });
   };
 
-  const openEditor = (type, parent, index, item = null, mode = 'create') => {
-    setEditorState({ isOpen: true, type, parent, index, item, mode });
+  const openEditor = (
+    type,
+    parent,
+    index,
+    item = null,
+    mode = 'create',
+    onDelete = null
+  ) => {
+    setEditorState({ isOpen: true, type, parent, index, item, mode, onDelete });
   };
 
   const toggleGroup = (group) => {
@@ -408,7 +418,14 @@ export default function Notebook() {
                     className="edit-icon"
                     onClick={(e) => {
                       e.stopPropagation();
-                      openEditor('group', { groupId: group.id }, null, group, 'edit');
+                      openEditor(
+                        'group',
+                        { groupId: group.id },
+                        null,
+                        group,
+                        'edit',
+                        () => handleDeleteGroup(group.id)
+                      );
                     }}
                   >
                     ✎
@@ -426,16 +443,7 @@ export default function Notebook() {
                   Collapse
                 </button>
               )} */}
-              {group.subgroups.length === 0 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteGroup(group.id);
-                  }}
-                >
-                  Delete
-                </button>
-              )}
+
 
               {expandedGroups.includes(group.id) && (
                 <div>
@@ -452,7 +460,8 @@ export default function Notebook() {
                                 { groupId: group.id, subgroupId: sub.id },
                                 null,
                                 sub,
-                                'edit'
+                                'edit',
+                                () => handleDeleteSubgroup(group.id, sub.id)
                               );
                             }}
                           >
@@ -471,16 +480,7 @@ export default function Notebook() {
                           Collapse
                         </button>
                       )} */}
-                      {sub.entries.length === 0 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteSubgroup(group.id, sub.id);
-                          }}
-                        >
-                          Delete
-                        </button>
-                      )}
+
 
                       {expandedSubgroups.includes(sub.id) && (
                         <div>
@@ -500,7 +500,13 @@ export default function Notebook() {
                                       },
                                       null,
                                       entry,
-                                      'edit'
+                                      'edit',
+                                      () =>
+                                        handleDeleteEntry(
+                                          group.id,
+                                          sub.id,
+                                          entry.id
+                                        )
                                     );
                                   }}
                                 >
@@ -533,14 +539,7 @@ export default function Notebook() {
                                       ))}
                                     </div>
                                   )}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteEntry(group.id, sub.id, entry.id);
-                                    }}
-                                  >
-                                    Delete
-                                  </button>
+
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -615,6 +614,7 @@ export default function Notebook() {
           parent={editorState.parent}
           onSave={handleSave}
           onCancel={handleCancel}
+          onDelete={editorState.onDelete}
           initialData={editorState.item}
           mode={editorState.mode}
         />

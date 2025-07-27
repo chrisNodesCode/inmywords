@@ -212,6 +212,12 @@ body {
   background: #eee;
 }
 
+.editor-button.danger {
+  background: #f8d7da;
+  border-color: #f5c2c7;
+  color: #842029;
+}
+
 .slide-up {
   animation: slideUp 0.3s ease-out;
 }

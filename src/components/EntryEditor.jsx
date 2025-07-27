@@ -11,6 +11,7 @@ export default function EntryEditor({
   parent,
   onSave,
   onCancel,
+  onDelete = null,
   initialData = {},
   mode = 'create',
 }) {
@@ -75,6 +76,13 @@ export default function EntryEditor({
     type === 'entry' ? 'fullscreen' : type === 'notebook' ? 'notebook' : 'popup'
   } slide-up`;
 
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete();
+    }
+    onCancel();
+  };
+
   return (
     <div className={overlayClass} onClick={handleOverlayClick}>
       <div className={contentClass}>
@@ -137,6 +145,11 @@ export default function EntryEditor({
           <button className="editor-button" onClick={handleSave}>
             Save
           </button>
+          {mode === 'edit' && onDelete && (
+            <button className="editor-button danger" onClick={handleDelete}>
+              Delete
+            </button>
+          )}
           <button className="editor-button secondary" onClick={onCancel}>
             Cancel
           </button>
