@@ -436,14 +436,13 @@ export default function Notebook() {
       {!loading && notebook && (
         <div className="groups-container">
           {notebook.groups.map((group) => (
-            <div
-              key={group.id}
-              className="group-card interactive"
-              role="button"
-              tabIndex={0}
-              onClick={() => toggleGroup(group)}
-            >
-              <div className="group-header">
+            <div key={group.id} className="group-card">
+              <div
+                className="group-header interactive"
+                role="button"
+                tabIndex={0}
+                onClick={() => toggleGroup(group)}
+              >
                 <h2>{group.name}</h2>
                 {expandedGroups.includes(group.id) && (
                   <button
@@ -466,17 +465,16 @@ export default function Notebook() {
               {expandedGroups.includes(group.id) && (
                 <div>
                   {group.subgroups.map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="subgroup-card interactive"
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSubgroup(sub);
-                      }}
-                    >
-                      <div className="subgroup-header">
+                    <div key={sub.id} className="subgroup-card">
+                      <div
+                        className="subgroup-header interactive"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSubgroup(sub);
+                        }}
+                      >
                         <h3>{sub.name}</h3>
                         {expandedSubgroups.includes(sub.id) && (
                           <button
@@ -499,17 +497,16 @@ export default function Notebook() {
                       {expandedSubgroups.includes(sub.id) && (
                         <div>
                           {sub.entries.map((entry) => (
-                            <div
-                              key={entry.id}
-                              className="entry-card interactive"
-                              role="button"
-                              tabIndex={0}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleEntry(entry.id);
-                              }}
-                            >
-                              <div className="entry-header">
+                            <div key={entry.id} className="entry-card">
+                              <div
+                                className="entry-header interactive"
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleEntry(entry.id);
+                                }}
+                              >
                                 <h4>{entry.title}</h4>
                                 {expandedEntries.includes(entry.id) && (
                                   <>
