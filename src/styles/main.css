@@ -386,3 +386,23 @@ button:hover {
   border-left: 3px solid #000;
   border-radius: 0 2rem 2rem 0;
 }
+
+/* Basic dark mode styles */
+body[data-theme='dark'] {
+  background: #141414;
+  color: #fff;
+}
+
+body[data-theme='dark'] .profile-menu,
+body[data-theme='dark'] .group-header,
+body[data-theme='dark'] .subgroup-header,
+body[data-theme='dark'] .entry-header,
+body[data-theme='dark'] .group-card,
+body[data-theme='dark'] .subgroup-card,
+body[data-theme='dark'] .entry-card,
+body[data-theme='dark'] .add-group,
+body[data-theme='dark'] .add-subgroup,
+body[data-theme='dark'] .add-entry {
+  background-color: #1f1f1f;
+  color: #fff;
+}
