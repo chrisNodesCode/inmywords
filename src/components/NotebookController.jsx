@@ -72,6 +72,7 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits 
       <div className="profile-menu-container">
         <button className="profile-icon">&#128100;</button>
         <div className="profile-menu">
+          <a href="/settings" style={{ display: 'block', marginBottom: '0.5rem' }}>Settings</a>
           <button onClick={() => signOut({ redirect: false })}>Logout</button>
         </div>
       </div>
