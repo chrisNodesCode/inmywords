@@ -21,6 +21,7 @@ export default function Notebook() {
   const [expandedEntries, setExpandedEntries] = useState([]); // ids of expanded entries
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
+  const [showEdits, setShowEdits] = useState(true);
 
   const loadNotebook = async (id) => {
     setLoading(true);
@@ -406,7 +407,11 @@ export default function Notebook() {
 
   return (
     <div className="notebook-container">
-      <NotebookController onSelect={loadNotebook} />
+      <NotebookController
+        onSelect={loadNotebook}
+        showEdits={showEdits}
+        onToggleEdits={setShowEdits}
+      />
       <h1
         onClick={() => {
           if (notebook && !isEditingTitle) {
@@ -446,6 +451,7 @@ export default function Notebook() {
                 <h2 class="group-title">{group.name}</h2>
                 {expandedGroups.includes(group.id) && (
                   <button
+                    className={`edit-button${showEdits ? '' : ' hidden'}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       openEditor(
@@ -478,6 +484,7 @@ export default function Notebook() {
                         <h3>{sub.name}</h3>
                         {expandedSubgroups.includes(sub.id) && (
                           <button
+                            className={`edit-button${showEdits ? '' : ' hidden'}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               openEditor(
