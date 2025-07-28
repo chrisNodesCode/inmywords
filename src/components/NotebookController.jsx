@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
+import { Switch } from 'antd';
 import EntryEditor from './EntryEditor';
 
-export default function NotebookController({ onSelect }) {
+export default function NotebookController({ onSelect, showEdits, onToggleEdits }) {
   const [notebooks, setNotebooks] = useState([]);
   const [selected, setSelected] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -62,6 +63,11 @@ export default function NotebookController({ onSelect }) {
         <button onClick={() => setShowModal(true)} style={{ marginLeft: '0.5rem' }}>
           Add New
         </button>
+        <Switch
+          checked={showEdits}
+          onChange={onToggleEdits}
+          style={{ marginLeft: '0.5rem' }}
+        />
       </div>
       <div className="profile-menu-container">
         <button className="profile-icon">&#128100;</button>

@@ -1,3 +1,11 @@
+const withTM = require('next-transpile-modules')([
+  'antd',
+  '@ant-design/icons',
+  '@ant-design/colors',
+  '@ant-design/cssinjs',
+  'rc-util',
+]);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -6,4 +14,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withTM(nextConfig);

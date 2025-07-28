@@ -351,3 +351,11 @@ button:hover {
   transform: scale(1.02);
   filter: brightness(0.95);
 }
+
+.edit-button {
+  margin-left: 0.5rem;
+}
+
+.edit-button.hidden {
+  display: none;
+}
