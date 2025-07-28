@@ -323,3 +323,16 @@ margin-bottom: 2rem;
 .profile-menu-container:hover .profile-menu {
   display: block;
 }
+
+/* Add global interactive styles for clickable elements */
+.interactive,
+button {
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.interactive:hover,
+button:hover {
+  cursor: pointer;
+  transform: scale(1.02);
+  filter: brightness(0.95);
+}
