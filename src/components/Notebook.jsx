@@ -457,18 +457,6 @@ export default function Notebook() {
                   </button>
                 )}
               </div>
-              {/* {expandedGroups.includes(group.id) && group.subgroups.length > 0 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleGroup(group);
-                  }}
-                >
-                  Collapse
-                </button>
-              )} */}
-
-
               {expandedGroups.includes(group.id) && (
                 <div>
                   {group.subgroups.map((sub) => (
@@ -493,96 +481,86 @@ export default function Notebook() {
                           </button>
                         )}
                       </div>
-                      {/* {expandedSubgroups.includes(sub.id) && sub.entries.length > 0 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleSubgroup(sub);
-                          }}
-                        >
-                          Collapse
-                        </button>
-                      )} */}
-
-
                       {expandedSubgroups.includes(sub.id) && (
                         <div>
                           {sub.entries.map((entry) => (
                             <div key={entry.id} className="entry-card" onClick={(e) => { e.stopPropagation(); toggleEntry(entry.id); }}>
-                              <h4>{entry.title}</h4>
-                              {expandedEntries.includes(entry.id) && (
-                                <>
-                                  <p>{entry.content}</p>
-                                  {entry.tags.length > 0 && (
-                                    <div>
-                                      {entry.tags.map((tag) => (
-                                        <div
-                                          key={tag.id}
-                                          className="tag"
-                                          onClick={() =>
-                                            handleRemoveTag(
+                              <div class="entry-header">
+                                <h4>{entry.title}</h4>
+                                {expandedEntries.includes(entry.id) && (
+                                  <>
+                                    <p>{entry.content}</p>
+                                    {entry.tags.length > 0 && (
+                                      <div>
+                                        {entry.tags.map((tag) => (
+                                          <div
+                                            key={tag.id}
+                                            className="tag"
+                                            onClick={() =>
+                                              handleRemoveTag(
+                                                group.id,
+                                                sub.id,
+                                                entry.id,
+                                                tag.id,
+                                                entry.tags.map((t) => t.id)
+                                              )
+                                            }
+                                          >
+                                            <span className="close-icon">×</span>
+                                            {tag.name}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openEditor(
+                                          'tag',
+                                          {
+                                            entryId: entry.id,
+                                            subgroupId: sub.id,
+                                            groupId: group.id,
+                                            tagIds: entry.tags.map((t) => t.id),
+                                            label: `Entry: ${entry.title}`,
+                                          },
+                                          entry.tags.length - 1
+                                        );
+                                      }}
+                                    >
+                                      Add Tag
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openEditor(
+                                          'entry',
+                                          {
+                                            subgroupId: sub.id,
+                                            groupId: group.id,
+                                            entryId: entry.id,
+                                          },
+                                          null,
+                                          entry,
+                                          'edit',
+                                          () =>
+                                            handleDeleteEntry(
                                               group.id,
                                               sub.id,
-                                              entry.id,
-                                              tag.id,
-                                              entry.tags.map((t) => t.id)
+                                              entry.id
                                             )
-                                          }
-                                        >
-                                          <span className="close-icon">×</span>
-                                          {tag.name}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openEditor(
-                                        'tag',
-                                        {
-                                          entryId: entry.id,
-                                          subgroupId: sub.id,
-                                          groupId: group.id,
-                                          tagIds: entry.tags.map((t) => t.id),
-                                          label: `Entry: ${entry.title}`,
-                                        },
-                                        entry.tags.length - 1
-                                      );
-                                    }}
-                                  >
-                                    Add Tag
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openEditor(
-                                        'entry',
-                                        {
-                                          subgroupId: sub.id,
-                                          groupId: group.id,
-                                          entryId: entry.id,
-                                        },
-                                        null,
-                                        entry,
-                                        'edit',
-                                        () =>
-                                          handleDeleteEntry(
-                                            group.id,
-                                            sub.id,
-                                            entry.id
-                                          )
-                                      );
-                                    }}
-                                  >
-                                    Edit
-                                  </button>
-                                </>
-                              )}
+                                        );
+                                      }}
+                                    >
+                                      Edit
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           ))}
-                          <button
+                          <div
+                            class="add-entry"
                             onClick={(e) => {
                               e.stopPropagation();
                               openEditor(
@@ -593,12 +571,13 @@ export default function Notebook() {
                             }}
                           >
                             Add Entry
-                          </button>
+                          </div>
                         </div>
                       )}
                     </div>
                   ))}
-                  <button
+                  <div
+                    class="add-subgroup"
                     onClick={(e) => {
                       e.stopPropagation();
                       openEditor(
@@ -609,14 +588,14 @@ export default function Notebook() {
                     }}
                   >
                     Add Subgroup
-                  </button>
+                  </div>
                 </div>
               )}
             </div>
           ))}
-          <button onClick={() => openEditor('group', { label: 'Notebook Root' }, notebook.groups.length - 1)}>
+          <div class="add-group" onClick={() => openEditor('group', { label: 'Notebook Root' }, notebook.groups.length - 1)}>
             Add Group
-          </button>
+          </div>
         </div>
       )}
 

@@ -8,8 +8,8 @@ body {
 }
 
 .notebook-container {
-  padding: 2rem;
-  max-width: 65vw;
+  padding: 1rem;
+  max-width: 55vw;
   margin: auto;
   display: flex;
   align-self: stretch;
@@ -19,47 +19,70 @@ body {
 }
 
 .groups-container {
-  margin-top: 2rem;
-}
-
-.group-card,
-.subgroup-card,
-.entry-card {
-  border-radius: 1em;
-  margin-bottom: 1em;
-  background-color: #f8f8f8;
-  /* border: 1px solid #e0e0e0; */
+  margin-top: 1rem;
 }
 
 .group-card {
-  padding: 2rem;
-  margin-top: 2rem;
-  background-color: rgba(0, 0, 0, 0);
-}
-
-.group-header {
-  border: 1px solid black;
-  padding: 2rem;
-  border-radius: 2rem;
+  border: none;
+  margin-bottom: 2rem;
 }
 
 .subgroup-card {
-  background-color: #fff;
-  margin: 1rem;
-  padding: 2rem;
-}
-
-.subgroup-header {
   border-radius: 2rem;
-  border: 1px solid black;
-  padding: 2rem;
+  background-color: #fff;
+  margin-top: 2rem;
+  margin-left: 2rem;
+  border: none;
 }
 
 .entry-card {
-  background-color: #f0f0f0;
-  margin: 2rem;
-  padding: 2rem;
+  border-radius: 2rem;
+  background-color: #fff;
+  margin-top: 2rem;
+  margin-left: 2rem;
 }
+
+.group-header {
+  border-radius: 2rem;
+  background-color: #fff;
+  border: 1px solid black;
+  justify-content: flex-end;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.subgroup-header {
+  padding: 2rem;
+  border: 1px solid black;
+  border-radius: 2rem;
+}
+
+.entry-header {
+  padding: 2rem;
+  border: 1px solid black;
+  border-radius: 2rem;
+}
+
+.add-group,
+.add-subgroup,
+.add-entry {
+  border-radius: 2rem;
+  background-color: #fff;
+  margin-top: 1rem;
+  border: 1px solid black;
+  justify-content: flex-end;
+  padding: 2rem;
+  margin-left: 2rem;
+  margin-top: 2rem;
+}
+
+.add-group {
+  margin-left: 0rem;
+}
+
+
+
+
 
 .editor-modal-overlay {
   position: fixed;
@@ -111,22 +134,26 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .editor-modal-content.fullscreen .editor-input-title {
-  width: 100%;
+  width: 50%;
   margin-bottom: 1rem;
+  padding: 1rem;
+  font-size: 1.5rem;
 }
 
 .editor-modal-content.fullscreen .editor-textarea-content {
   flex: 1;
   min-height: 0;
-  width: 100%;
+  width: 50%;
   height: auto;
-  padding: 2rem;
+  padding: 1rem;
   resize: none;
   overflow-y: auto;
   scrollbar-width: none;
+  font-size: 1.25rem;
 }
 
 .editor-modal-content.fullscreen .editor-textarea-content::-webkit-scrollbar {
@@ -136,8 +163,8 @@ body {
 .editor-modal-content.notebook {
   padding: 1rem;
   border-radius: 1em;
-  width: 800px;
-  max-width: 800px;
+  width: 55vw;
+  max-width: 55vw;
   max-height: 50%;
 }
 
