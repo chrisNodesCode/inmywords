@@ -443,7 +443,7 @@ export default function Notebook() {
                 tabIndex={0}
                 onClick={() => toggleGroup(group)}
               >
-                <h2>{group.name}</h2>
+                <h2 class="group-title">{group.name}</h2>
                 {expandedGroups.includes(group.id) && (
                   <button
                     onClick={(e) => {
@@ -507,10 +507,15 @@ export default function Notebook() {
                                   toggleEntry(entry.id);
                                 }}
                               >
-                                <h4>{entry.title}</h4>
+                                <h4 class="entry-card-title">{entry.title}</h4>
+                                {!expandedEntries.includes(entry.id) && (
+                                  <div class="entry-card-content">
+                                    <p>{entry.content.slice(0, 40)}...</p>
+                                  </div>
+                                )}
                                 {expandedEntries.includes(entry.id) && (
                                   <>
-                                    <p>{entry.content}</p>
+                                    <div class="entry-card-content">{entry.content}</div>
                                     {entry.tags.length > 0 && (
                                       <div>
                                         {entry.tags.map((tag) => (
@@ -534,6 +539,7 @@ export default function Notebook() {
                                       </div>
                                     )}
                                     <button
+                                      style={{ marginRight: "1rem" }}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         openEditor(

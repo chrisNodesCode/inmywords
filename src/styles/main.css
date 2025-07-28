@@ -22,11 +22,15 @@ body {
   margin-top: 1rem;
 }
 
-/* .group-card {
-  border: none;
-|
-margin-bottom: 2rem;
-} */
+.group-title {
+  font-size: 2.5rem;
+  font-weight: 500;
+}
+
+.subgroup-title {
+  font-size: 2rem;
+  font-weight: 300;
+}
 
 .subgroup-card {
   border-radius: 2rem;
@@ -43,10 +47,24 @@ margin-bottom: 2rem;
   margin-left: 2rem;
 }
 
+.entry-card-title {
+  font-size: 3rem;
+  font-weight: 600;
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
+.entry-card-content {
+  font-size: 1.25rem;
+  font-weight: 300;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
 .group-header {
   border-radius: 2rem;
   background-color: #fff;
-  border: 1px solid black;
+  border: none;
   justify-content: flex-end;
   padding: 2rem;
   margin-bottom: 2rem;
@@ -70,20 +88,17 @@ margin-bottom: 2rem;
   border-radius: 2rem;
   background-color: #fff;
   margin-top: 1rem;
-  border: 1px solid black;
+  border: none;
   justify-content: flex-end;
   padding: 2rem;
   margin-left: 2rem;
   margin-top: 2rem;
+  color: #9b9b9b;
 }
 
 .add-group {
   margin-left: 0rem;
 }
-
-
-
-
 
 .editor-modal-overlay {
   position: fixed;
@@ -266,8 +281,8 @@ margin-bottom: 2rem;
   padding: 0.25em 0.5em;
   border-radius: 0.5em;
   background: #ddd;
-  margin-right: 0.25em;
-  margin-bottom: 0.25em;
+  margin-right: 0.5em;
+  margin-bottom: 1em;
   cursor: pointer;
   user-select: none;
   display: inline-flex;
