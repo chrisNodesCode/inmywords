@@ -22,10 +22,11 @@ body {
   margin-top: 1rem;
 }
 
-.group-card {
+/* .group-card {
   border: none;
-  margin-bottom: 2rem;
-}
+|
+margin-bottom: 2rem;
+} */
 
 .subgroup-card {
   border-radius: 2rem;
