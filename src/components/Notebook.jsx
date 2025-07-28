@@ -412,7 +412,7 @@ export default function Notebook() {
         showEdits={showEdits}
         onToggleEdits={setShowEdits}
       />
-      <h1
+      <h1 class="notebook-title"
         onClick={() => {
           if (notebook && !isEditingTitle) {
             setTitleInput(notebook.title);
@@ -443,7 +443,7 @@ export default function Notebook() {
           {notebook.groups.map((group) => (
             <div key={group.id} className="group-card">
               <div
-                className="group-header interactive"
+                className={`group-header interactive ${expandedGroups.includes(group.id) ? 'open' : ''}`}
                 role="button"
                 tabIndex={0}
                 onClick={() => toggleGroup(group)}
@@ -473,7 +473,7 @@ export default function Notebook() {
                   {group.subgroups.map((sub) => (
                     <div key={sub.id} className="subgroup-card">
                       <div
-                        className="subgroup-header interactive"
+                        className={`subgroup-header interactive ${expandedSubgroups.includes(sub.id) ? 'open' : ''}`}
                         role="button"
                         tabIndex={0}
                         onClick={(e) => {
@@ -481,7 +481,7 @@ export default function Notebook() {
                           toggleSubgroup(sub);
                         }}
                       >
-                        <h3>{sub.name}</h3>
+                        <div class="subgroup-title">{sub.name}</div>
                         {expandedSubgroups.includes(sub.id) && (
                           <button
                             className={`edit-button${showEdits ? '' : ' hidden'}`}

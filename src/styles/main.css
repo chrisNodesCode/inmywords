@@ -18,26 +18,56 @@ body {
   align-items: stretch;
 }
 
+.notebook-title {
+  font-size: 2rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  font-weight: 800;
+}
+
 .groups-container {
   margin-top: 1rem;
 }
 
-.group-title {
-  font-size: 2.5rem;
-  font-weight: 500;
+.group-card {
+  margin-bottom: 3rem;
 }
 
-.subgroup-title {
-  font-size: 2rem;
-  font-weight: 300;
+.group-header {
+  border-radius: 2rem;
+  background-color: #fff;
+  border: none;
+  justify-content: flex-end;
+  padding: 2rem;
+  margin-bottom: 1rem;
+}
+
+.group-title {
+  font-size: 2.5rem;
+  font-weight: 400;
+  margin-bottom: 0rem;
 }
 
 .subgroup-card {
   border-radius: 2rem;
   background-color: #fff;
-  margin-top: 2rem;
+  margin-top: 4rem;
   margin-left: 2rem;
   border: none;
+}
+
+.subgroup-header {
+  padding: 2rem;
+  border: none;
+  border-radius: 2rem;
+  background-color: #fff;
+  margin-bottom: 2rem;
+}
+
+.subgroup-title {
+  font-size: 1.75rem;
+  font-weight: 300;
+  background-color: #fff;
 }
 
 .entry-card {
@@ -45,6 +75,14 @@ body {
   background-color: #fff;
   margin-top: 2rem;
   margin-left: 2rem;
+}
+
+.entry-header {
+  padding: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  border-radius: 2rem;
+  margin-bottom: 3rem;
+  background-color: #fff;
 }
 
 .entry-card-title {
@@ -61,26 +99,9 @@ body {
   margin-bottom: 1rem;
 }
 
-.group-header {
-  border-radius: 2rem;
-  background-color: #fff;
-  border: none;
-  justify-content: flex-end;
-  padding: 2rem;
-  margin-bottom: 2rem;
-}
 
-.subgroup-header {
-  padding: 2rem;
-  border: 1px solid black;
-  border-radius: 2rem;
-}
 
-.entry-header {
-  padding: 2rem;
-  border: 1px solid black;
-  border-radius: 2rem;
-}
+
 
 .add-group,
 .add-subgroup,
@@ -358,4 +379,10 @@ button:hover {
 
 .edit-button.hidden {
   display: none;
+}
+
+.group-header.open,
+.subgroup-header.open {
+  border-left: 3px solid #000;
+  border-radius: 0 2rem 2rem 0;
 }
