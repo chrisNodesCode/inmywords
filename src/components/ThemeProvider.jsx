@@ -1,9 +1,10 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { ConfigProvider, theme as antdTheme } from 'antd';
 
+
 export const ThemeContext = createContext({
   darkMode: false,
-  toggleTheme: () => {},
+  toggleTheme: () => { },
 });
 
 export default function ThemeProvider({ children }) {
@@ -39,6 +40,13 @@ export default function ThemeProvider({ children }) {
         algorithm: darkMode
           ? antdTheme.darkAlgorithm
           : antdTheme.defaultAlgorithm,
+        components: {
+          Switch: {
+            handleBg: "#fff",
+            colorPrimary: "#474747",
+            colorPrimaryHover: "#000000"
+          },
+        },
       }}
     >
       <ThemeContext.Provider value={{ darkMode, toggleTheme }}>

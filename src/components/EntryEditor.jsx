@@ -83,12 +83,10 @@ export default function EntryEditor({
     }
   };
 
-  const overlayClass = `editor-modal-overlay ${
-    type === 'entry' ? 'fullscreen' : type === 'notebook' ? 'notebook' : 'popup'
-  }`;
-  const contentClass = `editor-modal-content ${
-    type === 'entry' ? 'fullscreen' : type === 'notebook' ? 'notebook' : 'popup'
-  } slide-up`;
+  const overlayClass = `editor-modal-overlay ${type === 'entry' ? 'fullscreen' : type === 'notebook' ? 'notebook' : 'popup'
+    }`;
+  const contentClass = `editor-modal-content ${type === 'entry' ? 'fullscreen' : type === 'notebook' ? 'notebook' : 'popup'
+    } slide-up`;
 
   const handleDelete = () => {
     if (onDelete) {
@@ -110,9 +108,22 @@ export default function EntryEditor({
               (mode === 'edit' ? 'Edit Notebook' : 'New Notebook')}
             {type === 'tag' && (mode === 'edit' ? 'Edit Tag' : 'New Tag')}
           </h2>
-          <button className="editor-modal-close" onClick={onCancel}>
+          <div className="editor-modal-buttons-container">
+            <button className="editor-button" onClick={handleSave}>
+              Save
+            </button>
+            {mode === 'edit' && onDelete && (
+              <button className="editor-button danger" onClick={handleDelete}>
+                Delete
+              </button>
+            )}
+            <button className="editor-button secondary" onClick={onCancel}>
+              Cancel
+            </button>
+            {/* <button className="editor-modal-close" onClick={onCancel}>
             ×
-          </button>
+          </button> */}
+          </div>
         </div>
         <div className="editor-modal-body">
           {type === 'entry' && (
@@ -167,17 +178,7 @@ export default function EntryEditor({
           )}
         </div>
         <div className="editor-modal-footer">
-          <button className="editor-button" onClick={handleSave}>
-            Save
-          </button>
-          {mode === 'edit' && onDelete && (
-            <button className="editor-button danger" onClick={handleDelete}>
-              Delete
-            </button>
-          )}
-          <button className="editor-button secondary" onClick={onCancel}>
-            Cancel
-          </button>
+
         </div>
       </div>
     </div>

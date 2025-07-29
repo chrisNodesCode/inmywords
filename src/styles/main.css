@@ -139,10 +139,6 @@ body {
   color: #9b9b9b;
 }
 
-.add-group {
-  margin-left: 0rem;
-}
-
 .editor-modal-overlay {
   position: fixed;
   top: 0;
@@ -250,6 +246,13 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+}
+
+.editor-modal-buttons-container {
+  display: flex;
+  justify-content: flex-end;
+  width: 300px;
+  gap: 1rem;
 }
 
 .editor-modal-title {
@@ -406,12 +409,18 @@ button {
   transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out, margin-left 0.2s ease-in-out;
 }
 
-.interactive:hover,
-button:hover {
+.interactive:hover {
   cursor: pointer;
   transform: scale(1.02);
   filter: brightness(0.95);
   margin-left: 0.5rem;
+}
+
+button:hover {
+  cursor: pointer;
+  transform: scale(1.02);
+  filter: brightness(0.95);
+
 }
 
 

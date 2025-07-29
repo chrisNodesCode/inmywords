@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
-import { Switch } from 'antd';
+import { Switch, Avatar } from 'antd';
 import EntryEditor from './EntryEditor';
+import { EditOutlined, UserOutlined } from '@ant-design/icons';
+
 
 export default function NotebookController({ onSelect, showEdits, onToggleEdits }) {
   const [notebooks, setNotebooks] = useState([]);
@@ -64,13 +66,17 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits 
           Add New
         </button>
         <Switch
+          checkedChildren={<EditOutlined />}
+          unCheckedChildren={<EditOutlined />}
           checked={showEdits}
           onChange={onToggleEdits}
           style={{ marginLeft: '0.5rem' }}
         />
       </div>
       <div className="profile-menu-container">
-        <button className="profile-icon">&#128100;</button>
+        <button className="profile-icon"><Avatar size="large" icon={<UserOutlined />} /></button>
+
+
         <div className="profile-menu">
           <a href="/settings" style={{ display: 'block', marginBottom: '0.5rem' }}>Settings</a>
           <button onClick={() => signOut({ redirect: false })}>Logout</button>
