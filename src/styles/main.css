@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&display=swap');
 
 body {
   font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
@@ -68,6 +69,27 @@ body {
   font-size: 1.75rem;
   font-weight: 300;
   background-color: #fff;
+}
+
+/* arrow icons for expandable items */
+.group-title::before,
+.subgroup-title::before,
+.entry-card-content::before {
+  font-family: 'Noto Sans Symbols', sans-serif;
+  margin-right: 0.5rem;
+  display: inline-block;
+}
+
+.group-card .group-title::before,
+.subgroup-header .subgroup-title::before,
+.entry-header .entry-card-content::before {
+  content: '▸';
+}
+
+.group-card.open .group-title::before,
+.subgroup-header.open .subgroup-title::before,
+.entry-card.open .entry-card-content::before {
+  content: '▾';
 }
 
 .entry-card {
@@ -414,4 +436,15 @@ body[data-theme='dark'] .add-subgroup,
 body[data-theme='dark'] .add-entry {
   background-color: #1f1f1f;
   color: #fff;
+}
+
+/* smooth expand/collapse */
+.collapsible {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.collapsible.open {
+  max-height: 1000px;
 }
