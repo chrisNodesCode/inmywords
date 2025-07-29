@@ -1,5 +1,9 @@
 // src/components/EntryEditor.jsx
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 /**
  * Reusable modal editor for creating new entities in the notebook tree.
@@ -23,6 +27,16 @@ export default function EntryEditor({
   const [content, setContent] = useState(safeData.content || '');
   const [name, setName] = useState(safeData.name || ''); // for groups, subgroups, tags
   const [description, setDescription] = useState(safeData.description || '');
+
+  const quillModules = {
+    toolbar: [
+      [{ header: [1, 2, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ list: 'bullet' }],
+    ],
+  };
+
+  const quillFormats = ['header', 'bold', 'italic', 'underline', 'list', 'bullet'];
 
   // Update state when the modal is opened for a different item
   useEffect(() => {
@@ -110,12 +124,23 @@ export default function EntryEditor({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
-              <textarea
-                className="editor-textarea-content"
-                placeholder="Write your entry..."
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-              />
+              {parent?.entryId ? (
+                <ReactQuill
+                  className="editor-quill"
+                  theme="snow"
+                  value={content}
+                  onChange={setContent}
+                  modules={quillModules}
+                  formats={quillFormats}
+                />
+              ) : (
+                <textarea
+                  className="editor-textarea-content"
+                  placeholder="Write your entry..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                />
+              )}
             </>
           )}
           {type !== 'entry' && (
