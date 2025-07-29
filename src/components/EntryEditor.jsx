@@ -145,11 +145,20 @@ export default function EntryEditor({
                   formats={quillFormats}
                 />
               ) : (
-                <textarea
-                  className="editor-textarea-content"
+                // <textarea
+                //   className="editor-textarea-content"
+                //   placeholder="Write your entry..."
+                //   value={content}
+                //   onChange={(e) => setContent(e.target.value)}
+                // />
+                <ReactQuill
+                  className="editor-quill"
                   placeholder="Write your entry..."
+                  theme="snow"
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
+                  onChange={setContent}
+                  modules={quillModules}
+                  formats={quillFormats}
                 />
               )}
             </>

@@ -193,7 +193,7 @@ body {
 }
 
 .editor-modal-content.fullscreen .editor-input-title {
-  width: 50%;
+  width: 60%;
   margin-bottom: 1rem;
   padding: 1rem;
   font-size: 1.5rem;
@@ -202,8 +202,8 @@ body {
 .editor-modal-content.fullscreen .editor-textarea-content {
   flex: 1;
   min-height: 0;
-  width: 50%;
-  height: auto;
+  width: 60%;
+  height: 60vh;
   padding: 1rem;
   resize: none;
   overflow-y: auto;
@@ -218,19 +218,39 @@ body {
 .editor-modal-content.fullscreen .editor-quill {
   flex: 1;
   min-height: 0;
-  width: 50%;
+  width: 60%;
   margin-bottom: 1rem;
 }
 
 .editor-modal-content.fullscreen .editor-quill .ql-container {
-  border-radius: 0.5rem;
-  border: 1px solid #ccc;
+  /* border-radius: 0.5rem; */
+  border: none;
+
+
 }
 
 .editor-modal-content.fullscreen .editor-quill .ql-editor {
   min-height: 3em;
   font-size: 1.25rem;
-  font-family: inherit;
+  font-family: 'IBM Plex Mono',
+    'Cutive Mono',
+    monospace;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 60vh;
+  padding: 1rem;
+  resize: none;
+  overflow-y: auto;
+  scrollbar-width: none;
+  font-size: 1.25rem;
+}
+
+.editor-modal-content.fullscreen .ql-toolbar {
+  border: none;
+  font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
+
 }
 
 .editor-modal-content.notebook {
@@ -285,12 +305,14 @@ body {
 .editor-modal-body input {
   height: 3em;
   margin-bottom: 1rem;
+  border: none;
 }
 
 .editor-modal-body textarea {
   height: 3em;
   padding: 1rem;
   margin-bottom: 1rem;
+  border: none;
   resize: none;
 }
 
