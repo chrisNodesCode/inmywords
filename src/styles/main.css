@@ -251,6 +251,12 @@ body {
 
 }
 
+.editor-modal-content.fullscreen .toolbar-hidden .ql-toolbar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
 .editor-modal-content.notebook {
   padding: 1rem;
   border-radius: 1em;
@@ -264,6 +270,39 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+}
+
+.editor-header-wrapper {
+  position: relative;
+  height: 4rem;
+  overflow: hidden;
+}
+
+.editor-header-wrapper.fullscreen {
+  width: 100%;
+}
+
+.editor-header-wrapper .editor-modal-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.editor-modal-header.hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.editor-header-wrapper:hover .editor-modal-header {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.editor-header-wrapper .editor-input-title {
+  margin-bottom: 0;
 }
 
 .editor-modal-buttons-container {

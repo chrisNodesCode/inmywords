@@ -1,5 +1,5 @@
 // src/components/EntryEditor.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 
@@ -25,8 +25,11 @@ export default function EntryEditor({
 
   const [title, setTitle] = useState(safeData.title || ''); // for entries
   const [content, setContent] = useState(safeData.content || '');
-  const [name, setName] = useState(safeData.name || ''); // for groups, subgroups, tags
-  const [description, setDescription] = useState(safeData.description || '');
+const [name, setName] = useState(safeData.name || ''); // for groups, subgroups, tags
+const [description, setDescription] = useState(safeData.description || '');
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const [toolbarVisible, setToolbarVisible] = useState(false);
+  const quillRef = useRef(null);
 
   const quillModules = {
     toolbar: [
@@ -95,11 +98,57 @@ export default function EntryEditor({
     onCancel();
   };
 
+  const hideTimeout = useRef();
+
+  const showHeader = () => {
+    setHeaderVisible(true);
+    clearTimeout(hideTimeout.current);
+    hideTimeout.current = setTimeout(() => setHeaderVisible(false), 2000);
+  };
+
+  // manage header visibility in fullscreen mode
+  useEffect(() => {
+    if (type !== 'entry') return;
+    document.addEventListener('mousemove', showHeader);
+    document.addEventListener('keydown', showHeader);
+    return () => {
+      document.removeEventListener('mousemove', showHeader);
+      document.removeEventListener('keydown', showHeader);
+      clearTimeout(hideTimeout.current);
+    };
+  }, [type]);
+
+  // handle text selection to toggle quill toolbar
+  useEffect(() => {
+    const handleSelection = () => {
+      const selection = window.getSelection();
+      const editorEl = quillRef.current?.editor?.root;
+      if (!selection || !editorEl) {
+        setToolbarVisible(false);
+        return;
+      }
+      if (editorEl.contains(selection.anchorNode) && !selection.isCollapsed) {
+        setToolbarVisible(true);
+      } else {
+        setToolbarVisible(false);
+      }
+    };
+
+    document.addEventListener('selectionchange', handleSelection);
+    return () => {
+      document.removeEventListener('selectionchange', handleSelection);
+    };
+  }, []);
+
   return (
     <div className={overlayClass} onClick={handleOverlayClick}>
       <div className={contentClass}>
-        <div className="editor-modal-header">
-          <h2 className="editor-modal-title">
+        <div
+          className={`editor-header-wrapper ${type === 'entry' ? 'fullscreen' : ''}`}
+          onMouseEnter={showHeader}
+        >
+          <div className={`editor-modal-header ${headerVisible ? '' : 'hidden'}`}>
+            <h2 className="editor-modal-title">
             {type === 'entry' && (mode === 'edit' ? 'Edit Entry' : 'New Entry')}
             {type === 'group' && (mode === 'edit' ? 'Edit Group' : 'New Group')}
             {type === 'subgroup' &&
@@ -107,27 +156,8 @@ export default function EntryEditor({
             {type === 'notebook' &&
               (mode === 'edit' ? 'Edit Notebook' : 'New Notebook')}
             {type === 'tag' && (mode === 'edit' ? 'Edit Tag' : 'New Tag')}
-          </h2>
-          <div className="editor-modal-buttons-container">
-            <button className="editor-button" onClick={handleSave}>
-              Save
-            </button>
-            {mode === 'edit' && onDelete && (
-              <button className="editor-button danger" onClick={handleDelete}>
-                Delete
-              </button>
-            )}
-            <button className="editor-button secondary" onClick={onCancel}>
-              Cancel
-            </button>
-            {/* <button className="editor-modal-close" onClick={onCancel}>
-            ×
-          </button> */}
-          </div>
-        </div>
-        <div className="editor-modal-body">
-          {type === 'entry' && (
-            <>
+            </h2>
+            {type === 'entry' && (
               <input
                 className="editor-input-title"
                 type="text"
@@ -135,9 +165,32 @@ export default function EntryEditor({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
+            )}
+            <div className="editor-modal-buttons-container">
+              <button className="editor-button" onClick={handleSave}>
+                Save
+              </button>
+              {mode === 'edit' && onDelete && (
+                <button className="editor-button danger" onClick={handleDelete}>
+                  Delete
+                </button>
+              )}
+              <button className="editor-button secondary" onClick={onCancel}>
+                Cancel
+              </button>
+              {/* <button className="editor-modal-close" onClick={onCancel}>
+              ×
+            </button> */}
+            </div>
+          </div>
+        </div>
+        <div className="editor-modal-body">
+          {type === 'entry' && (
+            <>
               {parent?.entryId ? (
                 <ReactQuill
-                  className="editor-quill"
+                  ref={quillRef}
+                  className={`editor-quill ${toolbarVisible ? '' : 'toolbar-hidden'}`}
                   theme="snow"
                   value={content}
                   onChange={setContent}
@@ -145,14 +198,9 @@ export default function EntryEditor({
                   formats={quillFormats}
                 />
               ) : (
-                // <textarea
-                //   className="editor-textarea-content"
-                //   placeholder="Write your entry..."
-                //   value={content}
-                //   onChange={(e) => setContent(e.target.value)}
-                // />
                 <ReactQuill
-                  className="editor-quill"
+                  ref={quillRef}
+                  className={`editor-quill ${toolbarVisible ? '' : 'toolbar-hidden'}`}
                   placeholder="Write your entry..."
                   theme="snow"
                   value={content}
