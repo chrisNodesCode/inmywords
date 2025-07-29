@@ -441,9 +441,9 @@ export default function Notebook() {
       {!loading && notebook && (
         <div className="groups-container">
           {notebook.groups.map((group) => (
-            <div key={group.id} className="group-card">
+            <div key={group.id} className={`group-card ${expandedGroups.includes(group.id) ? 'open' : ''}`}>
               <div
-                className={`group-header interactive ${expandedGroups.includes(group.id) ? 'open' : ''}`}
+                className={`group-header interactive`}
                 role="button"
                 tabIndex={0}
                 onClick={() => toggleGroup(group)}
