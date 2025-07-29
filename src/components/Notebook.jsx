@@ -4,7 +4,14 @@ import React, { useState } from 'react';
 import EntryEditor from './EntryEditor';
 import NotebookController from './NotebookController';
 
-const stripHtml = (html) => (html ? html.replace(/<[^>]+>/g, '') : '');
+const htmlToText = (html) => {
+  if (!html) return '';
+  return html
+    .replace(/<br\s*\/?\>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+};
 
 export default function Notebook() {
   const [editorState, setEditorState] = useState({
@@ -517,9 +524,13 @@ export default function Notebook() {
                                 <h4 class="entry-card-title">{entry.title}</h4>
                                 <div class="entry-card-content">
                                   {expandedEntries.includes(entry.id) ? (
-                                    entry.content
+                                    htmlToText(entry.content)
+                                      .split(/\n+/)
+                                      .map((para, idx) => (
+                                        <p key={idx}>{para}</p>
+                                      ))
                                   ) : (
-                                    <p>{stripHtml(entry.content).slice(0, 40)}...</p>
+                                    <p>{htmlToText(entry.content).slice(0, 40)}...</p>
                                   )}
                                 </div>
                               </div>
