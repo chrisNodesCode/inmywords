@@ -225,8 +225,6 @@ body {
 .editor-modal-content.fullscreen .editor-quill .ql-container {
   /* border-radius: 0.5rem; */
   border: none;
-
-
 }
 
 .editor-modal-content.fullscreen .editor-quill .ql-editor {
