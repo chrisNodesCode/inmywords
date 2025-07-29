@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import EntryEditor from './EntryEditor';
 import NotebookController from './NotebookController';
 
+const stripHtml = (html) => (html ? html.replace(/<[^>]+>/g, '') : '');
+
 export default function Notebook() {
   const [editorState, setEditorState] = useState({
     isOpen: false,
@@ -517,7 +519,7 @@ export default function Notebook() {
                                   {expandedEntries.includes(entry.id) ? (
                                     entry.content
                                   ) : (
-                                    <p>{entry.content.slice(0, 40)}...</p>
+                                    <p>{stripHtml(entry.content).slice(0, 40)}...</p>
                                   )}
                                 </div>
                               </div>
