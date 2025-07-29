@@ -21,7 +21,7 @@ export default function Notebook() {
   const [expandedEntries, setExpandedEntries] = useState([]); // ids of expanded entries
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
-  const [showEdits, setShowEdits] = useState(true);
+  const [showEdits, setShowEdits] = useState(false);
 
   const loadNotebook = async (id) => {
     setLoading(true);
