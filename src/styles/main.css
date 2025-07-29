@@ -219,6 +219,24 @@ body {
   display: none;
 }
 
+.editor-modal-content.fullscreen .editor-quill {
+  flex: 1;
+  min-height: 0;
+  width: 50%;
+  margin-bottom: 1rem;
+}
+
+.editor-modal-content.fullscreen .editor-quill .ql-container {
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+}
+
+.editor-modal-content.fullscreen .editor-quill .ql-editor {
+  min-height: 3em;
+  font-size: 1.25rem;
+  font-family: inherit;
+}
+
 .editor-modal-content.notebook {
   padding: 1rem;
   border-radius: 1em;
