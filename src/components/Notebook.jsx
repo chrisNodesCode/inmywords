@@ -468,9 +468,8 @@ export default function Notebook() {
                   </button>
                 )}
               </div>
-              {expandedGroups.includes(group.id) && (
-                <div>
-                  {group.subgroups.map((sub) => (
+              <div className={`group-children collapsible ${expandedGroups.includes(group.id) ? 'open' : ''}`}> 
+                {group.subgroups.map((sub) => (
                     <div key={sub.id} className="subgroup-card">
                       <div
                         className={`subgroup-header interactive ${expandedSubgroups.includes(sub.id) ? 'open' : ''}`}
@@ -501,10 +500,9 @@ export default function Notebook() {
                           </button>
                         )}
                       </div>
-                      {expandedSubgroups.includes(sub.id) && (
-                        <div>
-                          {sub.entries.map((entry) => (
-                            <div key={entry.id} className="entry-card">
+                      <div className={`subgroup-children collapsible ${expandedSubgroups.includes(sub.id) ? 'open' : ''}`}> 
+                        {sub.entries.map((entry) => (
+                            <div key={entry.id} className={`entry-card ${expandedEntries.includes(entry.id) ? 'open' : ''}`}>
                               <div
                                 className="entry-header interactive"
                                 role="button"
@@ -515,81 +513,80 @@ export default function Notebook() {
                                 }}
                               >
                                 <h4 class="entry-card-title">{entry.title}</h4>
-                                {!expandedEntries.includes(entry.id) && (
-                                  <div class="entry-card-content">
+                                <div class="entry-card-content">
+                                  {expandedEntries.includes(entry.id) ? (
+                                    entry.content
+                                  ) : (
                                     <p>{entry.content.slice(0, 40)}...</p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className={`entry-details collapsible ${expandedEntries.includes(entry.id) ? 'open' : ''}`}>
+                                {entry.tags.length > 0 && (
+                                  <div>
+                                    {entry.tags.map((tag) => (
+                                      <div
+                                        key={tag.id}
+                                        className="tag"
+                                        onClick={() =>
+                                          handleRemoveTag(
+                                            group.id,
+                                            sub.id,
+                                            entry.id,
+                                            tag.id,
+                                            entry.tags.map((t) => t.id)
+                                          )
+                                        }
+                                      >
+                                        <span className="close-icon">×</span>
+                                        {tag.name}
+                                      </div>
+                                    ))}
                                   </div>
                                 )}
-                                {expandedEntries.includes(entry.id) && (
-                                  <>
-                                    <div class="entry-card-content">{entry.content}</div>
-                                    {entry.tags.length > 0 && (
-                                      <div>
-                                        {entry.tags.map((tag) => (
-                                          <div
-                                            key={tag.id}
-                                            className="tag"
-                                            onClick={() =>
-                                              handleRemoveTag(
-                                                group.id,
-                                                sub.id,
-                                                entry.id,
-                                                tag.id,
-                                                entry.tags.map((t) => t.id)
-                                              )
-                                            }
-                                          >
-                                            <span className="close-icon">×</span>
-                                            {tag.name}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                    <button
-                                      style={{ marginRight: "1rem" }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openEditor(
-                                          'tag',
-                                          {
-                                            entryId: entry.id,
-                                            subgroupId: sub.id,
-                                            groupId: group.id,
-                                            tagIds: entry.tags.map((t) => t.id),
-                                            label: `Entry: ${entry.title}`,
-                                          },
-                                          entry.tags.length - 1
-                                        );
-                                      }}
-                                    >
-                                      Add Tag
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openEditor(
-                                          'entry',
-                                          {
-                                            subgroupId: sub.id,
-                                            groupId: group.id,
-                                            entryId: entry.id,
-                                          },
-                                          null,
-                                          entry,
-                                          'edit',
-                                          () =>
-                                            handleDeleteEntry(
-                                              group.id,
-                                              sub.id,
-                                              entry.id
-                                            )
-                                        );
-                                      }}
-                                    >
-                                      Edit
-                                    </button>
-                                  </>
-                                )}
+                                <button
+                                  style={{ marginRight: "1rem" }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditor(
+                                      'tag',
+                                      {
+                                        entryId: entry.id,
+                                        subgroupId: sub.id,
+                                        groupId: group.id,
+                                        tagIds: entry.tags.map((t) => t.id),
+                                        label: `Entry: ${entry.title}`,
+                                      },
+                                      entry.tags.length - 1
+                                    );
+                                  }}
+                                >
+                                  Add Tag
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditor(
+                                      'entry',
+                                      {
+                                        subgroupId: sub.id,
+                                        groupId: group.id,
+                                        entryId: entry.id,
+                                      },
+                                      null,
+                                      entry,
+                                      'edit',
+                                      () =>
+                                        handleDeleteEntry(
+                                          group.id,
+                                          sub.id,
+                                          entry.id
+                                        )
+                                    );
+                                  }}
+                                >
+                                  Edit
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -609,7 +606,6 @@ export default function Notebook() {
                             Add Entry
                           </div>
                         </div>
-                      )}
                     </div>
                   ))}
                   <div
@@ -628,7 +624,6 @@ export default function Notebook() {
                     Add Subgroup
                   </div>
                 </div>
-              )}
             </div>
           ))}
           <div
