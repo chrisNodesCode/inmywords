@@ -414,16 +414,14 @@ button {
   transform: scale(1.02);
   filter: brightness(0.95);
   margin-left: 0.5rem;
+  max-width: 96%;
 }
 
 button:hover {
   cursor: pointer;
   transform: scale(1.02);
   filter: brightness(0.95);
-
 }
-
-
 
 .edit-button {
   margin-left: 0.5rem;
@@ -473,5 +471,11 @@ body[data-theme='dark'] .add-entry {
 }
 
 .collapsible.open {
-  max-height: 1000px;
+  max-height: 60vh;
+  overflow: scroll;
+  scrollbar-width: none;
+}
+
+.collapsible.open::-webkit-scrollbar {
+  display: none;
 }
