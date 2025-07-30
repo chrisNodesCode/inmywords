@@ -252,9 +252,7 @@ body {
 }
 
 .editor-modal-content.fullscreen .toolbar-hidden .ql-toolbar {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
+  display: none;
 }
 
 .editor-modal-content.notebook {

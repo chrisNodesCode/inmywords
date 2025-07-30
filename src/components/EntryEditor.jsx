@@ -138,27 +138,14 @@ export default function EntryEditor({
     if (firstInteraction.current) scheduleHide();
   };
 
-  // handle text selection to toggle quill toolbar
-  useEffect(() => {
-    const handleSelection = () => {
-      const selection = window.getSelection();
-      const editorEl = quillRef.current?.getEditor?.().root;
-      if (!selection || !editorEl) {
-        setToolbarVisible(false);
-        return;
-      }
-      if (editorEl.contains(selection.anchorNode) && !selection.isCollapsed) {
-        setToolbarVisible(true);
-      } else {
-        setToolbarVisible(false);
-      }
-    };
-
-    document.addEventListener('selectionchange', handleSelection);
-    return () => {
-      document.removeEventListener('selectionchange', handleSelection);
-    };
-  }, []);
+  // toggle quill toolbar when user highlights text
+  const handleSelectionChange = (range) => {
+    if (range && range.length > 0) {
+      setToolbarVisible(true);
+    } else {
+      setToolbarVisible(false);
+    }
+  };
 
   return (
     <div className={overlayClass} onClick={handleOverlayClick}>
@@ -213,8 +200,9 @@ export default function EntryEditor({
                 className={`editor-quill ${toolbarVisible ? '' : 'toolbar-hidden'}`}
                 theme="snow"
                 placeholder="Start writing here..."
-                value={parent?.entryId && content}
+                value={content}
                 onChange={setContent}
+                onChangeSelection={handleSelectionChange}
                 modules={quillModules}
                 formats={quillFormats}
               />
