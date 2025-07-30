@@ -41,6 +41,10 @@ body {
   justify-content: flex-end;
   padding: 2rem;
   margin-bottom: 0rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .group-title {
@@ -63,6 +67,9 @@ body {
   border: none;
   background-color: #fff;
   margin-bottom: 0rem;
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 .subgroup-title {
@@ -515,6 +522,11 @@ body[data-theme='dark'] .add-subgroup,
 body[data-theme='dark'] .add-entry {
   background-color: #1f1f1f;
   color: #fff;
+}
+
+.fade-out {
+  transform: translateY(-100%);
+  opacity: 0;
 }
 
 /* smooth expand/collapse */

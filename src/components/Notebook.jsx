@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 
 import EntryEditor from './EntryEditor';
@@ -31,6 +31,47 @@ export default function Notebook() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [showEdits, setShowEdits] = useState(false);
+
+  const groupRefs = useRef({});
+  const subgroupRefs = useRef({});
+  const [activeGroup, setActiveGroup] = useState(null);
+  const [activeSubgroup, setActiveSubgroup] = useState(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!notebook) return;
+      let newSub = null;
+      let newGroup = null;
+      for (const g of notebook.groups) {
+        const gRef = groupRefs.current[g.id];
+        if (gRef) {
+          const rect = gRef.getBoundingClientRect();
+          if (rect.top <= 0 && rect.bottom >= 0) {
+            newGroup = g.id;
+          }
+        }
+        if (expandedGroups.includes(g.id)) {
+          for (const s of g.subgroups) {
+            if (!expandedSubgroups.includes(s.id)) continue;
+            const sRef = subgroupRefs.current[s.id];
+            if (!sRef) continue;
+            const sRect = sRef.getBoundingClientRect();
+            if (sRect.top <= 0 && sRect.bottom >= 0) {
+              newSub = s.id;
+              newGroup = g.id;
+              break;
+            }
+          }
+        }
+        if (newSub) break;
+      }
+      setActiveSubgroup(newSub);
+      setActiveGroup(newGroup);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [notebook, expandedGroups, expandedSubgroups]);
 
   const loadNotebook = async (id) => {
     setLoading(true);
@@ -452,7 +493,13 @@ export default function Notebook() {
           {notebook.groups.map((group) => (
             <div key={group.id} className={`group-card ${expandedGroups.includes(group.id) ? 'open' : ''}`}>
               <div
-                className={`group-header interactive`}
+                ref={(el) => {
+                  if (el) groupRefs.current[group.id] = el;
+                }}
+                data-group-id={group.id}
+                className={`group-header interactive ${
+                  activeSubgroup && activeGroup === group.id ? 'fade-out' : ''
+                }`}
                 role="button"
                 tabIndex={0}
                 onClick={() => toggleGroup(group)}
@@ -481,6 +528,10 @@ export default function Notebook() {
                 {group.subgroups.map((sub) => (
                     <div key={sub.id} className="subgroup-card">
                       <div
+                        ref={(el) => {
+                          if (el) subgroupRefs.current[sub.id] = el;
+                        }}
+                        data-subgroup-id={sub.id}
                         className={`subgroup-header interactive ${expandedSubgroups.includes(sub.id) ? 'open' : ''}`}
                         role="button"
                         tabIndex={0}
