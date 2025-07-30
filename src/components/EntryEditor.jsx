@@ -25,8 +25,8 @@ export default function EntryEditor({
 
   const [title, setTitle] = useState(safeData.title || ''); // for entries
   const [content, setContent] = useState(safeData.content || '');
-const [name, setName] = useState(safeData.name || ''); // for groups, subgroups, tags
-const [description, setDescription] = useState(safeData.description || '');
+  const [name, setName] = useState(safeData.name || ''); // for groups, subgroups, tags
+  const [description, setDescription] = useState(safeData.description || '');
   const [headerVisible, setHeaderVisible] = useState(true);
   const [toolbarVisible, setToolbarVisible] = useState(false);
   const quillRef = useRef(null);
@@ -170,13 +170,13 @@ const [description, setDescription] = useState(safeData.description || '');
         >
           <div className={`editor-modal-header ${headerVisible ? '' : 'hidden'}`}>
             <h2 className="editor-modal-title">
-            {type === 'entry' && (mode === 'edit' ? 'Edit Entry' : 'New Entry')}
-            {type === 'group' && (mode === 'edit' ? 'Edit Group' : 'New Group')}
-            {type === 'subgroup' &&
-              (mode === 'edit' ? 'Edit Subgroup' : 'New Subgroup')}
-            {type === 'notebook' &&
-              (mode === 'edit' ? 'Edit Notebook' : 'New Notebook')}
-            {type === 'tag' && (mode === 'edit' ? 'Edit Tag' : 'New Tag')}
+              {type === 'entry' && (mode === 'edit' ? 'Edit Entry' : 'New Entry')}
+              {type === 'group' && (mode === 'edit' ? 'Edit Group' : 'New Group')}
+              {type === 'subgroup' &&
+                (mode === 'edit' ? 'Edit Subgroup' : 'New Subgroup')}
+              {type === 'notebook' &&
+                (mode === 'edit' ? 'Edit Notebook' : 'New Notebook')}
+              {type === 'tag' && (mode === 'edit' ? 'Edit Tag' : 'New Tag')}
             </h2>
             {type === 'entry' && (
               <input
@@ -208,28 +208,16 @@ const [description, setDescription] = useState(safeData.description || '');
         <div className="editor-modal-body">
           {type === 'entry' && (
             <>
-              {parent?.entryId ? (
-                <ReactQuill
-                  ref={quillRef}
-                  className={`editor-quill ${toolbarVisible ? '' : 'toolbar-hidden'}`}
-                  theme="snow"
-                  value={content}
-                  onChange={setContent}
-                  modules={quillModules}
-                  formats={quillFormats}
-                />
-              ) : (
-                <ReactQuill
-                  ref={quillRef}
-                  className={`editor-quill ${toolbarVisible ? '' : 'toolbar-hidden'}`}
-                  placeholder="Write your entry..."
-                  theme="snow"
-                  value={content}
-                  onChange={setContent}
-                  modules={quillModules}
-                  formats={quillFormats}
-                />
-              )}
+              <ReactQuill
+                ref={quillRef}
+                className={`editor-quill ${toolbarVisible ? '' : 'toolbar-hidden'}`}
+                theme="snow"
+                placeholder="Start writing here..."
+                value={parent?.entryId && content}
+                onChange={setContent}
+                modules={quillModules}
+                formats={quillFormats}
+              />
             </>
           )}
           {type !== 'entry' && (
