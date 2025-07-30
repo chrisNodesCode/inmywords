@@ -22,7 +22,7 @@ export default function LandingPage({ onLogin }) {
 
   return (
     <div className="landing-page">
-      <header className="navbar" style={{ padding: '1rem 2rem', borderBottom: '1px solid #ddd' }}>
+      <header className="navbar">
         <nav>
           <ul style={{ display: 'flex', listStyle: 'none', gap: '1.5rem', margin: 0, padding: 0 }}>
             <li><a href="#">Features</a></li>
@@ -51,7 +51,7 @@ export default function LandingPage({ onLogin }) {
           Get Started
         </button>
       </main>
-      <div className="login-container" style={{ maxWidth: '300px', margin: '2rem auto', padding: '1rem', border: '1px solid #ddd', borderRadius: '4px' }}>
+      <div className="login-container">
         <h2>Login</h2>
         <div>
           <input
