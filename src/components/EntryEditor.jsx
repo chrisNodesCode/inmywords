@@ -99,30 +99,50 @@ const [description, setDescription] = useState(safeData.description || '');
   };
 
   const hideTimeout = useRef();
+  const firstInteraction = useRef(false);
 
-  const showHeader = () => {
-    setHeaderVisible(true);
+  const scheduleHide = () => {
     clearTimeout(hideTimeout.current);
-    hideTimeout.current = setTimeout(() => setHeaderVisible(false), 2000);
+    hideTimeout.current = setTimeout(() => setHeaderVisible(false), 1000);
   };
 
-  // manage header visibility in fullscreen mode
+  // hide header after the first user interaction
   useEffect(() => {
     if (type !== 'entry') return;
-    document.addEventListener('mousemove', showHeader);
-    document.addEventListener('keydown', showHeader);
+
+    const handleFirst = () => {
+      if (!firstInteraction.current) {
+        firstInteraction.current = true;
+        scheduleHide();
+        document.removeEventListener('mousemove', handleFirst);
+        document.removeEventListener('keydown', handleFirst);
+      }
+    };
+
+    document.addEventListener('mousemove', handleFirst);
+    document.addEventListener('keydown', handleFirst);
+
     return () => {
-      document.removeEventListener('mousemove', showHeader);
-      document.removeEventListener('keydown', showHeader);
+      document.removeEventListener('mousemove', handleFirst);
+      document.removeEventListener('keydown', handleFirst);
       clearTimeout(hideTimeout.current);
     };
   }, [type]);
+
+  const handleHeaderMouseEnter = () => {
+    setHeaderVisible(true);
+    clearTimeout(hideTimeout.current);
+  };
+
+  const handleHeaderMouseLeave = () => {
+    if (firstInteraction.current) scheduleHide();
+  };
 
   // handle text selection to toggle quill toolbar
   useEffect(() => {
     const handleSelection = () => {
       const selection = window.getSelection();
-      const editorEl = quillRef.current?.editor?.root;
+      const editorEl = quillRef.current?.getEditor?.().root;
       if (!selection || !editorEl) {
         setToolbarVisible(false);
         return;
@@ -145,7 +165,8 @@ const [description, setDescription] = useState(safeData.description || '');
       <div className={contentClass}>
         <div
           className={`editor-header-wrapper ${type === 'entry' ? 'fullscreen' : ''}`}
-          onMouseEnter={showHeader}
+          onMouseEnter={handleHeaderMouseEnter}
+          onMouseLeave={handleHeaderMouseLeave}
         >
           <div className={`editor-modal-header ${headerVisible ? '' : 'hidden'}`}>
             <h2 className="editor-modal-title">

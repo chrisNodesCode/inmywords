@@ -287,6 +287,7 @@ body {
   top: 0;
   left: 0;
   right: 0;
+  pointer-events: auto;
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
@@ -296,10 +297,6 @@ body {
   pointer-events: none;
 }
 
-.editor-header-wrapper:hover .editor-modal-header {
-  transform: translateY(0);
-  opacity: 1;
-}
 
 .editor-header-wrapper .editor-input-title {
   margin-bottom: 0;
