@@ -143,7 +143,13 @@ export default function EntryEditor({
     if (range && range.length > 0) {
       setToolbarVisible(true);
     } else {
-      setToolbarVisible(false);
+      const activeInToolbar =
+        typeof document !== 'undefined' &&
+        document.activeElement &&
+        document.activeElement.closest('.ql-toolbar');
+      if (!activeInToolbar) {
+        setToolbarVisible(false);
+      }
     }
   };
 
