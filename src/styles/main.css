@@ -313,7 +313,8 @@ body {
 .editor-header-wrapper {
   position: relative;
   height: 4rem;
-  overflow: hidden;
+  /* allow Quill dropdowns to extend beyond the header wrapper */
+  overflow: visible;
 }
 
 .editor-header-wrapper.fullscreen {
@@ -635,4 +636,24 @@ body[data-theme='light'] .navbar {
 
 .collapsible.open::-webkit-scrollbar {
   display: none;
+}
+
+/* Ensure Quill toolbar dropdowns have visible backgrounds */
+.ql-toolbar .ql-picker-options {
+  background-color: #fff;
+  color: #000;
+}
+
+body[data-theme='dark'] .ql-toolbar .ql-picker-options {
+  background-color: #1f1f1f;
+  color: #fff;
+}
+
+/* Provide basic header styling inside the editor */
+.ql-editor h1 {
+  font-size: 2em;
+}
+
+.ql-editor h2 {
+  font-size: 1.5em;
 }
