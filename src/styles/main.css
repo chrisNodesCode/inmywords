@@ -285,19 +285,14 @@ body {
   font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
   text-align: center;
   height: 40px;
+  transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+  transform: translateY(0);
 }
-
-
 
 .editor-modal-content.fullscreen .toolbar-hidden .ql-toolbar {
-  display: none;
-  height: 40px;
-}
-
-.editor-modal-content.fullscreen .toolbar-hidden .ql-toolbar::before {
-  content: "";
-  min-height: 40px;
-  height: 40px;
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .editor-modal-content.notebook {
