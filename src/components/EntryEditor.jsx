@@ -27,6 +27,9 @@ export default function EntryEditor({
   const [content, setContent] = useState(safeData.content || '');
   const [name, setName] = useState(safeData.name || ''); // for groups, subgroups, tags
   const [description, setDescription] = useState(safeData.description || '');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+  const [lastSaved, setLastSaved] = useState(null);
   const [headerVisible, setHeaderVisible] = useState(true);
   const [toolbarVisible, setToolbarVisible] = useState(false);
   const quillRef = useRef(null);
@@ -48,6 +51,7 @@ export default function EntryEditor({
     setContent(data.content || '');
     setName(data.name || '');
     setDescription(data.description || '');
+    setTitleInput(data.title || '');
   }, [initialData]);
 
   const handleSave = () => {
@@ -63,6 +67,7 @@ export default function EntryEditor({
         mode,
         id: safeData.id,
       });
+      setLastSaved(new Date());
       return;
     }
 
@@ -77,6 +82,7 @@ export default function EntryEditor({
       mode,
       id: safeData.id,
     });
+    setLastSaved(new Date());
   };
 
   // Close on background click
@@ -153,6 +159,23 @@ export default function EntryEditor({
     }
   };
 
+  // autosave every 5 minutes
+  useEffect(() => {
+    if (type !== 'entry') return;
+    const interval = setInterval(() => {
+      onSave({
+        title: title.trim(),
+        content: content.trim(),
+        parent,
+        mode,
+        id: safeData.id,
+        autoSave: true,
+      });
+      setLastSaved(new Date());
+    }, 300000);
+    return () => clearInterval(interval);
+  }, [type, title, content, parent, mode, safeData.id, onSave]);
+
   return (
     <div className={overlayClass} onClick={handleOverlayClick}>
       <div className={contentClass}>
@@ -171,15 +194,6 @@ export default function EntryEditor({
                 (mode === 'edit' ? 'Edit Notebook' : 'New Notebook')}
               {type === 'tag' && (mode === 'edit' ? 'Edit Tag' : 'New Tag')}
             </h2>
-            {type === 'entry' && (
-              <input
-                className="editor-input-title"
-                type="text"
-                placeholder="Entry Title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            )}
             <div className="editor-modal-buttons-container">
               <button className="editor-button" onClick={handleSave}>
                 Save
@@ -201,6 +215,40 @@ export default function EntryEditor({
         <div className="editor-modal-body">
           {type === 'entry' && (
             <>
+              <div className="entry-title-container">
+                {isEditingTitle ? (
+                  <input
+                    type="text"
+                    className="entry-title-input"
+                    value={titleInput}
+                    onChange={(e) => setTitleInput(e.target.value)}
+                    onBlur={() => {
+                      setTitle(titleInput);
+                      setIsEditingTitle(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        setTitle(titleInput);
+                        setIsEditingTitle(false);
+                      }
+                    }}
+                    autoFocus
+                  />
+                ) : (
+                  <p
+                    className="entry-title-display"
+                    onClick={() => {
+                      setTitleInput(title);
+                      setIsEditingTitle(true);
+                    }}
+                  >
+                    <strong>Title:</strong> {title || 'Untitled'}
+                  </p>
+                )}
+                {lastSaved && (
+                  <div className="last-saved">Last Saved: {lastSaved.toLocaleString()}</div>
+                )}
+              </div>
               <ReactQuill
                 ref={quillRef}
                 className={`editor-quill ${toolbarVisible ? '' : 'toolbar-hidden'}`}

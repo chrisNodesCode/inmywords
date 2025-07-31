@@ -93,6 +93,7 @@ export default function Notebook() {
 
 
   const handleSave = async (data) => {
+    const { autoSave = false, ...payload } = data;
     if (!editorState.type) return;
     try {
       if (editorState.type === 'entry') {
@@ -100,7 +101,7 @@ export default function Notebook() {
           const res = await fetch(`/api/entries/${editorState.item.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: data.title, content: data.content }),
+            body: JSON.stringify({ title: payload.title, content: payload.content }),
           });
           if (!res.ok) throw new Error('Failed to update entry');
           const updated = await res.json();
@@ -125,8 +126,8 @@ export default function Notebook() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              title: data.title,
-              content: data.content,
+              title: payload.title,
+              content: payload.content,
               subgroupId: editorState.parent.subgroupId,
             }),
           });
@@ -153,7 +154,7 @@ export default function Notebook() {
           const res = await fetch(`/api/subgroups/${editorState.item.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: data.name, description: data.description }),
+            body: JSON.stringify({ name: payload.name, description: payload.description }),
           });
           if (!res.ok) throw new Error('Failed to update subgroup');
           const updated = await res.json();
@@ -174,8 +175,8 @@ export default function Notebook() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              name: data.name,
-              description: data.description,
+              name: payload.name,
+              description: payload.description,
               groupId: editorState.parent.groupId,
             }),
           });
@@ -196,7 +197,7 @@ export default function Notebook() {
           const res = await fetch(`/api/groups/${editorState.item.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: data.name, description: data.description }),
+            body: JSON.stringify({ name: payload.name, description: payload.description }),
           });
           if (!res.ok) throw new Error('Failed to update group');
           const updated = await res.json();
@@ -211,8 +212,8 @@ export default function Notebook() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              name: data.name,
-              description: data.description,
+              name: payload.name,
+              description: payload.description,
               notebookId: notebook.id,
             }),
           });
@@ -229,7 +230,7 @@ export default function Notebook() {
           const res = await fetch(`/api/notebooks/${editorState.item.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: data.name, description: data.description }),
+            body: JSON.stringify({ title: payload.name, description: payload.description }),
           });
           if (!res.ok) throw new Error('Failed to update notebook');
           const updated = await res.json();
@@ -239,7 +240,7 @@ export default function Notebook() {
         const tagRes = await fetch('/api/tags', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: data.name, notebookId: notebook.id }),
+          body: JSON.stringify({ name: payload.name, notebookId: notebook.id }),
         });
         if (!tagRes.ok) throw new Error('Failed to create tag');
         const newTag = await tagRes.json();
@@ -272,15 +273,17 @@ export default function Notebook() {
     } catch (err) {
       console.error(err);
     } finally {
-      setEditorState({
-        isOpen: false,
-        type: null,
-        parent: null,
-        index: null,
-        item: null,
-        mode: 'create',
-        onDelete: null,
-      });
+      if (!autoSave) {
+        setEditorState({
+          isOpen: false,
+          type: null,
+          parent: null,
+          index: null,
+          item: null,
+          mode: 'create',
+          onDelete: null,
+        });
+      }
     }
   };
 
