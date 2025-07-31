@@ -313,7 +313,8 @@ body {
 .editor-header-wrapper {
   position: relative;
   height: 4rem;
-  overflow: hidden;
+  /* allow Quill dropdowns to extend beyond the header wrapper */
+  overflow: visible;
 }
 
 .editor-header-wrapper.fullscreen {
