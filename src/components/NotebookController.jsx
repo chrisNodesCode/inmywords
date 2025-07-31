@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { signOut } from 'next-auth/react';
 import { Switch, Avatar } from 'antd';
 import EntryEditor from './EntryEditor';
 import { EditOutlined, UserOutlined } from '@ant-design/icons';
+import { ThemeContext } from './ThemeProvider';
 
 
 export default function NotebookController({ onSelect, showEdits, onToggleEdits }) {
   const [notebooks, setNotebooks] = useState([]);
   const [selected, setSelected] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const { darkMode, toggleTheme } = useContext(ThemeContext);
 
   useEffect(() => {
     async function fetchNotebooks() {
@@ -78,7 +80,10 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits 
 
 
         <div className="profile-menu">
-          <a href="/settings" style={{ display: 'block', marginBottom: '0.5rem' }}>Settings</a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <span>Dark Mode</span>
+            <Switch checked={darkMode} onChange={toggleTheme} />
+          </div>
           <button onClick={() => signOut({ redirect: false })}>Logout</button>
         </div>
       </div>
