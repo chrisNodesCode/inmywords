@@ -16,6 +16,7 @@ export default function EntryEditor({
   onSave,
   onCancel,
   onDelete = null,
+  onArchive = null,
   initialData = {},
   mode = 'create',
 }) {
@@ -201,6 +202,11 @@ export default function EntryEditor({
               {mode === 'edit' && onDelete && (
                 <button className="editor-button danger" onClick={handleDelete}>
                   Delete
+                </button>
+              )}
+              {type === 'entry' && mode === 'edit' && onArchive && (
+                <button className="editor-button" onClick={onArchive}>
+                  {safeData.archived ? 'Restore' : 'Archive'}
                 </button>
               )}
               <button className="editor-button secondary" onClick={onCancel}>

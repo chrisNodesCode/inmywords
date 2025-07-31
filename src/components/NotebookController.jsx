@@ -6,7 +6,7 @@ import { EditOutlined, UserOutlined } from '@ant-design/icons';
 import { ThemeContext } from './ThemeProvider';
 
 
-export default function NotebookController({ onSelect, showEdits, onToggleEdits }) {
+export default function NotebookController({ onSelect, showEdits, onToggleEdits, showArchived, onToggleArchived }) {
   const [notebooks, setNotebooks] = useState([]);
   const [selected, setSelected] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -73,6 +73,12 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits 
           checked={showEdits}
           onChange={onToggleEdits}
           style={{ marginLeft: '0.5rem' }}
+        />
+        <span style={{ marginLeft: '0.5rem' }}>Show Archived</span>
+        <Switch
+          checked={showArchived}
+          onChange={onToggleArchived}
+          style={{ marginLeft: '0.25rem' }}
         />
       </div>
       <div className="profile-menu-container">

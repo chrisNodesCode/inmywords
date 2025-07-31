@@ -34,7 +34,7 @@ export default async function handler(req, res) {
 
       case 'PUT':
         // Parse and validate input
-        const { title, content, subgroupId, tagIds } = req.body;
+        const { title, content, subgroupId, tagIds, archived } = req.body;
         if (title !== undefined && typeof title !== 'string') {
           return res.status(400).json({ error: 'Invalid title' });
         }
@@ -46,6 +46,9 @@ export default async function handler(req, res) {
         }
         if (tagIds !== undefined && (!Array.isArray(tagIds) || !tagIds.every(id => typeof id === 'string'))) {
           return res.status(400).json({ error: 'Invalid tagIds' });
+        }
+        if (archived !== undefined && typeof archived !== 'boolean') {
+          return res.status(400).json({ error: 'Invalid archived flag' });
         }
 
         // If subgroup change requested, verify new subgroup ownership
@@ -69,6 +72,7 @@ export default async function handler(req, res) {
             ...(tagIds !== undefined
               ? { tags: { set: tagIds.map(id => ({ id })) } }
               : {}),
+            ...(archived !== undefined ? { archived } : {}),
           },
           include: {
             tags: true,
