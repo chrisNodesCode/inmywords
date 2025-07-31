@@ -4,8 +4,8 @@
 body {
   font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
   margin: 0;
-  background: #fff;
-  color: #000;
+  background: #ffffff;
+  color: #000000;
   /* Reserve space for the vertical scrollbar so layout width
      doesn't change when content overflows. */
   scrollbar-gutter: stable;
@@ -31,7 +31,7 @@ body {
 
 .notebook-container {
   padding: 1rem;
-  max-width: 55vw;
+  max-width: 75vw;
   margin: auto;
   display: flex;
   align-self: stretch;
@@ -49,15 +49,17 @@ body {
 
 .groups-container {
   margin-top: 1rem;
+  background-color: #ffffff;
 }
 
 .group-card {
   margin-bottom: 3rem;
+  border-left: 3px solid rgb(45, 45, 45);
 }
 
 .group-header {
   /* border-radius: 2rem; */
-  background-color: #fff;
+  background-color: #ffffff;
   border: none;
   justify-content: flex-end;
   padding: 2rem;
@@ -75,9 +77,9 @@ body {
 }
 
 .subgroup-card {
-  background-color: #fff;
+  background-color: #ffffff;
   margin-left: 2rem;
-  margin-top: 1rem;
+  margin-top: 0rem;
   border: none;
 }
 
@@ -96,7 +98,6 @@ body {
 .subgroup-title {
   font-size: 1.75rem;
   font-weight: 300;
-  background-color: #fff;
 }
 
 /* arrow icons for expandable items */
@@ -111,6 +112,7 @@ body {
 .group-card .group-title::before,
 .subgroup-header .subgroup-title::before,
 .entry-header .entry-card-content::before {
+  width: 50px;
   content: '▸';
 }
 
@@ -118,6 +120,7 @@ body {
 .subgroup-header.open .subgroup-title::before,
 .entry-card.open .entry-card-content::before {
   content: '▾';
+  width: 50px;
 }
 
 .entry-card {
@@ -125,6 +128,7 @@ body {
   background-color: #fff;
   margin-top: 2rem;
   margin-left: 2rem;
+  max-width: 90%;
 }
 
 .entry-header {
@@ -136,7 +140,7 @@ body {
 }
 
 .entry-card-title {
-  font-size: 3rem;
+  font-size: 2rem;
   font-weight: 600;
   margin-bottom: 0;
   margin-top: 0;
@@ -221,17 +225,19 @@ body {
 }
 
 .editor-modal-content.fullscreen .editor-input-title {
-  width: 60%;
+  width: auto;
+  min-width: 30%;
   margin-bottom: 1rem;
   padding: 1rem;
   font-size: 1.5rem;
+
 }
 
 .editor-modal-content.fullscreen .editor-textarea-content {
   flex: 1;
   min-height: 0;
   width: 60%;
-  height: 60vh;
+  /* height: 60vh; */
   padding: 1rem;
   resize: none;
   overflow-y: auto;
@@ -246,13 +252,14 @@ body {
 .editor-modal-content.fullscreen .editor-quill {
   flex: 1;
   min-height: 0;
-  width: 60%;
+  width: 50%;
   margin-bottom: 1rem;
 }
 
 .editor-modal-content.fullscreen .editor-quill .ql-container {
   /* border-radius: 0.5rem; */
   border: none;
+  margin: auto;
 }
 
 .editor-modal-content.fullscreen .editor-quill .ql-editor {
@@ -265,7 +272,7 @@ body {
   flex: 1;
   min-height: 0;
   width: 100%;
-  height: 60vh;
+  height: 75vh;
   padding: 1rem;
   resize: none;
   overflow-y: auto;
@@ -274,21 +281,31 @@ body {
 }
 
 .editor-modal-content.fullscreen .ql-toolbar {
-  border: none;
+  border: 1px solid black;
   font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
-
+  text-align: center;
+  height: 40px;
 }
+
+
 
 .editor-modal-content.fullscreen .toolbar-hidden .ql-toolbar {
   display: none;
+  height: 40px;
+}
+
+.editor-modal-content.fullscreen .toolbar-hidden .ql-toolbar::before {
+  content: "";
+  min-height: 40px;
+  height: 40px;
 }
 
 .editor-modal-content.notebook {
   padding: 1rem;
   border-radius: 1em;
-  width: 55vw;
-  max-width: 55vw;
-  max-height: 50%;
+  width: 50vw;
+  max-width: 65vw;
+  height: 30%;
 }
 
 .editor-modal-header {
@@ -314,7 +331,7 @@ body {
   left: 0;
   right: 0;
   pointer-events: auto;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
 }
 
 .editor-modal-header.hidden {
@@ -519,14 +536,14 @@ button:hover {
 }
 
 .group-card.open {
-  border-left: 3px solid #000;
+  border-left: 3px dashed rgb(45, 45, 45);
 }
 
 .subgroup-header.open::after {
   content: "";
   display: block;
   width: 60%;
-  border-bottom: 1px solid black;
+  border-bottom: 1px dashed rgb(45, 45, 45);
   margin-top: 1rem;
 }
 
@@ -616,7 +633,7 @@ body[data-theme='light'] .navbar {
 }
 
 .collapsible.open {
-  max-height: 60vh;
+  max-height: 85vh;
   overflow: scroll;
   scrollbar-width: none;
 }

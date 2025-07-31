@@ -42,9 +42,9 @@ export default function ThemeProvider({ children }) {
           : antdTheme.defaultAlgorithm,
         components: {
           Switch: {
-            handleBg: "#fff",
-            colorPrimary: "#474747",
-            colorPrimaryHover: "#000000"
+            handleBg: "#7c7c7cff",
+            colorPrimary: "#547b5f",
+            colorPrimaryHover: "#547b5f"
           },
         },
       }}

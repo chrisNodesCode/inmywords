@@ -186,9 +186,9 @@ export default function EntryEditor({
               <button className="editor-button secondary" onClick={onCancel}>
                 Cancel
               </button>
-              {/* <button className="editor-modal-close" onClick={onCancel}>
-              ×
-            </button> */}
+              <button className="editor-modal-close" onClick={onCancel}>
+                ×
+              </button>
             </div>
           </div>
         </div>
