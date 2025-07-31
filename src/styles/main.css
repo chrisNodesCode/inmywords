@@ -254,6 +254,7 @@ body {
   min-height: 0;
   width: 50%;
   margin-bottom: 1rem;
+  position: relative;
 }
 
 .editor-modal-content.fullscreen .editor-quill .ql-container {
@@ -287,6 +288,11 @@ body {
   height: 40px;
   transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
   transform: translateY(0);
+  position: absolute;
+  top: -2.5rem;
+  left: 0;
+  right: 0;
+  z-index: 50;
 }
 
 .editor-modal-content.fullscreen .toolbar-hidden .ql-toolbar {
@@ -312,7 +318,7 @@ body {
 
 .editor-header-wrapper {
   position: relative;
-  height: 4rem;
+  height: 2.5rem;
   /* allow Quill dropdowns to extend beyond the header wrapper */
   overflow: visible;
 }
@@ -393,6 +399,37 @@ body {
 .editor-modal-body textarea:focus {
   outline: none;
   box-shadow: none;
+}
+
+.entry-title-container {
+  position: sticky;
+  top: 0.5rem;
+  background: #fff;
+  z-index: 10;
+  padding-bottom: 0.5rem;
+}
+
+.entry-title-display {
+  font-size: 1rem;
+  cursor: pointer;
+  margin: 0;
+}
+
+.entry-title-input {
+  font-size: 1rem;
+  width: 100%;
+  border: none;
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+
+.entry-title-input:focus {
+  outline: none;
+}
+
+.last-saved {
+  font-size: 0.875rem;
+  color: #666;
 }
 
 .editor-modal-footer {
