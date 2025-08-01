@@ -690,6 +690,29 @@ body[data-theme='dark'] .navbar {
   background-color: #1f1f1f;
   border-color: #333;
 }
+body[data-theme="dark"] .editor-modal-overlay.fullscreen {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+body[data-theme="dark"] .editor-modal-content {
+  background-color: #1f1f1f;
+  color: #fff;
+}
+
+body[data-theme="dark"] .editor-modal-content.fullscreen .entry-title-container {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .editor-modal-content.fullscreen .ql-toolbar {
+  background-color: #333;
+  border: 1px solid #555;
+}
+
+body[data-theme="dark"] .editor-modal-content.fullscreen .ql-editor {
+  background-color: #1f1f1f;
+  color: #fff;
+}
+
 
 body[data-theme='light'] .navbar {
   background-color: #fff;
