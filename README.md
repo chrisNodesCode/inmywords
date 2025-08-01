@@ -13,6 +13,9 @@
 - Groups: A group-by model than organizes related subgroups and is nested under Notebook
 - Subgroups: A group-by model that organizes related entries and is nested under Groups
 - Entries: The model that represents user-generated content
+- Entries may be archived instead of deleted. Archived entries are hidden by
+  default but can be shown using the "Show Archived" toggle in the notebook
+  controller. Archived items appear greyed out and can be restored later.
 - Tags: Meta data that relate to entries and are intended to be used to provide global search functionality
 
 ## Global Styles
@@ -117,5 +120,15 @@
 - tags
 - - [id].js
 - - index.js
+
+## Development
+
+After pulling changes that modify the Prisma schema, regenerate the client and
+apply migrations:
+
+```bash
+npx prisma generate
+npx prisma migrate deploy
+```
 
 

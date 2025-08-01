@@ -48,6 +48,12 @@ export default async function handler(req, res) {
 
     return res.status(200).json(notebook);
   } catch (error) {
+    if (error.message && error.message.includes('archived')) {
+      console.error('Migration required: missing archived column', error);
+      return res
+        .status(500)
+        .json({ error: 'Database schema out of date. Run migrations.' });
+    }
     console.error('GET /api/notebooks/[id]/tree error', error);
     return res.status(500).json({ error: 'Failed to fetch notebook tree' });
   }

@@ -130,6 +130,15 @@ body {
   margin-left: 2rem;
   max-width: 90%;
 }
+.entry-card.archived {
+  background-color: #eee;
+  opacity: 0.6;
+}
+
+.error-message {
+  color: red;
+  margin-left: 2rem;
+}
 
 .entry-header {
   padding: 2rem;
@@ -598,6 +607,13 @@ body[data-theme='dark'] .add-subgroup,
 body[data-theme='dark'] .add-entry {
   background-color: #1f1f1f;
   color: #fff;
+}
+body[data-theme='dark'] .entry-card.archived {
+  background-color: #272727;
+  opacity: 0.6;
+}
+body[data-theme='dark'] .error-message {
+  color: #ff8080;
 }
 
 /* Form elements and links in dark mode */

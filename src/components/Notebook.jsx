@@ -22,6 +22,7 @@ export default function Notebook() {
     item: null,
     mode: 'create',
     onDelete: null,
+    onArchive: null,
   });
   const [notebook, setNotebook] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +32,8 @@ export default function Notebook() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [showEdits, setShowEdits] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const groupRefs = useRef({});
   const subgroupRefs = useRef({});
@@ -75,10 +78,19 @@ export default function Notebook() {
 
   const loadNotebook = async (id) => {
     setLoading(true);
+    setLoadError('');
     try {
       const treeRes = await fetch(`/api/notebooks/${id}/tree`);
-      if (!treeRes.ok) throw new Error('Failed to fetch notebook tree');
-      const tree = await treeRes.json();
+      let payload = null;
+      try {
+        payload = await treeRes.clone().json();
+      } catch (e) {
+        // ignore json parse errors
+      }
+      if (!treeRes.ok) {
+        throw new Error(payload?.error || 'Failed to fetch notebook tree');
+      }
+      const tree = payload || (await treeRes.json());
       setNotebook(tree);
       setExpandedGroups([]);
       setExpandedSubgroups([]);
@@ -86,6 +98,7 @@ export default function Notebook() {
     } catch (err) {
       console.error(err);
       setNotebook(null);
+      setLoadError(err.message);
     } finally {
       setLoading(false);
     }
@@ -282,6 +295,7 @@ export default function Notebook() {
           item: null,
           mode: 'create',
           onDelete: null,
+          onArchive: null,
         });
       }
     }
@@ -296,6 +310,7 @@ export default function Notebook() {
       item: null,
       mode: 'create',
       onDelete: null,
+      onArchive: null,
     });
   };
 
@@ -305,9 +320,10 @@ export default function Notebook() {
     index,
     item = null,
     mode = 'create',
-    onDelete = null
+    onDelete = null,
+    onArchive = null
   ) => {
-    setEditorState({ isOpen: true, type, parent, index, item, mode, onDelete });
+    setEditorState({ isOpen: true, type, parent, index, item, mode, onDelete, onArchive });
   };
 
   const toggleGroup = (group) => {
@@ -404,6 +420,36 @@ export default function Notebook() {
     }
   };
 
+  const handleToggleArchiveEntry = async (groupId, subgroupId, entryId, archived) => {
+    try {
+      const res = await fetch(`/api/entries/${entryId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archived }),
+      });
+      if (!res.ok) throw new Error('Failed to update entry');
+      const updated = await res.json();
+      setNotebook((prev) => {
+        const groups = prev.groups.map((g) => {
+          if (g.id !== groupId) return g;
+          return {
+            ...g,
+            subgroups: g.subgroups.map((s) => {
+              if (s.id !== subgroupId) return s;
+              const entries = s.entries.map((e) =>
+                e.id === entryId ? { ...e, archived: updated.archived } : e
+              );
+              return { ...s, entries };
+            }),
+          };
+        });
+        return { ...prev, groups };
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleRemoveTag = async (groupId, subgroupId, entryId, tagId, tagIds) => {
     try {
       const newIds = tagIds.filter((id) => id !== tagId);
@@ -464,6 +510,8 @@ export default function Notebook() {
         onSelect={loadNotebook}
         showEdits={showEdits}
         onToggleEdits={setShowEdits}
+        showArchived={showArchived}
+        onToggleArchived={setShowArchived}
       />
       <h1 class="notebook-title"
         onClick={() => {
@@ -490,6 +538,9 @@ export default function Notebook() {
       </h1>
 
       {loading && <p>Loading...</p>}
+      {!loading && loadError && (
+        <p className="error-message">{loadError}</p>
+      )}
 
       {!loading && notebook && (
         <div className="groups-container">
@@ -564,8 +615,13 @@ export default function Notebook() {
                         )}
                       </div>
                       <div className={`subgroup-children collapsible ${expandedSubgroups.includes(sub.id) ? 'open' : ''}`}> 
-                        {sub.entries.map((entry) => (
-                            <div key={entry.id} className={`entry-card ${expandedEntries.includes(entry.id) ? 'open' : ''}`}>
+                        {sub.entries
+                          .filter((e) => showArchived || !e.archived)
+                          .map((entry) => (
+                            <div
+                              key={entry.id}
+                              className={`entry-card ${expandedEntries.includes(entry.id) ? 'open' : ''} ${entry.archived ? 'archived' : ''}`}
+                            >
                               <div
                                 className="entry-header interactive"
                                 role="button"
@@ -649,10 +705,32 @@ export default function Notebook() {
                                           sub.id,
                                           entry.id
                                         )
+                                      ,
+                                      () =>
+                                        handleToggleArchiveEntry(
+                                          group.id,
+                                          sub.id,
+                                          entry.id,
+                                          !entry.archived
+                                        )
                                     );
                                   }}
                                 >
                                   Edit
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleArchiveEntry(
+                                      group.id,
+                                      sub.id,
+                                      entry.id,
+                                      !entry.archived
+                                    );
+                                  }}
+                                  style={{ marginLeft: '0.5rem' }}
+                                >
+                                  {entry.archived ? 'Restore' : 'Archive'}
                                 </button>
                               </div>
                             </div>
@@ -713,6 +791,7 @@ export default function Notebook() {
           onSave={handleSave}
           onCancel={handleCancel}
           onDelete={editorState.onDelete}
+          onArchive={editorState.onArchive}
           initialData={editorState.item}
           mode={editorState.mode}
         />
