@@ -173,7 +173,7 @@ export default function EntryEditor({
         autoSave: true,
       });
       setLastSaved(new Date());
-    }, 300000);
+    }, 30000);
     return () => clearInterval(interval);
   }, [type, title, content, parent, mode, safeData.id, onSave]);
 
@@ -251,9 +251,8 @@ export default function EntryEditor({
                     <strong>Title:</strong> {title || 'Untitled'}
                   </p>
                 )}
-                {lastSaved && (
-                  <div className="last-saved">Last Saved: {lastSaved.toLocaleString()}</div>
-                )}
+                <div className="last-saved">Last Autosave: {lastSaved ? lastSaved.toLocaleString() : "no autosaves yet..."}</div>
+
               </div>
               <ReactQuill
                 ref={quillRef}
