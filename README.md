@@ -131,4 +131,18 @@ npx prisma generate
 npx prisma migrate deploy
 ```
 
+Ensure the following environment variables are set for local development:
+
+- `DATABASE_URL` – connection string using the pooled `-pooler` host and
+  timeouts (`connect_timeout` and `pool_timeout`)
+- `DIRECT_URL` – direct connection string used by `prisma migrate`
+
+If your Neon database has gone idle, you can wake it by running:
+
+```bash
+npm run wake-db
+```
+Optionally, set `NEON_WAKE_WAIT_MS` to control the wait time in milliseconds
+between pings (defaults to `15000`).
+
 

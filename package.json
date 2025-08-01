@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "wake-db": "node scripts/wake-neon.js"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
