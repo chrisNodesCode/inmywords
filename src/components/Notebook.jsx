@@ -631,16 +631,18 @@ export default function Notebook() {
                               }}
                             >
                               <h4 className="entry-card-title">{entry.title}</h4>
-                              <div className="entry-card-content">
-                                {expandedEntries.includes(entry.id) ? (
-                                  htmlToText(entry.content)
-                                    .split(/\n+/)
-                                    .map((para, idx) => (
-                                      <p key={idx}>{para}</p>
-                                    ))
-                                ) : (
-                                  <p>{htmlToText(entry.content).slice(0, 40)}...</p>
-                                )}
+                              <div className="entry-card-content" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start' }}>
+                                <div>
+                                  {expandedEntries.includes(entry.id) ? (
+                                    htmlToText(entry.content)
+                                      .split(/\n+/)
+                                      .map((para, idx) => (
+                                        <p key={idx}>{para}</p>
+                                      ))
+                                  ) : (
+                                    <div style={{}}>{htmlToText(entry.content).slice(0, 40)}...</div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <div className={`entry-details collapsible ${expandedEntries.includes(entry.id) ? 'open' : ''}`}>

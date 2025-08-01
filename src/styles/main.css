@@ -49,16 +49,13 @@ body {
 
 .groups-container {
   margin-top: 1rem;
-  background-color: #ffffff;
 }
 
 .group-card {
-  margin-bottom: 3rem;
   border-left: 3px solid rgb(45, 45, 45);
 }
 
 .group-header {
-  /* border-radius: 2rem; */
   background-color: #ffffff;
   border: none;
   justify-content: flex-end;
@@ -84,7 +81,7 @@ body {
 }
 
 .subgroup-header {
-  border-radius: 2rem;
+  border-radius: 0rem;
   padding: 2rem;
   padding-left: 2rem;
   border: none;
@@ -112,9 +109,16 @@ body {
 .group-card .group-title::before,
 .subgroup-header .subgroup-title::before,
 .entry-header .entry-card-content::before {
-  width: 50px;
   content: '▸';
+  width: 50px;
 }
+
+.entry-card-content::before {
+  content: '▸';
+  width: 10px !important;
+}
+
+
 
 .group-card.open .group-title::before,
 .subgroup-header.open .subgroup-title::before,
