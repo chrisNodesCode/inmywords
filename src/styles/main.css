@@ -135,6 +135,11 @@ body {
   opacity: 0.6;
 }
 
+.error-message {
+  color: red;
+  margin-left: 2rem;
+}
+
 .entry-header {
   padding: 2rem;
   border: 1px solid rgba(0, 0, 0, 0.3);
@@ -606,6 +611,9 @@ body[data-theme='dark'] .add-entry {
 body[data-theme='dark'] .entry-card.archived {
   background-color: #272727;
   opacity: 0.6;
+}
+body[data-theme='dark'] .error-message {
+  color: #ff8080;
 }
 
 /* Form elements and links in dark mode */

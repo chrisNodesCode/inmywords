@@ -33,6 +33,7 @@ export default function Notebook() {
   const [titleInput, setTitleInput] = useState('');
   const [showEdits, setShowEdits] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const groupRefs = useRef({});
   const subgroupRefs = useRef({});
@@ -77,10 +78,19 @@ export default function Notebook() {
 
   const loadNotebook = async (id) => {
     setLoading(true);
+    setLoadError('');
     try {
       const treeRes = await fetch(`/api/notebooks/${id}/tree`);
-      if (!treeRes.ok) throw new Error('Failed to fetch notebook tree');
-      const tree = await treeRes.json();
+      let payload = null;
+      try {
+        payload = await treeRes.clone().json();
+      } catch (e) {
+        // ignore json parse errors
+      }
+      if (!treeRes.ok) {
+        throw new Error(payload?.error || 'Failed to fetch notebook tree');
+      }
+      const tree = payload || (await treeRes.json());
       setNotebook(tree);
       setExpandedGroups([]);
       setExpandedSubgroups([]);
@@ -88,6 +98,7 @@ export default function Notebook() {
     } catch (err) {
       console.error(err);
       setNotebook(null);
+      setLoadError(err.message);
     } finally {
       setLoading(false);
     }
@@ -527,6 +538,9 @@ export default function Notebook() {
       </h1>
 
       {loading && <p>Loading...</p>}
+      {!loading && loadError && (
+        <p className="error-message">{loadError}</p>
+      )}
 
       {!loading && notebook && (
         <div className="groups-container">
