@@ -3,6 +3,20 @@ import React, { useState, useRef, useEffect } from 'react';
 
 import EntryEditor from './EntryEditor';
 import NotebookController from './NotebookController';
+import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import DragHandle from '@mui/icons-material/DragHandle';
+
+function SortableWrapper({ id, disabled, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id, disabled });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    touchAction: 'manipulation',
+  };
+  return children({ attributes, listeners, setNodeRef, style });
+}
 
 const htmlToText = (html) => {
   if (!html) return '';
@@ -34,6 +48,8 @@ export default function Notebook() {
   const [showEdits, setShowEdits] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [loadError, setLoadError] = useState('');
+
+  const sensors = useSensors(useSensor(PointerSensor));
 
   const groupRefs = useRef({});
   const subgroupRefs = useRef({});
@@ -326,6 +342,50 @@ export default function Notebook() {
     setEditorState({ isOpen: true, type, parent, index, item, mode, onDelete, onArchive });
   };
 
+  const handleGroupDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    setNotebook((prev) => {
+      const oldIndex = prev.groups.findIndex((g) => g.id === active.id);
+      const newIndex = prev.groups.findIndex((g) => g.id === over.id);
+      const groups = arrayMove(prev.groups, oldIndex, newIndex);
+      return { ...prev, groups };
+    });
+  };
+
+  const handleSubgroupDragEnd = (groupId) => ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    setNotebook((prev) => {
+      const groups = prev.groups.map((g) => {
+        if (g.id !== groupId) return g;
+        const oldIndex = g.subgroups.findIndex((s) => s.id === active.id);
+        const newIndex = g.subgroups.findIndex((s) => s.id === over.id);
+        const subgroups = arrayMove(g.subgroups, oldIndex, newIndex);
+        return { ...g, subgroups };
+      });
+      return { ...prev, groups };
+    });
+  };
+
+  const handleEntryDragEnd = (groupId, subgroupId) => ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    setNotebook((prev) => {
+      const groups = prev.groups.map((g) => {
+        if (g.id !== groupId) return g;
+        return {
+          ...g,
+          subgroups: g.subgroups.map((s) => {
+            if (s.id !== subgroupId) return s;
+            const oldIndex = s.entries.findIndex((e) => e.id === active.id);
+            const newIndex = s.entries.findIndex((e) => e.id === over.id);
+            const entries = arrayMove(s.entries, oldIndex, newIndex);
+            return { ...s, entries };
+          }),
+        };
+      });
+      return { ...prev, groups };
+    });
+  };
+
   const toggleGroup = (group) => {
     setExpandedGroups((prev) => {
       const isOpen = prev.includes(group.id);
@@ -504,6 +564,8 @@ export default function Notebook() {
     }
   };
 
+  const groupsReorderable = expandedGroups.length === 0;
+
   return (
     <div className="notebook-container">
       <NotebookController
@@ -544,244 +606,381 @@ export default function Notebook() {
 
       {!loading && notebook && (
         <div className="groups-container">
-          {notebook.groups.map((group) => (
-            <div key={group.id} className={`group-card ${expandedGroups.includes(group.id) ? 'open' : ''}`}>
-              <div
-                ref={(el) => {
-                  if (el) groupRefs.current[group.id] = el;
-                }}
-                data-group-id={group.id}
-                className={`group-header interactive ${activeSubgroup && activeGroup === group.id ? 'fade-out' : ''
-                  }`}
-                role="button"
-                tabIndex={0}
-                onClick={() => toggleGroup(group)}
-              >
-                <h2 className="group-title">{group.name}</h2>
-                {expandedGroups.includes(group.id) && (
-                  <button
-                    className={`edit-button${showEdits ? '' : ' hidden'}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openEditor(
-                        'group',
-                        { groupId: group.id },
-                        null,
-                        group,
-                        'edit',
-                        () => handleDeleteGroup(group.id)
-                      );
-                    }}
-                  >
-                    Edit
-                  </button>
-                )}
-              </div>
-              <div className={`group-children collapsible ${expandedGroups.includes(group.id) ? 'open' : ''}`}>
-                {group.subgroups.map((sub) => (
-                  <div key={sub.id} className="subgroup-card">
-                    <div
-                      ref={(el) => {
-                        if (el) subgroupRefs.current[sub.id] = el;
-                      }}
-                      data-subgroup-id={sub.id}
-                      className={`subgroup-header interactive ${expandedSubgroups.includes(sub.id) ? 'open' : ''}`}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSubgroup(sub);
-                      }}
-                    >
-                      <div className="subgroup-title">{sub.name}</div>
-                      {expandedSubgroups.includes(sub.id) && (
-                        <button
-                          className={`edit-button${showEdits ? '' : ' hidden'}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditor(
-                              'subgroup',
-                              { groupId: group.id, subgroupId: sub.id },
-                              null,
-                              sub,
-                              'edit',
-                              () => handleDeleteSubgroup(group.id, sub.id)
-                            );
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={groupsReorderable ? handleGroupDragEnd : undefined}
+          >
+            <SortableContext
+              items={notebook.groups.map((g) => g.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {notebook.groups.map((group) => {
+                const subgroupsReorderable =
+                  expandedGroups.includes(group.id) &&
+                  !group.subgroups.some((s) => expandedSubgroups.includes(s.id));
+                return (
+                  <SortableWrapper key={group.id} id={group.id} disabled={!groupsReorderable}>
+                    {({ setNodeRef, style, attributes, listeners }) => (
+                      <div
+                        ref={setNodeRef}
+                        style={style}
+                        className={`group-card ${expandedGroups.includes(group.id) ? 'open' : ''}`}
+                      >
+                        <div
+                          ref={(el) => {
+                            if (el) groupRefs.current[group.id] = el;
                           }}
+                          data-group-id={group.id}
+                          className={`group-header interactive ${
+                            activeSubgroup && activeGroup === group.id ? 'fade-out' : ''
+                          }`}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => toggleGroup(group)}
                         >
-                          Edit
-                        </button>
-                      )}
-                    </div>
-                    <div className={`subgroup-children collapsible ${expandedSubgroups.includes(sub.id) ? 'open' : ''}`}>
-                      {sub.entries
-                        .filter((e) => showArchived || !e.archived)
-                        .map((entry) => (
-                          <div
-                            key={entry.id}
-                            className={`entry-card ${expandedEntries.includes(entry.id) ? 'open' : ''} ${entry.archived ? 'archived' : ''}`}
-                          >
-                            <div
-                              className="entry-header interactive"
-                              role="button"
-                              tabIndex={0}
+                          {groupsReorderable && (
+                            <span
+                              className="drag-handle"
+                              {...attributes}
+                              {...listeners}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <DragHandle fontSize="small" />
+                            </span>
+                          )}
+                          <h2 className="group-title">{group.name}</h2>
+                          {expandedGroups.includes(group.id) && (
+                            <button
+                              className={`edit-button${showEdits ? '' : ' hidden'}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleEntry(entry.id);
+                                openEditor(
+                                  'group',
+                                  { groupId: group.id },
+                                  null,
+                                  group,
+                                  'edit',
+                                  () => handleDeleteGroup(group.id)
+                                );
                               }}
                             >
-                              <h4 className="entry-card-title">{entry.title}</h4>
-                              <div className="entry-card-content" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start' }}>
-                                <div>
-                                  {expandedEntries.includes(entry.id) ? (
-                                    htmlToText(entry.content)
-                                      .split(/\n+/)
-                                      .map((para, idx) => (
-                                        <p key={idx}>{para}</p>
-                                      ))
-                                  ) : (
-                                    <div style={{}}>{htmlToText(entry.content).slice(0, 40)}...</div>
-                                  )}
-                                </div>
+                              Edit
+                            </button>
+                          )}
+                        </div>
+                        <div
+                          className={`group-children collapsible ${
+                            expandedGroups.includes(group.id) ? 'open' : ''
+                          }`}
+                        >
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={
+                              subgroupsReorderable ? handleSubgroupDragEnd(group.id) : undefined
+                            }
+                          >
+                            <SortableContext
+                              items={group.subgroups.map((s) => s.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              {group.subgroups.map((sub) => {
+                                const entriesReorderable =
+                                  expandedSubgroups.includes(sub.id) &&
+                                  !sub.entries.some((e) => expandedEntries.includes(e.id));
+                                return (
+                                  <SortableWrapper
+                                    key={sub.id}
+                                    id={sub.id}
+                                    disabled={!subgroupsReorderable}
+                                  >
+                                    {({
+                                      setNodeRef: setSubRef,
+                                      style: subStyle,
+                                      attributes: subAttr,
+                                      listeners: subListeners,
+                                    }) => (
+                                      <div ref={setSubRef} style={subStyle} className="subgroup-card">
+                                        <div
+                                          ref={(el) => {
+                                            if (el) subgroupRefs.current[sub.id] = el;
+                                          }}
+                                          data-subgroup-id={sub.id}
+                                          className={`subgroup-header interactive ${
+                                            expandedSubgroups.includes(sub.id) ? 'open' : ''
+                                          }`}
+                                          role="button"
+                                          tabIndex={0}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleSubgroup(sub);
+                                          }}
+                                        >
+                                          {subgroupsReorderable && (
+                                            <span
+                                              className="drag-handle"
+                                              {...subAttr}
+                                              {...subListeners}
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <DragHandle fontSize="small" />
+                                            </span>
+                                          )}
+                                          <div className="subgroup-title">{sub.name}</div>
+                                          {expandedSubgroups.includes(sub.id) && (
+                                            <button
+                                              className={`edit-button${showEdits ? '' : ' hidden'}`}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openEditor(
+                                                  'subgroup',
+                                                  { groupId: group.id, subgroupId: sub.id },
+                                                  null,
+                                                  sub,
+                                                  'edit',
+                                                  () => handleDeleteSubgroup(group.id, sub.id)
+                                                );
+                                              }}
+                                            >
+                                              Edit
+                                            </button>
+                                          )}
+                                        </div>
+                                        <div
+                                          className={`subgroup-children collapsible ${
+                                            expandedSubgroups.includes(sub.id) ? 'open' : ''
+                                          }`}
+                                        >
+                                          <DndContext
+                                            sensors={sensors}
+                                            collisionDetection={closestCenter}
+                                            onDragEnd={
+                                              entriesReorderable
+                                                ? handleEntryDragEnd(group.id, sub.id)
+                                                : undefined
+                                            }
+                                          >
+                                            <SortableContext
+                                              items={sub.entries.map((e) => e.id)}
+                                              strategy={verticalListSortingStrategy}
+                                            >
+                                              {sub.entries
+                                                .filter((e) => showArchived || !e.archived)
+                                                .map((entry) => (
+                                                  <SortableWrapper
+                                                    key={entry.id}
+                                                    id={entry.id}
+                                                    disabled={!entriesReorderable}
+                                                  >
+                                                    {({
+                                                      setNodeRef: setEntryRef,
+                                                      style: entryStyle,
+                                                      attributes: entryAttr,
+                                                      listeners: entryListeners,
+                                                    }) => (
+                                                      <div
+                                                        ref={setEntryRef}
+                                                        style={entryStyle}
+                                                        className={`entry-card ${
+                                                          expandedEntries.includes(entry.id) ? 'open' : ''
+                                                        } ${entry.archived ? 'archived' : ''}`}
+                                                      >
+                                                        <div
+                                                          className="entry-header interactive"
+                                                          role="button"
+                                                          tabIndex={0}
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleEntry(entry.id);
+                                                          }}
+                                                        >
+                                                          {entriesReorderable && (
+                                                            <span
+                                                              className="drag-handle"
+                                                              {...entryAttr}
+                                                              {...entryListeners}
+                                                              onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                              <DragHandle fontSize="small" />
+                                                            </span>
+                                                          )}
+                                                          <h4 className="entry-card-title">{entry.title}</h4>
+                                                          <div
+                                                            className="entry-card-content"
+                                                            style={{
+                                                              display: 'flex',
+                                                              flexDirection: 'row',
+                                                              justifyContent: 'flex-start',
+                                                            }}
+                                                          >
+                                                            <div>
+                                                              {expandedEntries.includes(entry.id)
+                                                                ? htmlToText(entry.content)
+                                                                    .split(/\n+/)
+                                                                    .map((para, idx) => (
+                                                                      <p key={idx}>{para}</p>
+                                                                    ))
+                                                                : (
+                                                                  <div>{htmlToText(entry.content).slice(0, 40)}...</div>
+                                                                )}
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                        <div
+                                                          className={`entry-details collapsible ${
+                                                            expandedEntries.includes(entry.id) ? 'open' : ''
+                                                          }`}
+                                                        >
+                                                          {entry.tags.length > 0 && (
+                                                            <div>
+                                                              {entry.tags.map((tag) => (
+                                                                <div
+                                                                  key={tag.id}
+                                                                  className="tag"
+                                                                  onClick={() =>
+                                                                    handleRemoveTag(
+                                                                      group.id,
+                                                                      sub.id,
+                                                                      entry.id,
+                                                                      tag.id,
+                                                                      entry.tags.map((t) => t.id)
+                                                                    )
+                                                                  }
+                                                                >
+                                                                  <span className="close-icon">×</span>
+                                                                  {tag.name}
+                                                                </div>
+                                                              ))}
+                                                            </div>
+                                                          )}
+                                                          <button
+                                                            style={{ marginRight: '1rem' }}
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              openEditor(
+                                                                'tag',
+                                                                {
+                                                                  entryId: entry.id,
+                                                                  subgroupId: sub.id,
+                                                                  groupId: group.id,
+                                                                  tagIds: entry.tags.map((t) => t.id),
+                                                                  label: `Entry: ${entry.title}`,
+                                                                },
+                                                                entry.tags.length - 1
+                                                              );
+                                                            }}
+                                                          >
+                                                            Add Tag
+                                                          </button>
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              openEditor(
+                                                                'entry',
+                                                                {
+                                                                  subgroupId: sub.id,
+                                                                  groupId: group.id,
+                                                                  entryId: entry.id,
+                                                                },
+                                                                null,
+                                                                entry,
+                                                                'edit',
+                                                                () =>
+                                                                  handleDeleteEntry(group.id, sub.id, entry.id),
+                                                                () =>
+                                                                  handleToggleArchiveEntry(
+                                                                    group.id,
+                                                                    sub.id,
+                                                                    entry.id,
+                                                                    !entry.archived
+                                                                  )
+                                                              );
+                                                            }}
+                                                          >
+                                                            Edit
+                                                          </button>
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              handleToggleArchiveEntry(
+                                                                group.id,
+                                                                sub.id,
+                                                                entry.id,
+                                                                !entry.archived
+                                                              );
+                                                            }}
+                                                            style={{ marginLeft: '0.5rem' }}
+                                                          >
+                                                            {entry.archived ? 'Restore' : 'Archive'}
+                                                          </button>
+                                                        </div>
+                                                      </div>
+                                                    )}
+                                                  </SortableWrapper>
+                                                ))}
+                                              <div
+                                                className="add-entry interactive"
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  openEditor(
+                                                    'entry',
+                                                    {
+                                                      subgroupId: sub.id,
+                                                      groupId: group.id,
+                                                      label: `Subgroup: ${sub.name}`,
+                                                    },
+                                                    sub.entries.length - 1
+                                                  );
+                                                }}
+                                              >
+                                                Add Entry
+                                              </div>
+                                            </SortableContext>
+                                          </DndContext>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </SortableWrapper>
+                                );
+                              })}
+                              <div
+                                className="add-subgroup interactive"
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditor(
+                                    'subgroup',
+                                    { groupId: group.id, label: `Group: ${group.name}` },
+                                    group.subgroups.length - 1
+                                  );
+                                }}
+                              >
+                                Add Subgroup
                               </div>
-                            </div>
-                            <div className={`entry-details collapsible ${expandedEntries.includes(entry.id) ? 'open' : ''}`}>
-                              {entry.tags.length > 0 && (
-                                <div>
-                                  {entry.tags.map((tag) => (
-                                    <div
-                                      key={tag.id}
-                                      className="tag"
-                                      onClick={() =>
-                                        handleRemoveTag(
-                                          group.id,
-                                          sub.id,
-                                          entry.id,
-                                          tag.id,
-                                          entry.tags.map((t) => t.id)
-                                        )
-                                      }
-                                    >
-                                      <span className="close-icon">×</span>
-                                      {tag.name}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              <button
-                                style={{ marginRight: "1rem" }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openEditor(
-                                    'tag',
-                                    {
-                                      entryId: entry.id,
-                                      subgroupId: sub.id,
-                                      groupId: group.id,
-                                      tagIds: entry.tags.map((t) => t.id),
-                                      label: `Entry: ${entry.title}`,
-                                    },
-                                    entry.tags.length - 1
-                                  );
-                                }}
-                              >
-                                Add Tag
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openEditor(
-                                    'entry',
-                                    {
-                                      subgroupId: sub.id,
-                                      groupId: group.id,
-                                      entryId: entry.id,
-                                    },
-                                    null,
-                                    entry,
-                                    'edit',
-                                    () =>
-                                      handleDeleteEntry(
-                                        group.id,
-                                        sub.id,
-                                        entry.id
-                                      )
-                                    ,
-                                    () =>
-                                      handleToggleArchiveEntry(
-                                        group.id,
-                                        sub.id,
-                                        entry.id,
-                                        !entry.archived
-                                      )
-                                  );
-                                }}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleArchiveEntry(
-                                    group.id,
-                                    sub.id,
-                                    entry.id,
-                                    !entry.archived
-                                  );
-                                }}
-                                style={{ marginLeft: '0.5rem' }}
-                              >
-                                {entry.archived ? 'Restore' : 'Archive'}
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      <div
-                        className="add-entry interactive"
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditor(
-                            'entry',
-                            { subgroupId: sub.id, groupId: group.id, label: `Subgroup: ${sub.name}` },
-                            sub.entries.length - 1
-                          );
-                        }}
-                      >
-                        Add Entry
+                            </SortableContext>
+                          </DndContext>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
-                <div
-                  className="add-subgroup interactive"
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openEditor(
-                      'subgroup',
-                      { groupId: group.id, label: `Group: ${group.name}` },
-                      group.subgroups.length - 1
-                    );
-                  }}
-                >
-                  Add Subgroup
-                </div>
+                    )}
+                  </SortableWrapper>
+                );
+              })}
+              <div
+                className="add-group interactive"
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  openEditor('group', { label: 'Notebook Root' }, notebook.groups.length - 1)
+                }
+              >
+                Add Group
               </div>
-            </div>
-          ))}
-          <div
-            className="add-group interactive"
-            role="button"
-            tabIndex={0}
-            onClick={() =>
-              openEditor('group', { label: 'Notebook Root' }, notebook.groups.length - 1)
-            }
-          >
-            Add Group
-          </div>
+            </SortableContext>
+          </DndContext>
         </div>
       )}
 

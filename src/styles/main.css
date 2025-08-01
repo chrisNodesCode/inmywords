@@ -576,6 +576,17 @@ button {
   max-width: 96%;
 }
 
+.drag-handle {
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 0.5rem;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
 button:hover {
   cursor: pointer;
   transform: scale(1.02);
