@@ -162,7 +162,7 @@ export default function EntryEditor({
 
   // autosave every 5 minutes
   useEffect(() => {
-    if (type !== 'entry') return;
+    if (type !== 'entry' || mode === 'create') return;
     const interval = setInterval(() => {
       onSave({
         title: title.trim(),
