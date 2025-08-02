@@ -50,6 +50,7 @@ export default function EntryEditor({
   const [toolbarVisible, setToolbarVisible] = useState(false);
   const quillRef = useRef(null);
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
+  const [fullFocusEnabled, setFullFocusEnabled] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('pomodoro-state')) {
@@ -63,6 +64,32 @@ export default function EntryEditor({
       localStorage.removeItem('pomodoro-state');
     }
   };
+
+  const handleFullFocusToggle = async (checked) => {
+    setFullFocusEnabled(checked);
+    try {
+      if (checked) {
+        await document.documentElement.requestFullscreen?.();
+      } else if (document.fullscreenElement) {
+        await document.exitFullscreen?.();
+      }
+    } catch (err) {
+      console.error('Failed to toggle full screen', err);
+    }
+  };
+
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setFullFocusEnabled(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.();
+      }
+    };
+  }, []);
 
   const quillModules = {
     toolbar: [
@@ -272,6 +299,22 @@ export default function EntryEditor({
                   size="small"
                 />
               </div>
+              {type === 'entry' && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginRight: '0.5rem',
+                  }}
+                >
+                  <span style={{ marginRight: '0.25rem' }}>Full Focus</span>
+                  <Switch
+                    checked={fullFocusEnabled}
+                    onChange={handleFullFocusToggle}
+                    size="small"
+                  />
+                </div>
+              )}
               <button className="editor-button" onClick={handleSave}>
                 Save
               </button>
