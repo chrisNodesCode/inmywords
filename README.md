@@ -17,6 +17,9 @@
   default but can be shown using the "Show Archived" toggle in the notebook
   controller. Archived items appear greyed out and can be restored later.
 - Tags: Meta data that relate to entries and are intended to be used to provide global search functionality
+- Pattern: The set of notebook aliases (Title, Description, Groups, Subgroups, Entries) that define the structure of a notebook
+- Model: A notebook instance with at least one group and one subgroup, representing data shaped by a pattern
+- Precursor: A pre-patterned and pre-modeled notebook template, defined by an `id`, a `pattern`, and `modelData`
 
 ## Global Styles
 - font-family: "IBM Plex Mono", "Cutive Mono", monospace;

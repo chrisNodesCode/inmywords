@@ -37,6 +37,19 @@ model Notebook {
   groups       Group[]   // Notebook → Groups
   tags         Tag[]     // Metadata tags scoped to this notebook
   user_notebook_tree String[] @default(["Group", "Subgroup", "Entry"])
+  precursor     Precursor? @relation(fields: [precursorId], references: [id])
+  precursorId   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Precursor {
+  id           String    @id @default(uuid())
+  title        String
+  description  String?
+  pattern      Json
+  modelData    Json
+  notebooks    Notebook[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
