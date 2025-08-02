@@ -1,4 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import { readFileSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -25,7 +29,28 @@ async function main() {
     },
   });
 
-  // 3. Upsert demo notebook
+  // 3. Seed a precursor with pattern and model data
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const criteriaPath = path.join(__dirname, 'data', 'criteria.json');
+  const criteriaData = JSON.parse(readFileSync(criteriaPath, 'utf-8'));
+
+  await prisma.precursor.upsert({
+    where: { id: '11111111-1111-1111-1111-111111111111' },
+    update: {},
+    create: {
+      id: '11111111-1111-1111-1111-111111111111',
+      title: 'Autism Diagnostic Criteria',
+      description: 'DSM-5 autism spectrum disorder diagnostic criteria',
+      pattern: {
+        group: 'Diagnostic Criteria',
+        subgroup: 'Subcriteria',
+        entry: 'Observation',
+      },
+      modelData: criteriaData,
+    },
+  });
+
+  // 4. Upsert demo notebook
   const notebook = await prisma.notebook.upsert({
     where: { id: '00000000-0000-0000-0000-000000000000' },
     update: {},
@@ -37,7 +62,7 @@ async function main() {
     },
   });
 
-  // 4. Create metadata tags for this notebook
+  // 5. Create metadata tags for this notebook
   const tagData = [
     { code: 'important', name: 'Important' },
     { code: 'todo', name: 'To Do' },
@@ -57,7 +82,7 @@ async function main() {
     tags.push(tag);
   }
 
-  // 5. Create groups inside the notebook
+  // 6. Create groups inside the notebook
   const groupData = [
     { name: 'Group 1' },
     { name: 'Group 2' },
@@ -73,7 +98,7 @@ async function main() {
     groups.push(group);
   }
 
-  // 6. Create subgroups under each group
+  // 7. Create subgroups under each group
   const subgroupData = [
     { name: 'Subgroup A', groupId: groups[0].id },
     { name: 'Subgroup B', groupId: groups[0].id },
@@ -90,7 +115,7 @@ async function main() {
     subgroups.push(subgroup);
   }
 
-  // 7. Create entries in each subgroup, attaching some tags
+  // 8. Create entries in each subgroup, attaching some tags
   const entryData = [
     {
       title: 'Entry 1A',
