@@ -19,6 +19,7 @@ export default function EntryEditor({
   onArchive = null,
   initialData = {},
   mode = 'create',
+  aliases = { group: 'Group', subgroup: 'Subgroup', entry: 'Entry' },
 }) {
   // `initialData` may explicitly be passed as `null` when creating a new item.
   // Normalize it to an empty object so property accesses do not fail.
@@ -28,6 +29,15 @@ export default function EntryEditor({
   const [content, setContent] = useState(safeData.content || '');
   const [name, setName] = useState(safeData.name || ''); // for groups, subgroups, tags
   const [description, setDescription] = useState(safeData.description || '');
+  const [groupAlias, setGroupAlias] = useState(
+    (safeData.user_notebook_tree && safeData.user_notebook_tree[0]) || ''
+  );
+  const [subgroupAlias, setSubgroupAlias] = useState(
+    (safeData.user_notebook_tree && safeData.user_notebook_tree[1]) || ''
+  );
+  const [entryAlias, setEntryAlias] = useState(
+    (safeData.user_notebook_tree && safeData.user_notebook_tree[2]) || ''
+  );
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [lastSaved, setLastSaved] = useState(null);
@@ -53,6 +63,9 @@ export default function EntryEditor({
     setName(data.name || '');
     setDescription(data.description || '');
     setTitleInput(data.title || '');
+    setGroupAlias((data.user_notebook_tree && data.user_notebook_tree[0]) || '');
+    setSubgroupAlias((data.user_notebook_tree && data.user_notebook_tree[1]) || '');
+    setEntryAlias((data.user_notebook_tree && data.user_notebook_tree[2]) || '');
   }, [initialData]);
 
   const handleSave = () => {
@@ -76,13 +89,21 @@ export default function EntryEditor({
       alert('Name cannot be empty.');
       return;
     }
-    onSave({
+    const payload = {
       name: name.trim(),
       description: description.trim(),
       parent,
       mode,
       id: safeData.id,
-    });
+    };
+    if (type === 'notebook') {
+      payload.user_notebook_tree = [
+        (groupAlias || 'Group').trim(),
+        (subgroupAlias || 'Subgroup').trim(),
+        (entryAlias || 'Entry').trim(),
+      ];
+    }
+    onSave(payload);
     setLastSaved(new Date());
   };
 
@@ -187,10 +208,18 @@ export default function EntryEditor({
         >
           <div className={`editor-modal-header ${headerVisible ? '' : 'hidden'}`}>
             <h2 className="editor-modal-title">
-              {type === 'entry' && (mode === 'edit' ? 'Edit Entry' : 'New Entry')}
-              {type === 'group' && (mode === 'edit' ? 'Edit Group' : 'New Group')}
+              {type === 'entry' &&
+                (mode === 'edit'
+                  ? `Edit ${aliases.entry}`
+                  : `New ${aliases.entry}`)}
+              {type === 'group' &&
+                (mode === 'edit'
+                  ? `Edit ${aliases.group}`
+                  : `New ${aliases.group}`)}
               {type === 'subgroup' &&
-                (mode === 'edit' ? 'Edit Subgroup' : 'New Subgroup')}
+                (mode === 'edit'
+                  ? `Edit ${aliases.subgroup}`
+                  : `New ${aliases.subgroup}`)}
               {type === 'notebook' &&
                 (mode === 'edit' ? 'Edit Notebook' : 'New Notebook')}
               {type === 'tag' && (mode === 'edit' ? 'Edit Tag' : 'New Tag')}
@@ -286,6 +315,31 @@ export default function EntryEditor({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
+              )}
+              {type === 'notebook' && (
+                <>
+                  <input
+                    className="editor-input-title"
+                    type="text"
+                    placeholder="Group alias"
+                    value={groupAlias}
+                    onChange={(e) => setGroupAlias(e.target.value)}
+                  />
+                  <input
+                    className="editor-input-title"
+                    type="text"
+                    placeholder="Subgroup alias"
+                    value={subgroupAlias}
+                    onChange={(e) => setSubgroupAlias(e.target.value)}
+                  />
+                  <input
+                    className="editor-input-title"
+                    type="text"
+                    placeholder="Entry alias"
+                    value={entryAlias}
+                    onChange={(e) => setEntryAlias(e.target.value)}
+                  />
+                </>
               )}
             </>
           )}

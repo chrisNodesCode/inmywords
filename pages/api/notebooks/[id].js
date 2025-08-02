@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     case 'PUT':
       // Update notebook
       try {
-        const { title, description } = req.body;
+        const { title, description, user_notebook_tree } = req.body;
         if (title && typeof title !== 'string') {
           return res.status(400).json({ error: 'Invalid title' });
         }
@@ -37,6 +37,7 @@ export default async function handler(req, res) {
           data: {
             ...(title !== undefined ? { title } : {}),
             ...(description !== undefined ? { description } : {}),
+            ...(user_notebook_tree !== undefined ? { user_notebook_tree } : {}),
           },
         });
         return res.status(200).json(updated);
