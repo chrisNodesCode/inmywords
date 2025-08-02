@@ -86,6 +86,9 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
 
 
         <div className="profile-menu">
+          <a href="/account" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            Account
+          </a>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
             <span>Dark Mode</span>
             <Switch checked={darkMode} onChange={toggleTheme} />
