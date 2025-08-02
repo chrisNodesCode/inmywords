@@ -410,7 +410,7 @@ export default function EntryEditor({
         </div>
         </div>
       </div>
-      {pomodoroEnabled && <PomodoroWidget isFullscreen={type === 'entry'} />}
+      {pomodoroEnabled && <PomodoroWidget />}
     </>
   );
 }
