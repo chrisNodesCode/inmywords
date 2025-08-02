@@ -124,7 +124,8 @@
 ## Development
 
 After pulling changes that modify the Prisma schema, regenerate the client and
-apply migrations:
+apply migrations (migrations must be created locally where port 5432 is
+accessible):
 
 ```bash
 npx prisma generate
@@ -136,6 +137,10 @@ Ensure the following environment variables are set for local development:
 - `DATABASE_URL` – connection string using the pooled `-pooler` host and
   timeouts (`connect_timeout` and `pool_timeout`)
 - `DIRECT_URL` – direct connection string used by `prisma migrate`
+
+This project uses Prisma's Neon HTTP driver adapter. The API routes import a
+shared Prisma client from `src/lib/prisma.js`, which communicates with Neon over
+HTTPS/WebSockets.
 
 If your Neon database has gone idle, you can wake it by running:
 
