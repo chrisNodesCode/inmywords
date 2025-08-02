@@ -4,6 +4,7 @@ import { Switch, Avatar } from 'antd';
 import EntryEditor from './EntryEditor';
 import { EditOutlined, UserOutlined } from '@ant-design/icons';
 import { ThemeContext } from './ThemeProvider';
+import Link from 'next/link';
 
 
 export default function NotebookController({ onSelect, showEdits, onToggleEdits, showArchived, onToggleArchived }) {
@@ -86,6 +87,9 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
 
 
         <div className="profile-menu">
+          <Link href="/account" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            Account
+          </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
             <span>Dark Mode</span>
             <Switch checked={darkMode} onChange={toggleTheme} />
