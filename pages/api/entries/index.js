@@ -37,7 +37,7 @@ export default async function handler(req, res) {
             include: { group: true },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { user_sort: 'asc' },
       });
       return res.status(200).json(entries);
     } catch (error) {
@@ -74,12 +74,16 @@ export default async function handler(req, res) {
       }
 
       // Create entry
+      const order = await prisma.entry.count({
+        where: { subgroupId, userId },
+      });
       const newEntry = await prisma.entry.create({
         data: {
           title,
           content,
           userId,
           subgroupId,
+          user_sort: order,
           tags: tagIds
             ? { connect: tagIds.map(id => ({ id })) }
             : undefined,
