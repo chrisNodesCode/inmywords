@@ -25,14 +25,12 @@ export default async function handler(req, res) {
       where: { id: notebookId },
       include: {
         groups: {
-          orderBy: { user_sort: 'asc' },
           include: {
             subgroups: {
-              orderBy: { user_sort: 'asc' },
               include: {
                 entries: {
                   include: { tags: true },
-                  orderBy: { user_sort: 'asc' }
+                  orderBy: { createdAt: 'desc' }
                 }
               }
             }

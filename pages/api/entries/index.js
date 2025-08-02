@@ -35,7 +35,7 @@ export default async function handler(req, res) {
             include: { group: true },
           },
         },
-        orderBy: { user_sort: 'asc' },
+        orderBy: { createdAt: 'desc' },
       });
       return res.status(200).json(entries);
     } catch (error) {
@@ -71,17 +71,13 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Subgroup not found' });
       }
 
-      const maxSort = await prisma.entry.aggregate({
-        where: { subgroupId },
-        _max: { user_sort: true },
-      });
+      // Create entry
       const newEntry = await prisma.entry.create({
         data: {
           title,
           content,
           userId,
           subgroupId,
-          user_sort: (maxSort._max.user_sort ?? -1) + 1,
           tags: tagIds
             ? { connect: tagIds.map(id => ({ id })) }
             : undefined,

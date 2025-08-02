@@ -63,12 +63,11 @@ async function main() {
     { name: 'Group 2' },
   ];
   const groups = [];
-  for (const [idx, info] of groupData.entries()) {
+  for (const info of groupData) {
     const group = await prisma.group.create({
       data: {
         name: info.name,
         notebookId: notebook.id,
-        user_sort: idx,
       },
     });
     groups.push(group);
@@ -81,17 +80,13 @@ async function main() {
     { name: 'Subgroup C', groupId: groups[1].id },
   ];
   const subgroups = [];
-  const subIndexMap = {};
   for (const info of subgroupData) {
-    const idx = subIndexMap[info.groupId] ?? 0;
     const subgroup = await prisma.subgroup.create({
       data: {
         name: info.name,
         groupId: info.groupId,
-        user_sort: idx,
       },
     });
-    subIndexMap[info.groupId] = idx + 1;
     subgroups.push(subgroup);
   }
 
@@ -116,22 +111,18 @@ async function main() {
       tagIds: [tags[2].id, tags[0].id],
     },
   ];
-  const entryIndexMap = {};
   for (const info of entryData) {
-    const idx = entryIndexMap[info.subgroupId] ?? 0;
     await prisma.entry.create({
       data: {
         title: info.title,
         content: info.content,
         userId: user.id,
         subgroupId: info.subgroupId,
-        user_sort: idx,
         tags: {
           connect: info.tagIds.map(id => ({ id })),
         },
       },
     });
-    entryIndexMap[info.subgroupId] = idx + 1;
   }
 
   console.log('🌱 Seed complete');
