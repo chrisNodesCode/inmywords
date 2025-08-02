@@ -48,6 +48,7 @@ export default function Notebook() {
   const [showEdits, setShowEdits] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const isPrecursorNotebook = !!notebook?.precursorId;
 
   const aliases = useMemo(
     () => ({
@@ -618,7 +619,7 @@ export default function Notebook() {
     }
   };
 
-  const groupsReorderable = expandedGroups.length === 0;
+  const groupsReorderable = !isPrecursorNotebook && expandedGroups.length === 0;
 
   return (
     <div className="notebook-container">
@@ -671,6 +672,7 @@ export default function Notebook() {
             >
               {notebook.groups.map((group) => {
                 const subgroupsReorderable =
+                  !isPrecursorNotebook &&
                   expandedGroups.includes(group.id) &&
                   !group.subgroups.some((s) => expandedSubgroups.includes(s.id));
                 return (
@@ -704,7 +706,7 @@ export default function Notebook() {
                             </span>
                           )}
                           <h2 className="group-title">{group.name}</h2>
-                          {expandedGroups.includes(group.id) && (
+                          {expandedGroups.includes(group.id) && !isPrecursorNotebook && (
                             <button
                               className={`edit-button${showEdits ? '' : ' hidden'}`}
                               onClick={(e) => {
@@ -782,7 +784,7 @@ export default function Notebook() {
                                             </span>
                                           )}
                                           <div className="subgroup-title">{sub.name}</div>
-                                          {expandedSubgroups.includes(sub.id) && (
+                                          {expandedSubgroups.includes(sub.id) && !isPrecursorNotebook && (
                                             <button
                                               className={`edit-button${showEdits ? '' : ' hidden'}`}
                                               onClick={(e) => {
@@ -1005,21 +1007,23 @@ export default function Notebook() {
                                   </SortableWrapper>
                                 );
                               })}
-                              <div
-                                className="add-subgroup interactive"
-                                role="button"
-                                tabIndex={0}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openEditor(
-                                    'subgroup',
-                                    { groupId: group.id, label: `${aliases.group}: ${group.name}` },
-                                    group.subgroups.length - 1
-                                  );
-                                }}
-                              >
-                                Add {aliases.subgroup}
-                              </div>
+                              {!isPrecursorNotebook && (
+                                <div
+                                  className="add-subgroup interactive"
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditor(
+                                      'subgroup',
+                                      { groupId: group.id, label: `${aliases.group}: ${group.name}` },
+                                      group.subgroups.length - 1
+                                    );
+                                  }}
+                                >
+                                  Add {aliases.subgroup}
+                                </div>
+                              )}
                             </SortableContext>
                           </DndContext>
                         </div>
@@ -1028,20 +1032,22 @@ export default function Notebook() {
                   </SortableWrapper>
                 );
               })}
-              <div
-                className="add-group interactive"
-                role="button"
-                tabIndex={0}
-                onClick={() =>
-                  openEditor(
-                    'group',
-                    { label: `${aliases.group} Root` },
-                    notebook.groups.length - 1
-                  )
-                }
-              >
-                Add {aliases.group}
-              </div>
+              {!isPrecursorNotebook && (
+                <div
+                  className="add-group interactive"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() =>
+                    openEditor(
+                      'group',
+                      { label: `${aliases.group} Root` },
+                      notebook.groups.length - 1
+                    )
+                  }
+                >
+                  Add {aliases.group}
+                </div>
+              )}
             </SortableContext>
           </DndContext>
         </div>

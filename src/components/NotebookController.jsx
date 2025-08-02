@@ -37,12 +37,18 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
     onSelect(id);
   };
 
-  const handleCreate = async ({ name, description, user_notebook_tree }) => {
+  const handleCreate = async ({ name, description, user_notebook_tree, precursorId }) => {
     try {
+      const body = { title: name, description };
+      if (precursorId) {
+        body.precursorId = precursorId;
+      } else {
+        body.user_notebook_tree = user_notebook_tree;
+      }
       const res = await fetch('/api/notebooks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: name, description, user_notebook_tree }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error('Failed to create notebook');
       const newNb = await res.json();
