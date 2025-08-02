@@ -66,7 +66,7 @@ export default function EntryEditor({
     setGroupAlias((data.user_notebook_tree && data.user_notebook_tree[0]) || '');
     setSubgroupAlias((data.user_notebook_tree && data.user_notebook_tree[1]) || '');
     setEntryAlias((data.user_notebook_tree && data.user_notebook_tree[2]) || '');
-  }, [initialData]);
+  }, [initialData?.id]);
 
   const handleSave = () => {
     if (type === 'entry') {
