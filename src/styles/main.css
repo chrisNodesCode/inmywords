@@ -323,7 +323,8 @@ body {
   border-radius: 1em;
   width: 50vw;
   max-width: 65vw;
-  height: 30%;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .editor-modal-header {
