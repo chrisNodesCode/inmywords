@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import { listPrecursors } from '../api/precursors';
+import { Switch } from 'antd';
+import PomodoroWidget from './PomodoroWidget';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -47,6 +49,20 @@ export default function EntryEditor({
   const [headerVisible, setHeaderVisible] = useState(true);
   const [toolbarVisible, setToolbarVisible] = useState(false);
   const quillRef = useRef(null);
+  const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('pomodoro-state')) {
+      setPomodoroEnabled(true);
+    }
+  }, []);
+
+  const handlePomodoroToggle = (checked) => {
+    setPomodoroEnabled(checked);
+    if (!checked) {
+      localStorage.removeItem('pomodoro-state');
+    }
+  };
 
   const quillModules = {
     toolbar: [
@@ -215,8 +231,9 @@ export default function EntryEditor({
   }, [type, title, content, parent, mode, safeData.id, onSave]);
 
   return (
-    <div className={overlayClass} onClick={handleOverlayClick}>
-      <div className={contentClass}>
+    <>
+      <div className={overlayClass} onClick={handleOverlayClick}>
+        <div className={contentClass}>
         <div
           className={`editor-header-wrapper ${type === 'entry' ? 'fullscreen' : ''}`}
           onMouseEnter={handleHeaderMouseEnter}
@@ -241,6 +258,20 @@ export default function EntryEditor({
               {type === 'tag' && (mode === 'edit' ? 'Edit Tag' : 'New Tag')}
             </h2>
             <div className="editor-modal-buttons-container">
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginRight: '0.5rem',
+                }}
+              >
+                <span style={{ marginRight: '0.25rem' }}>Pomodoro</span>
+                <Switch
+                  checked={pomodoroEnabled}
+                  onChange={handlePomodoroToggle}
+                  size="small"
+                />
+              </div>
               <button className="editor-button" onClick={handleSave}>
                 Save
               </button>
@@ -377,7 +408,9 @@ export default function EntryEditor({
         <div className="editor-modal-footer">
 
         </div>
+        </div>
       </div>
-    </div>
+      {pomodoroEnabled && <PomodoroWidget isFullscreen={type === 'entry'} />}
+    </>
   );
 }
