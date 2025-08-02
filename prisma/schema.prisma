@@ -36,6 +36,7 @@ model Notebook {
   userId       String
   groups       Group[]   // Notebook → Groups
   tags         Tag[]     // Metadata tags scoped to this notebook
+  user_notebook_tree String[] @default(["Group", "Subgroup", "Entry"])
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }

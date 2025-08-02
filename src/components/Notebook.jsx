@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 
 import EntryEditor from './EntryEditor';
@@ -48,6 +48,15 @@ export default function Notebook() {
   const [showEdits, setShowEdits] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [loadError, setLoadError] = useState('');
+
+  const aliases = useMemo(
+    () => ({
+      group: notebook?.user_notebook_tree?.[0] || 'Group',
+      subgroup: notebook?.user_notebook_tree?.[1] || 'Subgroup',
+      entry: notebook?.user_notebook_tree?.[2] || 'Entry',
+    }),
+    [notebook]
+  );
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -915,7 +924,7 @@ export default function Notebook() {
                                                                   subgroupId: sub.id,
                                                                   groupId: group.id,
                                                                   tagIds: entry.tags.map((t) => t.id),
-                                                                  label: `Entry: ${entry.title}`,
+                                                                  label: `${aliases.entry}: ${entry.title}`,
                                                                 },
                                                                 entry.tags.length - 1
                                                               );
@@ -980,13 +989,13 @@ export default function Notebook() {
                                                     {
                                                       subgroupId: sub.id,
                                                       groupId: group.id,
-                                                      label: `Subgroup: ${sub.name}`,
+                                                      label: `${aliases.subgroup}: ${sub.name}`,
                                                     },
                                                     sub.entries.length - 1
                                                   );
                                                 }}
                                               >
-                                                Add Entry
+                                                Add {aliases.entry}
                                               </div>
                                             </SortableContext>
                                           </DndContext>
@@ -1004,12 +1013,12 @@ export default function Notebook() {
                                   e.stopPropagation();
                                   openEditor(
                                     'subgroup',
-                                    { groupId: group.id, label: `Group: ${group.name}` },
+                                    { groupId: group.id, label: `${aliases.group}: ${group.name}` },
                                     group.subgroups.length - 1
                                   );
                                 }}
                               >
-                                Add Subgroup
+                                Add {aliases.subgroup}
                               </div>
                             </SortableContext>
                           </DndContext>
@@ -1024,10 +1033,14 @@ export default function Notebook() {
                 role="button"
                 tabIndex={0}
                 onClick={() =>
-                  openEditor('group', { label: 'Notebook Root' }, notebook.groups.length - 1)
+                  openEditor(
+                    'group',
+                    { label: `${aliases.group} Root` },
+                    notebook.groups.length - 1
+                  )
                 }
               >
-                Add Group
+                Add {aliases.group}
               </div>
             </SortableContext>
           </DndContext>
@@ -1044,6 +1057,7 @@ export default function Notebook() {
           onArchive={editorState.onArchive}
           initialData={editorState.item}
           mode={editorState.mode}
+          aliases={aliases}
         />
       )}
     </div>

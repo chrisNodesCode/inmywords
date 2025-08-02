@@ -37,12 +37,12 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
     onSelect(id);
   };
 
-  const handleCreate = async ({ name, description }) => {
+  const handleCreate = async ({ name, description, user_notebook_tree }) => {
     try {
       const res = await fetch('/api/notebooks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: name, description }),
+        body: JSON.stringify({ title: name, description, user_notebook_tree }),
       });
       if (!res.ok) throw new Error('Failed to create notebook');
       const newNb = await res.json();
