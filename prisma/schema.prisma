@@ -48,6 +48,7 @@ model Group {
   description  String?
   notebook     Notebook   @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   notebookId   String
+  user_sort    Int        @default(0)
   subgroups    Subgroup[] // Group → Subgroups
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -59,6 +60,7 @@ model Subgroup {
   description  String?
   group        Group      @relation(fields: [groupId], references: [id], onDelete: Cascade)
   groupId      String
+  user_sort    Int        @default(0)
   entries      Entry[]    // Subgroup → Entries
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -72,6 +74,7 @@ model Entry {
   userId       String
   subgroup     Subgroup   @relation(fields: [subgroupId], references: [id], onDelete: Cascade)
   subgroupId   String
+  user_sort    Int        @default(0)
   tags         Tag[]      @relation("EntryTags") // Metadata tags
   archived     Boolean    @default(false)
   createdAt    DateTime   @default(now())
