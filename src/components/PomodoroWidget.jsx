@@ -3,7 +3,7 @@ import { useTimer } from 'react-timer-hook';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 
-export default function PomodoroWidget({ isFullscreen }) {
+export default function PomodoroWidget() {
   const defaultDurations = {
     pomodoro: 25 * 60,
     shortBreak: 5 * 60,
@@ -114,7 +114,6 @@ export default function PomodoroWidget({ isFullscreen }) {
     }
   };
 
-  if (isFullscreen) return null;
 
   const total = durations[currentType];
   const remaining = getRemainingSeconds();
