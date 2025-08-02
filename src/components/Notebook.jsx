@@ -348,8 +348,18 @@ export default function Notebook() {
       const oldIndex = prev.groups.findIndex((g) => g.id === active.id);
       const newIndex = prev.groups.findIndex((g) => g.id === over.id);
       const groups = arrayMove(prev.groups, oldIndex, newIndex);
+      // optimistic update
       return { ...prev, groups };
     });
+    const ids = notebook.groups.map((g) => g.id);
+    const oldIndex = ids.findIndex(id => id === active.id);
+    const newIndex = ids.findIndex(id => id === over.id);
+    const newIds = arrayMove(ids, oldIndex, newIndex);
+    fetch('/api/groups/reorder', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notebookId: notebook.id, ids: newIds }),
+    }).catch((err) => console.error(err));
   };
 
   const handleSubgroupDragEnd = (groupId) => ({ active, over }) => {
@@ -364,6 +374,18 @@ export default function Notebook() {
       });
       return { ...prev, groups };
     });
+    const target = notebook.groups.find((g) => g.id === groupId);
+    if (target) {
+      const ids = target.subgroups.map((s) => s.id);
+      const oldIdx = ids.findIndex((id) => id === active.id);
+      const newIdx = ids.findIndex((id) => id === over.id);
+      const newIds = arrayMove(ids, oldIdx, newIdx);
+      fetch('/api/subgroups/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId, ids: newIds }),
+      }).catch((err) => console.error(err));
+    }
   };
 
   const handleEntryDragEnd = (groupId, subgroupId) => ({ active, over }) => {
@@ -384,6 +406,19 @@ export default function Notebook() {
       });
       return { ...prev, groups };
     });
+    const group = notebook.groups.find((g) => g.id === groupId);
+    const sub = group?.subgroups.find((s) => s.id === subgroupId);
+    if (sub) {
+      const ids = sub.entries.map((e) => e.id);
+      const oldIdx = ids.findIndex((id) => id === active.id);
+      const newIdx = ids.findIndex((id) => id === over.id);
+      const newIds = arrayMove(ids, oldIdx, newIdx);
+      fetch('/api/entries/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subgroupId, ids: newIds }),
+      }).catch((err) => console.error(err));
+    }
   };
 
   const toggleGroup = (group) => {
