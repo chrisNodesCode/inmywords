@@ -867,7 +867,12 @@ export default function Notebook() {
                                                                       <p key={idx}>{para}</p>
                                                                     ))
                                                                 : (
-                                                                  <div>{htmlToText(entry.content).slice(0, 40)}...</div>
+                                                                  <div>
+                                                                    <div>{htmlToText(entry.content).slice(0, 40)}...</div>
+                                                                    <div className="entry-card-timestamps">
+                                                                      Last Updated: {new Date(entry.updatedAt).toLocaleString()} | Created At: {new Date(entry.createdAt).toLocaleString()}
+                                                                    </div>
+                                                                  </div>
                                                                 )}
                                                             </div>
                                                           </div>
