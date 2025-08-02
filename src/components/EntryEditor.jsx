@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
+import { listPrecursors } from '../api/precursors';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -38,6 +39,8 @@ export default function EntryEditor({
   const [entryAlias, setEntryAlias] = useState(
     (safeData.user_notebook_tree && safeData.user_notebook_tree[2]) || ''
   );
+  const [precursors, setPrecursors] = useState([]);
+  const [selectedPrecursor, setSelectedPrecursor] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [lastSaved, setLastSaved] = useState(null);
@@ -66,7 +69,16 @@ export default function EntryEditor({
     setGroupAlias((data.user_notebook_tree && data.user_notebook_tree[0]) || '');
     setSubgroupAlias((data.user_notebook_tree && data.user_notebook_tree[1]) || '');
     setEntryAlias((data.user_notebook_tree && data.user_notebook_tree[2]) || '');
+    setSelectedPrecursor('');
   }, [initialData?.id]);
+
+  useEffect(() => {
+    if (type === 'notebook' && mode === 'create') {
+      listPrecursors()
+        .then((data) => setPrecursors(data))
+        .catch((err) => console.error(err));
+    }
+  }, [type, mode]);
 
   const handleSave = () => {
     if (type === 'entry') {
@@ -97,11 +109,15 @@ export default function EntryEditor({
       id: safeData.id,
     };
     if (type === 'notebook') {
-      payload.user_notebook_tree = [
-        (groupAlias || 'Group').trim(),
-        (subgroupAlias || 'Subgroup').trim(),
-        (entryAlias || 'Entry').trim(),
-      ];
+      if (selectedPrecursor) {
+        payload.precursorId = selectedPrecursor;
+      } else {
+        payload.user_notebook_tree = [
+          (groupAlias || 'Group').trim(),
+          (subgroupAlias || 'Subgroup').trim(),
+          (entryAlias || 'Entry').trim(),
+        ];
+      }
     }
     onSave(payload);
     setLastSaved(new Date());
@@ -316,7 +332,21 @@ export default function EntryEditor({
                   onChange={(e) => setDescription(e.target.value)}
                 />
               )}
-              {type === 'notebook' && (
+              {type === 'notebook' && mode === 'create' && (
+                <select
+                  className="editor-input-title"
+                  value={selectedPrecursor}
+                  onChange={(e) => setSelectedPrecursor(e.target.value)}
+                >
+                  <option value="">Custom Notebook</option>
+                  {precursors.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {type === 'notebook' && !selectedPrecursor && (
                 <>
                   <input
                     className="editor-input-title"
