@@ -56,6 +56,21 @@ export default function Notebook() {
   const [activeGroup, setActiveGroup] = useState(null);
   const [activeSubgroup, setActiveSubgroup] = useState(null);
 
+  const sortTree = (tree) => ({
+    ...tree,
+    groups: [...tree.groups]
+      .sort((a, b) => a.user_sort - b.user_sort)
+      .map((g) => ({
+        ...g,
+        subgroups: [...g.subgroups]
+          .sort((a, b) => a.user_sort - b.user_sort)
+          .map((s) => ({
+            ...s,
+            entries: [...s.entries].sort((a, b) => a.user_sort - b.user_sort),
+          })),
+      })),
+  });
+
   useEffect(() => {
     const handleScroll = () => {
       if (!notebook) return;
@@ -107,7 +122,7 @@ export default function Notebook() {
         throw new Error(payload?.error || 'Failed to fetch notebook tree');
       }
       const tree = payload || (await treeRes.json());
-      setNotebook(tree);
+      setNotebook(sortTree(tree));
       setExpandedGroups([]);
       setExpandedSubgroups([]);
       setExpandedEntries([]);
@@ -347,7 +362,17 @@ export default function Notebook() {
     setNotebook((prev) => {
       const oldIndex = prev.groups.findIndex((g) => g.id === active.id);
       const newIndex = prev.groups.findIndex((g) => g.id === over.id);
-      const groups = arrayMove(prev.groups, oldIndex, newIndex);
+      const groups = arrayMove(prev.groups, oldIndex, newIndex).map((g, idx) => ({
+        ...g,
+        user_sort: idx,
+      }));
+      fetch('/api/groups/reorder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orders: groups.map((g, idx) => ({ id: g.id, user_sort: idx })),
+        }),
+      }).catch((err) => console.error(err));
       return { ...prev, groups };
     });
   };
@@ -359,7 +384,17 @@ export default function Notebook() {
         if (g.id !== groupId) return g;
         const oldIndex = g.subgroups.findIndex((s) => s.id === active.id);
         const newIndex = g.subgroups.findIndex((s) => s.id === over.id);
-        const subgroups = arrayMove(g.subgroups, oldIndex, newIndex);
+        const subgroups = arrayMove(g.subgroups, oldIndex, newIndex).map((s, idx) => ({
+          ...s,
+          user_sort: idx,
+        }));
+        fetch('/api/subgroups/reorder', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orders: subgroups.map((s, idx) => ({ id: s.id, user_sort: idx })),
+          }),
+        }).catch((err) => console.error(err));
         return { ...g, subgroups };
       });
       return { ...prev, groups };
@@ -377,7 +412,17 @@ export default function Notebook() {
             if (s.id !== subgroupId) return s;
             const oldIndex = s.entries.findIndex((e) => e.id === active.id);
             const newIndex = s.entries.findIndex((e) => e.id === over.id);
-            const entries = arrayMove(s.entries, oldIndex, newIndex);
+            const entries = arrayMove(s.entries, oldIndex, newIndex).map((e, idx) => ({
+              ...e,
+              user_sort: idx,
+            }));
+            fetch('/api/entries/reorder', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orders: entries.map((e, idx) => ({ id: e.id, user_sort: idx })),
+              }),
+            }).catch((err) => console.error(err));
             return { ...s, entries };
           }),
         };

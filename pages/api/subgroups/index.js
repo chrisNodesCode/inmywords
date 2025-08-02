@@ -29,7 +29,7 @@ export default async function handler(req, res) {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { user_sort: 'asc' },
       });
       return res.status(200).json(subgroups);
     } catch (error) {
@@ -56,11 +56,15 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Group not found' });
       }
       // Create the subgroup
+      const order = await prisma.subgroup.count({
+        where: { groupId, group: { notebook: { userId } } },
+      });
       const newSubgroup = await prisma.subgroup.create({
         data: {
           name,
           description: description?.trim() || null,
           groupId,
+          user_sort: order,
         },
       });
       return res.status(201).json(newSubgroup);
