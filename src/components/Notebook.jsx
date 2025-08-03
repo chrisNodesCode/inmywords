@@ -883,7 +883,29 @@ export default function Notebook() {
                                                           tabIndex={0}
                                                           onClick={(e) => {
                                                             e.stopPropagation();
-                                                            toggleEntry(entry.id);
+                                                            if (expandedEntries.includes(entry.id)) {
+                                                              openEditor(
+                                                                'entry',
+                                                                {
+                                                                  subgroupId: sub.id,
+                                                                  groupId: group.id,
+                                                                  entryId: entry.id,
+                                                                },
+                                                                null,
+                                                                entry,
+                                                                'edit',
+                                                                () => handleDeleteEntry(group.id, sub.id, entry.id),
+                                                                () =>
+                                                                  handleToggleArchiveEntry(
+                                                                    group.id,
+                                                                    sub.id,
+                                                                    entry.id,
+                                                                    !entry.archived
+                                                                  )
+                                                              );
+                                                            } else {
+                                                              toggleEntry(entry.id);
+                                                            }
                                                           }}
                                                         >
                                                           {entriesReorderable && (
@@ -897,6 +919,18 @@ export default function Notebook() {
                                                             </span>
                                                           )}
                                                           <h4 className="entry-card-title">{entry.title}</h4>
+                                                          {expandedEntries.includes(entry.id) && (
+                                                            <button
+                                                              className="collapse-button"
+                                                              onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleEntry(entry.id);
+                                                              }}
+                                                              aria-label="Collapse"
+                                                            >
+                                                              ×
+                                                            </button>
+                                                          )}
                                                           <div
                                                             className="entry-card-content"
                                                             style={{
@@ -1009,6 +1043,15 @@ export default function Notebook() {
                                                             style={{ marginLeft: '0.5rem' }}
                                                           >
                                                             {entry.archived ? 'Restore' : 'Archive'}
+                                                          </button>
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              toggleEntry(entry.id);
+                                                            }}
+                                                            style={{ marginLeft: '0.5rem' }}
+                                                          >
+                                                            Collapse
                                                           </button>
                                                         </div>
                                                       </div>
