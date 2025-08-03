@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import { listPrecursors } from '../api/precursors';
-import { Switch } from 'antd';
+import { Switch, InputNumber } from 'antd';
 import PomodoroWidget from './PomodoroWidget';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
@@ -51,6 +51,7 @@ export default function EntryEditor({
   const quillRef = useRef(null);
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
   const [fullFocusEnabled, setFullFocusEnabled] = useState(false);
+  const [maxWidth, setMaxWidth] = useState(50);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('pomodoro-state')) {
@@ -315,6 +316,27 @@ export default function EntryEditor({
                   />
                 </div>
               )}
+              {type === 'entry' && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginRight: '0.5rem',
+                  }}
+                >
+                  <span style={{ marginRight: '0.25rem' }}>Max Width</span>
+                  <InputNumber
+                    min={25}
+                    max={95}
+                    step={1}
+                    value={maxWidth}
+                    onChange={(value) => setMaxWidth(value || 50)}
+                    size="small"
+                    formatter={(value) => `${value}%`}
+                    parser={(value) => value.replace('%', '')}
+                  />
+                </div>
+              )}
               <button className="editor-button" onClick={handleSave}>
                 Save
               </button>
@@ -340,7 +362,10 @@ export default function EntryEditor({
         <div className="editor-modal-body">
           {type === 'entry' && (
             <>
-              <div className="entry-title-container">
+              <div
+                className="entry-title-container"
+                style={{ maxWidth: `${maxWidth}%` }}
+              >
                 {isEditingTitle ? (
                   <input
                     type="text"
@@ -383,6 +408,7 @@ export default function EntryEditor({
                 onChangeSelection={handleSelectionChange}
                 modules={quillModules}
                 formats={quillFormats}
+                style={{ maxWidth: `${maxWidth}%` }}
               />
             </>
           )}
