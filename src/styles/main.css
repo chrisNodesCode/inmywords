@@ -350,68 +350,6 @@ body {
   overflow-y: auto;
 }
 
-.editor-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.editor-header-wrapper {
-  position: relative;
-  height: 2.5rem;
-  /* allow Quill dropdowns to extend beyond the header wrapper */
-  overflow: visible;
-}
-
-.editor-header-wrapper.fullscreen {
-  width: 100%;
-}
-
-.editor-header-wrapper .editor-modal-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  pointer-events: auto;
-  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-}
-
-.editor-modal-header.hidden {
-  transform: translateY(-100%);
-  opacity: 0;
-  pointer-events: none;
-}
-
-
-.editor-header-wrapper .editor-input-title {
-  margin-bottom: 0;
-}
-
-.editor-modal-buttons-container {
-  display: flex;
-  justify-content: flex-end;
-  width: 300px;
-  gap: 1rem;
-}
-
-.editor-modal-title {
-  margin: 0;
-  font-weight: 900;
-  height: 2rem;
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-start;
-  align-items: center;
-}
-
-.editor-modal-close {
-  background: transparent;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-}
-
 .editor-modal-body input,
 .editor-modal-body textarea {
   width: 100%;
@@ -484,24 +422,6 @@ body {
   justify-content: flex-end;
   gap: 0.5em;
   margin-top: 1rem;
-}
-
-.editor-button {
-  padding: 0.5em 1em;
-  border-radius: 0.5em;
-  border: 1px solid #000;
-  background: #fff;
-  cursor: pointer;
-}
-
-.editor-button.secondary {
-  background: #eee;
-}
-
-.editor-button.danger {
-  background: #f8d7da;
-  border-color: #f5c2c7;
-  color: #842029;
 }
 
 .slide-up {

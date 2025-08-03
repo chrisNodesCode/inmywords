@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import { listPrecursors } from '../api/precursors';
-import { Switch, InputNumber } from 'antd';
+import { Switch, InputNumber, Drawer, Button } from 'antd';
+import { MenuOutlined } from '@ant-design/icons';
 import PomodoroWidget from './PomodoroWidget';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
@@ -46,11 +47,13 @@ export default function EntryEditor({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [lastSaved, setLastSaved] = useState(null);
-  const [headerVisible, setHeaderVisible] = useState(true);
   const [toolbarVisible, setToolbarVisible] = useState(false);
   const quillRef = useRef(null);
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
   const [maxWidth, setMaxWidth] = useState(50);
+  const drawerWidth = 300;
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerPinned, setDrawerPinned] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('pomodoro-state')) {
@@ -160,44 +163,24 @@ export default function EntryEditor({
     onCancel();
   };
 
-  const hideTimeout = useRef();
-  const firstInteraction = useRef(false);
-
-  const scheduleHide = () => {
-    clearTimeout(hideTimeout.current);
-    hideTimeout.current = setTimeout(() => setHeaderVisible(false), 1000);
+  const handleHamburgerClick = () => {
+    setDrawerPinned((prev) => {
+      const next = !prev;
+      setDrawerOpen(next);
+      return next;
+    });
   };
 
-  // hide header after the first user interaction
-  useEffect(() => {
-    if (type !== 'entry') return;
+  const drawerBottomOffset = pomodoroEnabled ? 'calc(80px + 2rem)' : 0;
 
-    const handleFirst = () => {
-      if (!firstInteraction.current) {
-        firstInteraction.current = true;
-        scheduleHide();
-        document.removeEventListener('mousemove', handleFirst);
-        document.removeEventListener('keydown', handleFirst);
-      }
-    };
-
-    document.addEventListener('mousemove', handleFirst);
-    document.addEventListener('keydown', handleFirst);
-
-    return () => {
-      document.removeEventListener('mousemove', handleFirst);
-      document.removeEventListener('keydown', handleFirst);
-      clearTimeout(hideTimeout.current);
-    };
-  }, [type]);
-
-  const handleHeaderMouseEnter = () => {
-    setHeaderVisible(true);
-    clearTimeout(hideTimeout.current);
+  const handleDrawerMouseEnter = () => {
+    setDrawerOpen(true);
   };
 
-  const handleHeaderMouseLeave = () => {
-    if (firstInteraction.current) scheduleHide();
+  const handleDrawerMouseLeave = () => {
+    if (!drawerPinned) {
+      setDrawerOpen(false);
+    }
   };
 
   // toggle quill toolbar when user highlights text
@@ -236,87 +219,6 @@ export default function EntryEditor({
     <>
       <div className={overlayClass} onClick={handleOverlayClick}>
         <div className={contentClass}>
-        <div
-          className={`editor-header-wrapper ${type === 'entry' ? 'fullscreen' : ''}`}
-          onMouseEnter={handleHeaderMouseEnter}
-          onMouseLeave={handleHeaderMouseLeave}
-        >
-          <div className={`editor-modal-header ${headerVisible ? '' : 'hidden'}`}>
-            <h2 className="editor-modal-title">
-              {type === 'entry' &&
-                (mode === 'edit'
-                  ? `Edit ${aliases.entry}`
-                  : `New ${aliases.entry}`)}
-              {type === 'group' &&
-                (mode === 'edit'
-                  ? `Edit ${aliases.group}`
-                  : `New ${aliases.group}`)}
-              {type === 'subgroup' &&
-                (mode === 'edit'
-                  ? `Edit ${aliases.subgroup}`
-                  : `New ${aliases.subgroup}`)}
-              {type === 'notebook' &&
-                (mode === 'edit' ? 'Edit Notebook' : 'New Notebook')}
-              {type === 'tag' && (mode === 'edit' ? 'Edit Tag' : 'New Tag')}
-            </h2>
-            <div className="editor-modal-buttons-container">
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginRight: '0.5rem',
-                }}
-              >
-                <span style={{ marginRight: '0.25rem' }}>Pomodoro</span>
-                <Switch
-                  checked={pomodoroEnabled}
-                  onChange={handlePomodoroToggle}
-                  size="small"
-                />
-              </div>
-              {type === 'entry' && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    marginRight: '0.5rem',
-                  }}
-                >
-                  <span style={{ marginRight: '0.25rem' }}>Max Width</span>
-                  <InputNumber
-                    min={25}
-                    max={95}
-                    step={1}
-                    value={maxWidth}
-                    onChange={(value) => setMaxWidth(value || 50)}
-                    size="small"
-                    formatter={(value) => `${value}%`}
-                    parser={(value) => value.replace('%', '')}
-                  />
-                </div>
-              )}
-              <button className="editor-button" onClick={handleSave}>
-                Save
-              </button>
-              {mode === 'edit' && onDelete && (
-                <button className="editor-button danger" onClick={handleDelete}>
-                  Delete
-                </button>
-              )}
-              {type === 'entry' && mode === 'edit' && onArchive && (
-                <button className="editor-button" onClick={onArchive}>
-                  {safeData.archived ? 'Restore' : 'Archive'}
-                </button>
-              )}
-              <button className="editor-button secondary" onClick={onCancel}>
-                Cancel
-              </button>
-              <button className="editor-modal-close" onClick={onCancel}>
-                ×
-              </button>
-            </div>
-          </div>
-        </div>
         <div className="editor-modal-body">
           {type === 'entry' && (
             <>
@@ -435,6 +337,88 @@ export default function EntryEditor({
         <div className="editor-modal-footer">
 
         </div>
+        </div>
+        <Button
+          type="text"
+          icon={<MenuOutlined />}
+          onClick={handleHamburgerClick}
+          style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1002 }}
+        />
+        <div
+          onMouseEnter={handleDrawerMouseEnter}
+          onMouseLeave={handleDrawerMouseLeave}
+          style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            bottom: drawerBottomOffset,
+            width: drawerWidth,
+            zIndex: 1001,
+          }}
+        >
+          <Drawer
+            placement="right"
+            open={drawerOpen}
+            mask={false}
+            closable={false}
+            width={drawerWidth}
+            getContainer={false}
+            style={{ position: 'absolute' }}
+            bodyStyle={{ padding: '1rem' }}
+          >
+            <h2 style={{ marginTop: 0 }}>
+              {type === 'entry' &&
+                (mode === 'edit'
+                  ? `Edit ${aliases.entry}`
+                  : `New ${aliases.entry}`)}
+              {type === 'group' &&
+                (mode === 'edit'
+                  ? `Edit ${aliases.group}`
+                  : `New ${aliases.group}`)}
+              {type === 'subgroup' &&
+                (mode === 'edit'
+                  ? `Edit ${aliases.subgroup}`
+                  : `New ${aliases.subgroup}`)}
+              {type === 'notebook' &&
+                (mode === 'edit' ? 'Edit Notebook' : 'New Notebook')}
+              {type === 'tag' && (mode === 'edit' ? 'Edit Tag' : 'New Tag')}
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span>Pomodoro</span>
+                <Switch
+                  checked={pomodoroEnabled}
+                  onChange={handlePomodoroToggle}
+                  size="small"
+                />
+              </div>
+              {type === 'entry' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span>Max Width</span>
+                  <InputNumber
+                    min={25}
+                    max={95}
+                    step={1}
+                    value={maxWidth}
+                    onChange={(value) => setMaxWidth(value || 50)}
+                    size="small"
+                    formatter={(value) => `${value}%`}
+                    parser={(value) => value.replace('%', '')}
+                  />
+                </div>
+              )}
+              <Button type="primary" onClick={handleSave}>Save</Button>
+              {mode === 'edit' && onDelete && (
+                <Button danger onClick={handleDelete}>Delete</Button>
+              )}
+              {type === 'entry' && mode === 'edit' && onArchive && (
+                <Button onClick={onArchive}>
+                  {safeData.archived ? 'Restore' : 'Archive'}
+                </Button>
+              )}
+              <Button onClick={onCancel}>Cancel</Button>
+            </div>
+          </Drawer>
         </div>
       </div>
       {pomodoroEnabled && <PomodoroWidget />}
