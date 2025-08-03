@@ -266,7 +266,8 @@ body {
 .editor-modal-content.fullscreen .editor-quill {
   flex: 1;
   min-height: 0;
-  width: 50%;
+  width: 100%;
+  max-width: 50%;
   margin-bottom: 1rem;
   position: relative;
 }
@@ -421,7 +422,8 @@ body {
 
 .entry-title-container {
   position: sticky;
-  width: 50%;
+  width: 100%;
+  max-width: 50%;
   /* top: 0.5rem; */
   padding-left: 1rem;
   background: #fff;
