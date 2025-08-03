@@ -40,6 +40,17 @@ body {
   align-items: stretch;
 }
 
+.notebook-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.full-focus-toggle {
+  display: flex;
+  align-items: center;
+}
+
 .notebook-title {
   font-size: 2rem;
   margin-top: 2rem;

@@ -7,6 +7,7 @@ import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from 
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import DragHandle from '@mui/icons-material/DragHandle';
+import { Switch } from 'antd';
 
 function SortableWrapper({ id, disabled, children }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id, disabled });
@@ -49,6 +50,7 @@ export default function Notebook() {
   const [showArchived, setShowArchived] = useState(false);
   const [loadError, setLoadError] = useState('');
   const isPrecursorNotebook = !!notebook?.precursorId;
+  const [fullFocusEnabled, setFullFocusEnabled] = useState(false);
 
   const aliases = useMemo(
     () => ({
@@ -65,6 +67,29 @@ export default function Notebook() {
   const subgroupRefs = useRef({});
   const [activeGroup, setActiveGroup] = useState(null);
   const [activeSubgroup, setActiveSubgroup] = useState(null);
+
+  const handleFullFocusToggle = async (checked) => {
+    setFullFocusEnabled(checked);
+    try {
+      if (checked) {
+        await document.documentElement.requestFullscreen?.();
+      } else if (document.fullscreenElement) {
+        await document.exitFullscreen?.();
+      }
+    } catch (err) {
+      console.error('Failed to toggle full screen', err);
+    }
+  };
+
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setFullFocusEnabled(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
+    };
+  }, []);
 
   const sortTree = (tree) => ({
     ...tree,
@@ -623,13 +648,23 @@ export default function Notebook() {
 
   return (
     <div className="notebook-container">
-      <NotebookController
-        onSelect={loadNotebook}
-        showEdits={showEdits}
-        onToggleEdits={setShowEdits}
-        showArchived={showArchived}
-        onToggleArchived={setShowArchived}
-      />
+      <div className="notebook-header">
+        <NotebookController
+          onSelect={loadNotebook}
+          showEdits={showEdits}
+          onToggleEdits={setShowEdits}
+          showArchived={showArchived}
+          onToggleArchived={setShowArchived}
+        />
+        <div className="full-focus-toggle">
+          <span style={{ marginRight: '0.25rem' }}>Full Focus</span>
+          <Switch
+            checked={fullFocusEnabled}
+            onChange={handleFullFocusToggle}
+            size="small"
+          />
+        </div>
+      </div>
       <h1 className="notebook-title"
         onClick={() => {
           if (notebook && !isEditingTitle) {
