@@ -162,6 +162,17 @@ body {
   border-radius: 2rem;
   margin-bottom: 3rem;
   background-color: #fff;
+  position: relative;
+}
+
+.collapse-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  border: none;
+  background: none;
+  font-size: 1.5rem;
+  cursor: pointer;
 }
 
 .entry-card-title {
