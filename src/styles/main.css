@@ -511,6 +511,10 @@ body {
 .interactive,
 button {
   transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out, margin-left 0.2s ease-in-out;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 .interactive:hover {
@@ -519,17 +523,6 @@ button {
   filter: brightness(0.95);
   margin-left: 0.5rem;
   max-width: 96%;
-}
-
-.drag-handle {
-  cursor: grab;
-  display: inline-flex;
-  align-items: center;
-  margin-right: 0.5rem;
-}
-
-.drag-handle:active {
-  cursor: grabbing;
 }
 
 button:hover {

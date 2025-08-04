@@ -6,7 +6,6 @@ import NotebookController from './NotebookController';
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import DragHandle from '@mui/icons-material/DragHandle';
 import { Switch } from 'antd';
 
 function SortableWrapper({ id, disabled, children }) {
@@ -718,28 +717,20 @@ export default function Notebook() {
                         style={style}
                         className={`group-card ${expandedGroups.includes(group.id) ? 'open' : ''}`}
                       >
-                        <div
-                          ref={(el) => {
-                            if (el) groupRefs.current[group.id] = el;
-                          }}
-                          data-group-id={group.id}
-                          className={`group-header interactive ${
-                            activeSubgroup && activeGroup === group.id ? 'fade-out' : ''
-                          }`}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => toggleGroup(group)}
-                        >
-                          {groupsReorderable && (
-                            <span
-                              className="drag-handle"
-                              {...attributes}
-                              {...listeners}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <DragHandle fontSize="small" />
-                            </span>
-                          )}
+                      <div
+                        ref={(el) => {
+                          if (el) groupRefs.current[group.id] = el;
+                        }}
+                        data-group-id={group.id}
+                        className={`group-header interactive ${
+                          activeSubgroup && activeGroup === group.id ? 'fade-out' : ''
+                        }`}
+                        {...(groupsReorderable ? attributes : {})}
+                        {...(groupsReorderable ? listeners : {})}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => toggleGroup(group)}
+                      >
                           <h2 className="group-title">{group.name}</h2>
                           {expandedGroups.includes(group.id) && !isPrecursorNotebook && (
                             <button
@@ -801,6 +792,8 @@ export default function Notebook() {
                                           className={`subgroup-header interactive ${
                                             expandedSubgroups.includes(sub.id) ? 'open' : ''
                                           }`}
+                                          {...(subgroupsReorderable ? subAttr : {})}
+                                          {...(subgroupsReorderable ? subListeners : {})}
                                           role="button"
                                           tabIndex={0}
                                           onClick={(e) => {
@@ -808,16 +801,6 @@ export default function Notebook() {
                                             toggleSubgroup(sub);
                                           }}
                                         >
-                                          {subgroupsReorderable && (
-                                            <span
-                                              className="drag-handle"
-                                              {...subAttr}
-                                              {...subListeners}
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              <DragHandle fontSize="small" />
-                                            </span>
-                                          )}
                                           <div className="subgroup-title">{sub.name}</div>
                                           {expandedSubgroups.includes(sub.id) && !isPrecursorNotebook && (
                                             <button
@@ -877,48 +860,40 @@ export default function Notebook() {
                                                           expandedEntries.includes(entry.id) ? 'open' : ''
                                                         } ${entry.archived ? 'archived' : ''}`}
                                                       >
-                                                        <div
-                                                          className="entry-header interactive"
-                                                          role="button"
-                                                          tabIndex={0}
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (expandedEntries.includes(entry.id)) {
-                                                              openEditor(
-                                                                'entry',
-                                                                {
-                                                                  subgroupId: sub.id,
-                                                                  groupId: group.id,
-                                                                  entryId: entry.id,
-                                                                },
-                                                                null,
-                                                                entry,
-                                                                'edit',
-                                                                () => handleDeleteEntry(group.id, sub.id, entry.id),
-                                                                () =>
-                                                                  handleToggleArchiveEntry(
-                                                                    group.id,
-                                                                    sub.id,
-                                                                    entry.id,
-                                                                    !entry.archived
-                                                                  )
-                                                              );
-                                                            } else {
-                                                              toggleEntry(entry.id);
-                                                            }
-                                                          }}
-                                                        >
-                                                          {entriesReorderable && (
-                                                            <span
-                                                              className="drag-handle"
-                                                              {...entryAttr}
-                                                              {...entryListeners}
-                                                              onClick={(e) => e.stopPropagation()}
-                                                            >
-                                                              <DragHandle fontSize="small" />
-                                                            </span>
-                                                          )}
-                                                          <h4 className="entry-card-title">{entry.title}</h4>
+                                                      <div
+                                                        className="entry-header interactive"
+                                                        {...(entriesReorderable ? entryAttr : {})}
+                                                        {...(entriesReorderable ? entryListeners : {})}
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          if (expandedEntries.includes(entry.id)) {
+                                                            openEditor(
+                                                              'entry',
+                                                              {
+                                                                subgroupId: sub.id,
+                                                                groupId: group.id,
+                                                                entryId: entry.id,
+                                                              },
+                                                              null,
+                                                              entry,
+                                                              'edit',
+                                                              () => handleDeleteEntry(group.id, sub.id, entry.id),
+                                                              () =>
+                                                                handleToggleArchiveEntry(
+                                                                  group.id,
+                                                                  sub.id,
+                                                                  entry.id,
+                                                                  !entry.archived
+                                                                )
+                                                            );
+                                                          } else {
+                                                            toggleEntry(entry.id);
+                                                          }
+                                                        }}
+                                                      >
+                                                        <h4 className="entry-card-title">{entry.title}</h4>
                                                           {expandedEntries.includes(entry.id) && (
                                                             <button
                                                               className="collapse-button"
