@@ -11,6 +11,30 @@ body {
   scrollbar-gutter: stable;
 }
 
+/* Global Ant Design Drawer styling */
+.ant-drawer-header,
+.ant-drawer-title,
+.ant-drawer-body {
+  font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
+}
+
+.ant-drawer-content,
+.ant-drawer-header {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+body[data-theme='dark'] .ant-drawer-content,
+body[data-theme='dark'] .ant-drawer-header {
+  background-color: #1f1f1f;
+  color: #ffffff;
+}
+
+body[data-theme='dark'] .ant-drawer-title,
+body[data-theme='dark'] .ant-drawer-close {
+  color: #ffffff;
+}
+
 /* Layout helpers for the landing page */
 .navbar {
   padding: 1rem 2rem;

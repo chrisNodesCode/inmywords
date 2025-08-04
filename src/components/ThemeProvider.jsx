@@ -1,6 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useEffect, useState } from 'react';
 import { ConfigProvider, theme as antdTheme } from 'antd';
-
 
 export const ThemeContext = createContext({
   darkMode: false,
@@ -40,11 +40,18 @@ export default function ThemeProvider({ children }) {
         algorithm: darkMode
           ? antdTheme.darkAlgorithm
           : antdTheme.defaultAlgorithm,
+        token: {
+          fontFamily: "'IBM Plex Mono', 'Cutive Mono', monospace",
+        },
         components: {
           Switch: {
             handleBg: "#7c7c7cff",
             colorPrimary: "#547b5f",
-            colorPrimaryHover: "#547b5f"
+            colorPrimaryHover: "#547b5f",
+          },
+          Drawer: {
+            colorBgElevated: darkMode ? "#1f1f1f" : "#ffffff",
+            colorText: darkMode ? "#ffffff" : "#000000",
           },
         },
       }}

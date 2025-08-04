@@ -151,11 +151,6 @@ export default function EntryEditor({
     }
   };
 
-  const overlayClass = `editor-modal-overlay ${type === 'entry' ? 'fullscreen' : type === 'notebook' ? 'notebook' : 'popup'
-    }`;
-  const contentClass = `editor-modal-content ${type === 'entry' ? 'fullscreen' : type === 'notebook' ? 'notebook' : 'popup'
-    } slide-up`;
-
   const handleDelete = () => {
     if (onDelete) {
       onDelete();
@@ -214,13 +209,112 @@ export default function EntryEditor({
     }, 30000);
     return () => clearInterval(interval);
   }, [type, title, content, parent, mode, safeData.id, onSave]);
+  const renderHeading = () => {
+    if (mode === 'edit') {
+      if (type === 'group') return `Edit ${aliases.group}`;
+      if (type === 'subgroup') return `Edit ${aliases.subgroup}`;
+      if (type === 'notebook') return 'Edit Notebook';
+      if (type === 'tag') return 'Edit Tag';
+    }
+    if (type === 'group') return `New ${aliases.group}`;
+    if (type === 'subgroup') return `New ${aliases.subgroup}`;
+    if (type === 'notebook') return 'New Notebook';
+    if (type === 'tag') return 'New Tag';
+    return '';
+  };
+
+  if (type !== 'entry') {
+    return (
+      <Drawer
+        placement="right"
+        open
+        onClose={onCancel}
+        width={drawerWidth}
+        title={renderHeading()}
+        bodyStyle={{ padding: '1rem' }}
+      >
+        <div className="editor-modal-body">
+          {parent?.label && (
+            <div style={{ marginBottom: '0.5rem' }}>{parent.label}</div>
+          )}
+          <input
+            className="editor-input-title"
+            type="text"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          {(type === 'group' || type === 'subgroup' || type === 'notebook') && (
+            <textarea
+              className="editor-textarea-content"
+              placeholder="Description (optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          )}
+          {type === 'notebook' && mode === 'create' && (
+            <select
+              className="editor-input-title"
+              value={selectedPrecursor}
+              onChange={(e) => setSelectedPrecursor(e.target.value)}
+            >
+              <option value="">Custom Notebook</option>
+              {precursors.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+          )}
+          {type === 'notebook' && !selectedPrecursor && (
+            <>
+              <input
+                className="editor-input-title"
+                type="text"
+                placeholder="Group alias"
+                value={groupAlias}
+                onChange={(e) => setGroupAlias(e.target.value)}
+              />
+              <input
+                className="editor-input-title"
+                type="text"
+                placeholder="Subgroup alias"
+                value={subgroupAlias}
+                onChange={(e) => setSubgroupAlias(e.target.value)}
+              />
+              <input
+                className="editor-input-title"
+                type="text"
+                placeholder="Entry alias"
+                value={entryAlias}
+                onChange={(e) => setEntryAlias(e.target.value)}
+              />
+            </>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+            <Button type="primary" onClick={handleSave}>
+              Save
+            </Button>
+            {mode === 'edit' && onDelete && (
+              <Button danger onClick={handleDelete}>
+                Delete
+              </Button>
+            )}
+            <Button onClick={onCancel}>Cancel</Button>
+          </div>
+        </div>
+      </Drawer>
+    );
+  }
+
+  const overlayClass = `editor-modal-overlay ${type === 'entry' ? 'fullscreen' : ''}`;
+  const contentClass = `editor-modal-content ${type === 'entry' ? 'fullscreen' : ''} slide-up`;
 
   return (
     <>
       <div className={overlayClass} onClick={handleOverlayClick}>
         <div className={contentClass}>
-        <div className="editor-modal-body">
-          {type === 'entry' && (
+          <div className="editor-modal-body">
             <>
               <div
                 className="entry-title-container"
@@ -255,8 +349,9 @@ export default function EntryEditor({
                     <strong>Title:</strong> {title || 'Untitled'}
                   </p>
                 )}
-                <div className="last-saved">Last Autosave: {lastSaved ? lastSaved.toLocaleString() : "no autosaves yet..."}</div>
-
+                <div className="last-saved">
+                  Last Autosave: {lastSaved ? lastSaved.toLocaleString() : 'no autosaves yet...'}
+                </div>
               </div>
               <ReactQuill
                 ref={quillRef}
@@ -271,72 +366,8 @@ export default function EntryEditor({
                 style={{ maxWidth: `${maxWidth}%` }}
               />
             </>
-          )}
-          {type !== 'entry' && (
-            <>
-              {parent?.label && (
-                <div style={{ marginBottom: '0.5rem' }}>{parent.label}</div>
-              )}
-              <input
-                className="editor-input-title"
-                type="text"
-                placeholder="Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              {(type === 'group' || type === 'subgroup' || type === 'notebook') && (
-                <textarea
-                  className="editor-textarea-content"
-                  placeholder="Description (optional)"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              )}
-              {type === 'notebook' && mode === 'create' && (
-                <select
-                  className="editor-input-title"
-                  value={selectedPrecursor}
-                  onChange={(e) => setSelectedPrecursor(e.target.value)}
-                >
-                  <option value="">Custom Notebook</option>
-                  {precursors.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.title}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {type === 'notebook' && !selectedPrecursor && (
-                <>
-                  <input
-                    className="editor-input-title"
-                    type="text"
-                    placeholder="Group alias"
-                    value={groupAlias}
-                    onChange={(e) => setGroupAlias(e.target.value)}
-                  />
-                  <input
-                    className="editor-input-title"
-                    type="text"
-                    placeholder="Subgroup alias"
-                    value={subgroupAlias}
-                    onChange={(e) => setSubgroupAlias(e.target.value)}
-                  />
-                  <input
-                    className="editor-input-title"
-                    type="text"
-                    placeholder="Entry alias"
-                    value={entryAlias}
-                    onChange={(e) => setEntryAlias(e.target.value)}
-                  />
-                </>
-              )}
-            </>
-          )}
-        </div>
-        <div className="editor-modal-footer">
-
-        </div>
+          </div>
+          <div className="editor-modal-footer"></div>
         </div>
         <Button
           type="text"
@@ -367,21 +398,9 @@ export default function EntryEditor({
             bodyStyle={{ padding: '1rem' }}
           >
             <h2 style={{ marginTop: 0 }}>
-              {type === 'entry' &&
-                (mode === 'edit'
-                  ? `Edit ${aliases.entry}`
-                  : `New ${aliases.entry}`)}
-              {type === 'group' &&
-                (mode === 'edit'
-                  ? `Edit ${aliases.group}`
-                  : `New ${aliases.group}`)}
-              {type === 'subgroup' &&
-                (mode === 'edit'
-                  ? `Edit ${aliases.subgroup}`
-                  : `New ${aliases.subgroup}`)}
-              {type === 'notebook' &&
-                (mode === 'edit' ? 'Edit Notebook' : 'New Notebook')}
-              {type === 'tag' && (mode === 'edit' ? 'Edit Tag' : 'New Tag')}
+              {mode === 'edit'
+                ? `Edit ${aliases.entry}`
+                : `New ${aliases.entry}`}
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -392,26 +411,28 @@ export default function EntryEditor({
                   size="small"
                 />
               </div>
-              {type === 'entry' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <span>Max Width</span>
-                  <InputNumber
-                    min={25}
-                    max={95}
-                    step={1}
-                    value={maxWidth}
-                    onChange={(value) => setMaxWidth(value || 50)}
-                    size="small"
-                    formatter={(value) => `${value}%`}
-                    parser={(value) => value.replace('%', '')}
-                  />
-                </div>
-              )}
-              <Button type="primary" onClick={handleSave}>Save</Button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span>Max Width</span>
+                <InputNumber
+                  min={25}
+                  max={95}
+                  step={1}
+                  value={maxWidth}
+                  onChange={(value) => setMaxWidth(value || 50)}
+                  size="small"
+                  formatter={(value) => `${value}%`}
+                  parser={(value) => value.replace('%', '')}
+                />
+              </div>
+              <Button type="primary" onClick={handleSave}>
+                Save
+              </Button>
               {mode === 'edit' && onDelete && (
-                <Button danger onClick={handleDelete}>Delete</Button>
+                <Button danger onClick={handleDelete}>
+                  Delete
+                </Button>
               )}
-              {type === 'entry' && mode === 'edit' && onArchive && (
+              {mode === 'edit' && onArchive && (
                 <Button onClick={onArchive}>
                   {safeData.archived ? 'Restore' : 'Archive'}
                 </Button>
