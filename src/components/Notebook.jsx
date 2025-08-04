@@ -60,7 +60,13 @@ export default function Notebook() {
     [notebook]
   );
 
-  const sensors = useSensors(useSensor(PointerSensor));
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
 
   const groupRefs = useRef({});
   const subgroupRefs = useRef({});
