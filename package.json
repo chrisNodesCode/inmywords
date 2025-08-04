@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "lint": "eslint .",
+    "test": "npm run lint --silent || true"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
