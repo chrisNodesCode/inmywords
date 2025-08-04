@@ -1,6 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useEffect, useState } from 'react';
 import { ConfigProvider, theme as antdTheme } from 'antd';
-
 
 export const ThemeContext = createContext({
   darkMode: false,

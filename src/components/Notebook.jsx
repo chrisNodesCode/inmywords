@@ -21,7 +21,7 @@ function SortableWrapper({ id, disabled, children }) {
 const htmlToText = (html) => {
   if (!html) return '';
   return html
-    .replace(/<br\s*\/?\>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n\n')
     .replace(/<[^>]+>/g, '')
     .trim();
@@ -155,7 +155,7 @@ export default function Notebook() {
       let payload = null;
       try {
         payload = await treeRes.clone().json();
-      } catch (e) {
+      } catch {
         // ignore json parse errors
       }
       if (!treeRes.ok) {
