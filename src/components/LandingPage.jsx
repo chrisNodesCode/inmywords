@@ -1,23 +1,20 @@
 import { signIn } from "next-auth/react";
 import React, { useState } from 'react';
 
-export default function LandingPage({ onLogin }) {
-  const [username, setUsername] = useState('');
+export default function LandingPage() {
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogin = () => {
-    signIn("credentials", {
-      username,
+  const handleLogin = async () => {
+    const result = await signIn("credentials", {
+      identifier,
       password,
       redirect: false,
-    }).then(({ ok, error: signError }) => {
-      if (ok) {
-        () => onLogin();
-      } else {
-        setError(signError || "Invalid credentials");
-      }
     });
+    if (!result?.ok) {
+      setError(result?.error || "Invalid credentials");
+    }
   };
 
   return (
@@ -37,7 +34,6 @@ export default function LandingPage({ onLogin }) {
           A sensory-friendly space to capture your thoughts and ideas.
         </p>
         <button
-          onClick={onLogin}
           style={{
             padding: '0.75rem 1.5rem',
             fontSize: '1rem',
@@ -56,9 +52,9 @@ export default function LandingPage({ onLogin }) {
         <div>
           <input
             type="text"
-            placeholder="Username"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
+            placeholder="Email or Username"
+            value={identifier}
+            onChange={e => setIdentifier(e.target.value)}
             style={{ width: '100%', marginBottom: '0.5rem' }}
           />
         </div>
