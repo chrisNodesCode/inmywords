@@ -134,4 +134,13 @@ npx prisma generate
 npx prisma migrate deploy
 ```
 
+### Environment Variables
+
+Authentication requires the following environment variables to be set:
+
+- `NEXTAUTH_SECRET`
+- `DATABASE_URL`
+- `GOOGLE_ID`
+- `GOOGLE_SECRET`
+
 
