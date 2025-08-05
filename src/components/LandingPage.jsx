@@ -1,10 +1,12 @@
 import { signIn } from "next-auth/react";
 import React, { useState } from 'react';
+import { useRouter } from 'next/router';
 
 export default function LandingPage() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleLogin = async () => {
     const result = await signIn("credentials", {
@@ -12,8 +14,10 @@ export default function LandingPage() {
       password,
       redirect: false,
     });
-    if (!result?.ok) {
-      setError(result?.error || "Invalid credentials");
+    if (result?.ok) {
+      router.push('/');
+    } else if (result?.error) {
+      setError(result.error || "Invalid credentials");
     }
   };
 
