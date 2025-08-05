@@ -456,18 +456,33 @@ body[data-theme='dark'] .ant-drawer-close {
   box-shadow: none;
 }
 
-.entry-title-container {
+.entry-title-row {
   position: sticky;
+  top: 0;
+  display: flex;
   width: 100%;
-  max-width: 50%;
-  /* top: 0.5rem; */
-  padding-left: 1rem;
   background: #fff;
   z-index: 10;
-  /* display: flex;
-  flex-direction: column;
-  align-items: flex-start; */
+}
+
+.entry-title-container {
+  flex: 1;
+  padding-left: 1rem;
   min-height: 0;
+}
+
+.export-menu {
+  height: 100%;
+  border-bottom: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+}
+
+.export-menu .ant-menu-submenu-title {
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .entry-title-display {

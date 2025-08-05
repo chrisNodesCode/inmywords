@@ -6,6 +6,7 @@ import { listPrecursors } from '../api/precursors';
 import { Switch, InputNumber, Drawer, Button } from 'antd';
 import { MenuOutlined } from '@ant-design/icons';
 import PomodoroWidget from './PomodoroWidget';
+import ExportMenu from './ExportMenu';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -317,41 +318,44 @@ export default function EntryEditor({
           <div className="editor-modal-body">
             <>
               <div
-                className="entry-title-container"
+                className="entry-title-row"
                 style={{ maxWidth: `${maxWidth}%` }}
               >
-                {isEditingTitle ? (
-                  <input
-                    type="text"
-                    className="entry-title-input"
-                    value={titleInput}
-                    onChange={(e) => setTitleInput(e.target.value)}
-                    onBlur={() => {
-                      setTitle(titleInput);
-                      setIsEditingTitle(false);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                <div className="entry-title-container">
+                  {isEditingTitle ? (
+                    <input
+                      type="text"
+                      className="entry-title-input"
+                      value={titleInput}
+                      onChange={(e) => setTitleInput(e.target.value)}
+                      onBlur={() => {
                         setTitle(titleInput);
                         setIsEditingTitle(false);
-                      }
-                    }}
-                    autoFocus
-                  />
-                ) : (
-                  <p
-                    className="entry-title-display"
-                    onClick={() => {
-                      setTitleInput(title);
-                      setIsEditingTitle(true);
-                    }}
-                  >
-                    <strong>Title:</strong> {title || 'Untitled'}
-                  </p>
-                )}
-                <div className="last-saved">
-                  Last Autosave: {lastSaved ? lastSaved.toLocaleString() : 'no autosaves yet...'}
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          setTitle(titleInput);
+                          setIsEditingTitle(false);
+                        }
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <p
+                      className="entry-title-display"
+                      onClick={() => {
+                        setTitleInput(title);
+                        setIsEditingTitle(true);
+                      }}
+                    >
+                      <strong>Title:</strong> {title || 'Untitled'}
+                    </p>
+                  )}
+                  <div className="last-saved">
+                    Last Autosave: {lastSaved ? lastSaved.toLocaleString() : 'no autosaves yet...'}
+                  </div>
                 </div>
+                <ExportMenu quillRef={quillRef} content={content} />
               </div>
               <ReactQuill
                 ref={quillRef}
