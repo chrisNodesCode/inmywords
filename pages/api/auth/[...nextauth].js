@@ -77,24 +77,21 @@ export const authOptions = {
   },
 
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider === 'google' && profile?.sub) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { googleId: profile.sub },
-        });
-      }
-      return true;
-    },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account, profile }) {
       if (user) {
         token.id = user.id;
+      }
+      if (account?.provider === 'google' && profile?.sub) {
+        token.googleId = profile.sub;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id;
+      }
+      if (token.googleId) {
+        session.user.googleId = token.googleId;
       }
       return session;
     },
