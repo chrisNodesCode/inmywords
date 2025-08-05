@@ -70,6 +70,7 @@ export default function Notebook() {
 
   const groupRefs = useRef({});
   const subgroupRefs = useRef({});
+  const entryRefs = useRef({});
   const [activeGroup, setActiveGroup] = useState(null);
   const [activeSubgroup, setActiveSubgroup] = useState(null);
 
@@ -472,8 +473,8 @@ export default function Notebook() {
   };
 
   const toggleGroup = (group) => {
+    const isOpen = expandedGroups.includes(group.id);
     setExpandedGroups((prev) => {
-      const isOpen = prev.includes(group.id);
       if (isOpen) {
         setExpandedSubgroups((subs) =>
           subs.filter((id) => !group.subgroups.some((s) => s.id === id))
@@ -488,11 +489,19 @@ export default function Notebook() {
       }
       return [...prev, group.id];
     });
+    if (!isOpen) {
+      setTimeout(() => {
+        groupRefs.current[group.id]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 0);
+    }
   };
 
   const toggleSubgroup = (subgroup) => {
+    const isOpen = expandedSubgroups.includes(subgroup.id);
     setExpandedSubgroups((prev) => {
-      const isOpen = prev.includes(subgroup.id);
       if (isOpen) {
         setExpandedEntries((ents) =>
           ents.filter((id) => !subgroup.entries.some((e) => e.id === id))
@@ -501,14 +510,29 @@ export default function Notebook() {
       }
       return [...prev, subgroup.id];
     });
+    if (!isOpen) {
+      setTimeout(() => {
+        subgroupRefs.current[subgroup.id]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 0);
+    }
   };
 
   const toggleEntry = (entryId) => {
+    const isOpen = expandedEntries.includes(entryId);
     setExpandedEntries((prev) =>
-      prev.includes(entryId)
-        ? prev.filter((id) => id !== entryId)
-        : [...prev, entryId]
+      isOpen ? prev.filter((id) => id !== entryId) : [...prev, entryId]
     );
+    if (!isOpen) {
+      setTimeout(() => {
+        entryRefs.current[entryId]?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 0);
+    }
   };
 
   const handleDeleteGroup = async (groupId) => {
@@ -860,7 +884,11 @@ export default function Notebook() {
                                                       listeners: entryListeners,
                                                     }) => (
                                                       <div
-                                                        ref={setEntryRef}
+                                                        ref={(el) => {
+                                                          setEntryRef(el);
+                                                          if (el) entryRefs.current[entry.id] = el;
+                                                        }}
+                                                        data-entry-id={entry.id}
                                                         style={entryStyle}
                                                         className={`entry-card ${
                                                           expandedEntries.includes(entry.id) ? 'open' : ''

@@ -107,6 +107,7 @@ body[data-theme='dark'] .ant-drawer-close {
   top: 0;
   z-index: 20;
   transition: transform 0.15s ease, opacity 0.15s ease;
+  scroll-margin-top: 1rem;
 }
 
 .group-title {
@@ -132,6 +133,7 @@ body[data-theme='dark'] .ant-drawer-close {
   position: sticky;
   top: 0;
   z-index: 30;
+  scroll-margin-top: 1rem;
 }
 
 .subgroup-title {
@@ -175,6 +177,7 @@ body[data-theme='dark'] .ant-drawer-close {
   margin-top: 2rem;
   margin-left: 2rem;
   max-width: 90%;
+  scroll-margin-top: 1rem;
 }
 
 .entry-card.archived {
