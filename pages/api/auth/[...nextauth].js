@@ -4,6 +4,7 @@ import NextAuth from 'next-auth';
 import { PrismaClient } from '@prisma/client';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -11,6 +12,20 @@ const prisma = new PrismaClient();
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_ID,
+      clientSecret: process.env.GOOGLE_SECRET,
+      authorization: { params: { scope: 'openid email profile' } },
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+          googleId: profile.sub,
+        };
+      },
+    }),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
@@ -62,6 +77,15 @@ export const authOptions = {
   },
 
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === 'google' && profile?.sub) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { googleId: profile.sub },
+        });
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
@@ -73,6 +97,9 @@ export const authOptions = {
         session.user.id = token.id;
       }
       return session;
+    },
+    async redirect() {
+      return '/index';
     }
   }
 };

@@ -79,6 +79,11 @@ export default function LandingPage({ onLogin }) {
             Create an account
           </button>
         </div>
+        <div style={{ marginTop: '0.5rem' }}>
+          <button onClick={() => signIn('google')} style={{ width: '100%' }}>
+            Sign in with Google
+          </button>
+        </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
       </div>
     </div>
