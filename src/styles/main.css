@@ -10,12 +10,15 @@ body {
 
 /* Hide scrollbars globally for a consistent experience */
 * {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 *::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
+  /* Chrome, Safari, Opera */
 }
 
 /* Global Ant Design Drawer styling */
@@ -334,8 +337,10 @@ body[data-theme='dark'] .ant-drawer-close {
   margin: auto;
 }
 
-.editor-modal-content.fullscreen .editor-quill .ql-editor {
+/* .editor-modal-content.fullscreen .editor-quill .ql-editor {
   min-height: 3em;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
   font-size: 1.25rem;
   font-family: 'IBM Plex Mono',
     'Cutive Mono',
@@ -344,12 +349,49 @@ body[data-theme='dark'] .ant-drawer-close {
   flex: 1;
   min-height: 0;
   width: 100%;
-  height: 75vh;
+  height: 83vh;
   padding: 1rem;
   resize: none;
   overflow-y: auto;
   scrollbar-width: none;
   font-size: 1.25rem;
+} */
+
+.editor-modal-content.fullscreen .editor-quill .ql-editor {
+  /* your existing styles */
+  min-height: 3em;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  font-size: 1.25rem;
+  font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 83vh;
+  padding: 1rem;
+  resize: none;
+  overflow-y: auto;
+  scrollbar-width: none;
+
+  /* ↓↓↓ mask fade effect ↓↓↓ */
+  -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0%,
+      black 10%,
+      black 90%,
+      transparent 100%);
+  mask-image: linear-gradient(to bottom,
+      transparent 0%,
+      black 10%,
+      black 90%,
+      transparent 100%);
+  mask-mode: alpha;
+
+  /* Optional: play with backdrop-filter for a frosted-lens vibe */
+  /* (you may need to set background-color with some transparency) */
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(5px) saturate(120%);
+  /* transition: backdrop-filter 0.2s ease; */
 }
 
 .editor-modal-content.fullscreen .ql-toolbar {
@@ -662,6 +704,7 @@ body[data-theme='dark'] .navbar {
   background-color: #1f1f1f;
   border-color: #333;
 }
+
 body[data-theme="dark"] .editor-modal-overlay.fullscreen {
   background: rgba(0, 0, 0, 0.85);
 }
