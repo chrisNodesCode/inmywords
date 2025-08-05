@@ -29,15 +29,20 @@ export const authOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        username: { label: 'Username', type: 'text' },
+        identifier: { label: 'Username or Email', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const { username, password } = credentials;
-        if (!username || !password) return null;
+        const { identifier, password } = credentials;
+        if (!identifier || !password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { username },
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { username: identifier },
+              { email: identifier },
+            ],
+          },
         });
         if (!user || !user.passwordHash) return null;
 
