@@ -60,7 +60,7 @@ export default function EntryEditor({
   const [showBottomFade, setShowBottomFade] = useState(false);
 
   const updateEditorFades = () => {
-    const editorEl = quillRef.current?.getEditor()?.root;
+    const editorEl = quillRef.current?.getEditor?.()?.root;
     if (!editorEl) return;
     const { scrollTop, scrollHeight, clientHeight } = editorEl;
     setShowTopFade(scrollTop > 0);
@@ -79,7 +79,7 @@ export default function EntryEditor({
   useEffect(() => {
     let editorEl;
     const interval = setInterval(() => {
-      editorEl = quillRef.current?.getEditor()?.root;
+      editorEl = quillRef.current?.getEditor?.()?.root;
       if (!editorEl) return;
       updateEditorFades();
       editorEl.addEventListener('scroll', updateEditorFades);
