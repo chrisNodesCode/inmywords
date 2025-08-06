@@ -547,9 +547,20 @@ export default function Notebook() {
       });
       return { ...prev, groups: updatedGroups };
     });
+    if (targetGroupId) {
+      setExpandedGroups((prev) =>
+        prev.includes(targetGroupId) ? prev : [...prev, targetGroupId]
+      );
+    }
+    if (targetSubgroupId) {
+      setExpandedSubgroups((prev) =>
+        prev.includes(targetSubgroupId) ? prev : [...prev, targetSubgroupId]
+      );
+    }
   };
 
   const handleDragStart = (event) => {
+    document.body.classList.add('dragging');
     setActiveDrag(event.active.data.current);
   };
 
@@ -567,6 +578,7 @@ export default function Notebook() {
     const { active, over } = event;
     if (!over) {
       setActiveDrag(null);
+      document.body.classList.remove('dragging');
       return;
     }
     const activeData = active.data.current;
@@ -579,6 +591,12 @@ export default function Notebook() {
       handleEntryMove(event);
     }
     setActiveDrag(null);
+    document.body.classList.remove('dragging');
+  };
+
+  const handleDragCancel = () => {
+    setActiveDrag(null);
+    document.body.classList.remove('dragging');
   };
 
   const toggleGroup = (group) => {
@@ -837,6 +855,7 @@ export default function Notebook() {
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             <SortableContext
               id="groups"
@@ -930,7 +949,9 @@ export default function Notebook() {
                                         style={subStyle}
                                         className={`subgroup-card ${
                                           subOver && activeDrag?.type === 'entry'
-                                            ? 'drop-target'
+                                            ? expandedSubgroups.includes(sub.id)
+                                              ? 'drop-target'
+                                              : 'collapsed-drop-target'
                                             : ''
                                         }`}
                                       >
@@ -1001,6 +1022,7 @@ export default function Notebook() {
                                                   style: entryStyle,
                                                   attributes: entryAttr,
                                                   listeners: entryListeners,
+                                                  isOver: entryOver,
                                                 }) => (
                                                       <div
                                                         ref={(el) => {
@@ -1011,7 +1033,11 @@ export default function Notebook() {
                                                         style={entryStyle}
                                                         className={`entry-card ${
                                                           expandedEntries.includes(entry.id) ? 'open' : ''
-                                                        } ${entry.archived ? 'archived' : ''}`}
+                                                        } ${entry.archived ? 'archived' : ''} ${
+                                                          entryOver && activeDrag?.type === 'entry'
+                                                            ? 'insert-indicator'
+                                                            : ''
+                                                        }`}
                                                       >
                                                       <div
                                                         className="entry-header interactive"

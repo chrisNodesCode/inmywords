@@ -186,6 +186,7 @@ body[data-theme='dark'] .ant-drawer-close {
   margin-left: 2rem;
   max-width: 90%;
   scroll-margin-top: 1rem;
+  position: relative;
 }
 
 .entry-card.archived {
@@ -200,6 +201,24 @@ body[data-theme='dark'] .ant-drawer-close {
 
 .drop-target {
   outline: 2px dashed #4a90e2;
+}
+
+.collapsed-drop-target {
+  outline: 3px dashed rgba(149, 155, 58, 0.5);
+}
+
+.entry-card.insert-indicator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  border-top: 3px dashed #959b3a;
+}
+
+body.dragging,
+body.dragging * {
+  cursor: grabbing !important;
 }
 
 .entry-header {
