@@ -92,6 +92,11 @@ body[data-theme='dark'] .ant-drawer-close {
   font-weight: 800;
 }
 
+.notebook-title-row {
+  display: flex;
+  align-items: center;
+}
+
 .groups-container {
   margin-top: 1rem;
 }
