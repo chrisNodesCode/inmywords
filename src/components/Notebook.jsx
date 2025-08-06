@@ -43,13 +43,12 @@ export default function Notebook() {
   const [expandedGroups, setExpandedGroups] = useState([]); // ids of expanded groups
   const [expandedSubgroups, setExpandedSubgroups] = useState([]); // ids of expanded subgroups
   const [expandedEntries, setExpandedEntries] = useState([]); // ids of expanded entries
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [titleInput, setTitleInput] = useState('');
   const [showEdits, setShowEdits] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [loadError, setLoadError] = useState('');
   const isPrecursorNotebook = !!notebook?.precursorId;
   const [fullFocusEnabled, setFullFocusEnabled] = useState(false);
+  const [controllerKey, setControllerKey] = useState(0);
 
   const aliases = useMemo(
     () => ({
@@ -315,7 +314,11 @@ export default function Notebook() {
           const res = await fetch(`/api/notebooks/${editorState.item.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: payload.name, description: payload.description }),
+            body: JSON.stringify({
+              title: payload.name,
+              description: payload.description,
+              user_notebook_tree: payload.user_notebook_tree,
+            }),
           });
           if (!res.ok) throw new Error('Failed to update notebook');
           const updated = await res.json();
@@ -589,6 +592,21 @@ export default function Notebook() {
     }
   };
 
+  const handleDeleteNotebook = async (notebookId) => {
+    try {
+      const res = await fetch(`/api/notebooks/${notebookId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete notebook');
+      setNotebook(null);
+      setExpandedGroups([]);
+      setExpandedSubgroups([]);
+      setExpandedEntries([]);
+      setControllerKey((prev) => prev + 1);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleToggleArchiveEntry = async (groupId, subgroupId, entryId, archived) => {
     try {
       const res = await fetch(`/api/entries/${entryId}`, {
@@ -650,35 +668,13 @@ export default function Notebook() {
     }
   };
 
-  const handleTitleSave = async () => {
-    if (!notebook) return;
-    const newTitle = titleInput.trim();
-    if (!newTitle) {
-      setIsEditingTitle(false);
-      return;
-    }
-    try {
-      const res = await fetch(`/api/notebooks/${notebook.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newTitle }),
-      });
-      if (!res.ok) throw new Error('Failed to update notebook');
-      const updated = await res.json();
-      setNotebook((prev) => ({ ...prev, ...updated }));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsEditingTitle(false);
-    }
-  };
-
   const groupsReorderable = !isPrecursorNotebook && expandedGroups.length === 0;
 
   return (
     <div className="notebook-container">
       <div className="notebook-header">
         <NotebookController
+          key={controllerKey}
           onSelect={loadNotebook}
           showEdits={showEdits}
           onToggleEdits={setShowEdits}
@@ -694,29 +690,33 @@ export default function Notebook() {
           />
         </div>
       </div>
-      <h1 className="notebook-title"
-        onClick={() => {
-          if (notebook && !isEditingTitle) {
-            setTitleInput(notebook.title);
-            setIsEditingTitle(true);
-          }
-        }}
-      >
-        {isEditingTitle ? (
-          <input
-            type="text"
-            value={titleInput}
-            onChange={(e) => setTitleInput(e.target.value)}
-            onBlur={handleTitleSave}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleTitleSave();
-            }}
-            autoFocus
-          />
-        ) : (
-          notebook ? notebook.title : 'Notebook'
+      <div className="notebook-title-row">
+        <h1 className="notebook-title">
+          {notebook ? notebook.title : 'Notebook'}
+        </h1>
+        {notebook && !isPrecursorNotebook && (
+          <button
+            className={`edit-button${showEdits ? '' : ' hidden'}`}
+            onClick={() =>
+              openEditor(
+                'notebook',
+                null,
+                null,
+                {
+                  id: notebook.id,
+                  name: notebook.title,
+                  description: notebook.description,
+                  user_notebook_tree: notebook.user_notebook_tree,
+                },
+                'edit',
+                () => handleDeleteNotebook(notebook.id)
+              )
+            }
+          >
+            Edit
+          </button>
         )}
-      </h1>
+      </div>
 
       {loading && <p>Loading...</p>}
       {!loading && loadError && (
