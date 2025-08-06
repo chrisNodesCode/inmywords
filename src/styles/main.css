@@ -129,6 +129,7 @@ body[data-theme='dark'] .ant-drawer-close {
   margin-left: 2rem;
   margin-top: 0rem;
   border: none;
+  position: relative;
 }
 
 .subgroup-header {
@@ -186,6 +187,7 @@ body[data-theme='dark'] .ant-drawer-close {
   margin-left: 2rem;
   max-width: 90%;
   scroll-margin-top: 1rem;
+  position: relative;
 }
 
 .entry-card.archived {
@@ -196,6 +198,33 @@ body[data-theme='dark'] .ant-drawer-close {
 .error-message {
   color: red;
   margin-left: 2rem;
+}
+
+.subgroup-card.insert-indicator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-left: 3px dashed #959b3a;
+}
+
+.subgroup-card.drop-target {
+  outline: 3px dashed rgba(149, 155, 58, 0.5);
+  outline-offset: -3px;
+}
+
+body.dragging,
+body.dragging * {
+  cursor: grabbing !important;
+}
+
+body.dragging .interactive,
+body.dragging button {
+  transition: none !important;
+  transform: none !important;
+  filter: none !important;
+  margin-left: 0 !important;
 }
 
 .entry-header {
