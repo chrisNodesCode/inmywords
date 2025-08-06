@@ -48,12 +48,17 @@ export default function PomodoroWidget() {
   };
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('pomodoro-state'));
+    const savedStateStr = localStorage.getItem('pomodoro-state');
+    const savedDurationsStr = localStorage.getItem('pomodoro-durations');
+    const saved = savedStateStr ? JSON.parse(savedStateStr) : null;
+    const savedDurations = savedDurationsStr ? JSON.parse(savedDurationsStr) : null;
+
     if (saved) {
-      setDurations(saved.durations || defaultDurations);
+      setDurations(saved.durations || savedDurations || defaultDurations);
       setCurrentType(saved.type || 'pomodoro');
       setPomodoroCount(saved.pomodoroCount || 0);
-      let remaining = saved.secondsRemaining ?? defaultDurations[saved.type || 'pomodoro'];
+      let remaining =
+        saved.secondsRemaining ?? defaultDurations[saved.type || 'pomodoro'];
       if (saved.isRunning && saved.expiry) {
         const diff = Math.floor((saved.expiry - Date.now()) / 1000);
         remaining = diff > 0 ? diff : 0;
@@ -63,6 +68,8 @@ export default function PomodoroWidget() {
       } else {
         restartTimer(remaining, saved.isRunning);
       }
+    } else if (savedDurations) {
+      setDurations(savedDurations);
     }
   }, []);
 
@@ -80,6 +87,7 @@ export default function PomodoroWidget() {
         expiry: isRunning ? Date.now() + getRemainingSeconds() * 1000 : null,
       })
     );
+    localStorage.setItem('pomodoro-durations', JSON.stringify(durations));
   }, [isRunning, seconds, minutes, currentType, durations, pomodoroCount]);
 
   const handleClick = () => {
@@ -108,7 +116,11 @@ export default function PomodoroWidget() {
   const updateDuration = (type, value) => {
     const mins = Math.max(1, Number(value));
     const secs = mins * 60;
-    setDurations((prev) => ({ ...prev, [type]: secs }));
+    setDurations((prev) => {
+      const next = { ...prev, [type]: secs };
+      localStorage.setItem('pomodoro-durations', JSON.stringify(next));
+      return next;
+    });
     if (currentType === type) {
       restartTimer(secs, false);
     }

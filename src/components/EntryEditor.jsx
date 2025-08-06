@@ -57,6 +57,15 @@ export default function EntryEditor({
   const [drawerPinned, setDrawerPinned] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedWidth = localStorage.getItem('editor-max-width');
+      if (storedWidth) {
+        setMaxWidth(Number(storedWidth));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (typeof window !== 'undefined' && localStorage.getItem('pomodoro-state')) {
       setPomodoroEnabled(true);
     }
@@ -66,6 +75,14 @@ export default function EntryEditor({
     setPomodoroEnabled(checked);
     if (!checked) {
       localStorage.removeItem('pomodoro-state');
+    }
+  };
+
+  const handleMaxWidthChange = (value) => {
+    const val = value || 50;
+    setMaxWidth(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('editor-max-width', String(val));
     }
   };
 
@@ -422,7 +439,7 @@ export default function EntryEditor({
                   max={95}
                   step={1}
                   value={maxWidth}
-                  onChange={(value) => setMaxWidth(value || 50)}
+                  onChange={handleMaxWidthChange}
                   size="small"
                   formatter={(value) => `${value}%`}
                   parser={(value) => value.replace('%', '')}

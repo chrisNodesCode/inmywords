@@ -20,9 +20,17 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
         if (!res.ok) throw new Error('Failed to fetch notebooks');
         const data = await res.json();
         setNotebooks(data);
-        if (data.length && !selected) {
-          setSelected(data[0].id);
-          onSelect(data[0].id);
+        if (data.length) {
+          let initial = data[0].id;
+          if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('lastNotebookId');
+            if (stored && data.some((nb) => nb.id === stored)) {
+              initial = stored;
+            }
+            localStorage.setItem('lastNotebookId', initial);
+          }
+          setSelected(initial);
+          onSelect(initial);
         }
       } catch (err) {
         console.error(err);
@@ -35,6 +43,9 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
     const id = e.target.value;
     setSelected(id);
     onSelect(id);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lastNotebookId', id);
+    }
   };
 
   const handleCreate = async ({ name, description, user_notebook_tree, precursorId }) => {
@@ -56,6 +67,9 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
       setSelected(newNb.id);
       setShowModal(false);
       onSelect(newNb.id);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lastNotebookId', newNb.id);
+      }
     } catch (err) {
       console.error(err);
     }
