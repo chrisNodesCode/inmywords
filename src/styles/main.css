@@ -198,6 +198,10 @@ body[data-theme='dark'] .ant-drawer-close {
   margin-left: 2rem;
 }
 
+.drop-target {
+  outline: 2px dashed #4a90e2;
+}
+
 .entry-header {
   padding: 2rem;
   border: 1px solid rgba(0, 0, 0, 0.3);
