@@ -55,6 +55,7 @@ export default function EntryEditor({
   const drawerWidth = 300;
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerPinned, setDrawerPinned] = useState(false);
+  const drawerCloseTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -63,6 +64,14 @@ export default function EntryEditor({
         setMaxWidth(Number(storedWidth));
       }
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (drawerCloseTimeoutRef.current) {
+        clearTimeout(drawerCloseTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -180,6 +189,10 @@ export default function EntryEditor({
     setDrawerPinned((prev) => {
       const next = !prev;
       setDrawerOpen(next);
+      if (next && drawerCloseTimeoutRef.current) {
+        clearTimeout(drawerCloseTimeoutRef.current);
+        drawerCloseTimeoutRef.current = null;
+      }
       return next;
     });
   };
@@ -187,12 +200,22 @@ export default function EntryEditor({
   const drawerBottomOffset = pomodoroEnabled ? 'calc(80px + 2rem)' : 0;
 
   const handleDrawerMouseEnter = () => {
+    if (drawerCloseTimeoutRef.current) {
+      clearTimeout(drawerCloseTimeoutRef.current);
+      drawerCloseTimeoutRef.current = null;
+    }
     setDrawerOpen(true);
   };
 
   const handleDrawerMouseLeave = () => {
     if (!drawerPinned) {
-      setDrawerOpen(false);
+      if (drawerCloseTimeoutRef.current) {
+        clearTimeout(drawerCloseTimeoutRef.current);
+      }
+      drawerCloseTimeoutRef.current = setTimeout(() => {
+        setDrawerOpen(false);
+        drawerCloseTimeoutRef.current = null;
+      }, 20000);
     }
   };
 
