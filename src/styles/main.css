@@ -378,25 +378,55 @@ body[data-theme='dark'] .ant-drawer-close {
   resize: none;
   overflow-y: auto;
   scrollbar-width: none;
+}
 
-  /* ↓↓↓ mask fade effect ↓↓↓ */
-  -webkit-mask-image: linear-gradient(to bottom,
-      transparent 0%,
-      black 10%,
-      black 90%,
-      transparent 100%);
-  mask-image: linear-gradient(to bottom,
-      transparent 0%,
-      black 10%,
-      black 90%,
-      transparent 100%);
-  mask-mode: alpha;
+.editor-modal-content.fullscreen .editor-quill-wrapper {
+  position: relative;
+}
 
-  /* Optional: play with backdrop-filter for a frosted-lens vibe */
-  /* (you may need to set background-color with some transparency) */
-  background: rgba(255, 255, 255, 0.8);
+.editor-modal-content.fullscreen .quill-fade {
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0)
+  );
   backdrop-filter: blur(5px) saturate(120%);
-  /* transition: backdrop-filter 0.2s ease; */
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.editor-modal-content.fullscreen .quill-fade.bottom {
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0)
+  );
+}
+
+body[data-theme='dark'] .editor-modal-content.fullscreen .quill-fade {
+  background: linear-gradient(
+    to bottom,
+    rgba(31, 31, 31, 0.8),
+    rgba(31, 31, 31, 0)
+  );
+}
+
+body[data-theme='dark'] .editor-modal-content.fullscreen .quill-fade.bottom {
+  background: linear-gradient(
+    to top,
+    rgba(31, 31, 31, 0.8),
+    rgba(31, 31, 31, 0)
+  );
+}
+
+.editor-modal-content.fullscreen .quill-fade.visible {
+  opacity: 1;
 }
 
 .editor-modal-content.fullscreen .ql-toolbar {

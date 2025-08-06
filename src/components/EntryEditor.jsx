@@ -56,6 +56,16 @@ export default function EntryEditor({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerPinned, setDrawerPinned] = useState(false);
   const drawerCloseTimeoutRef = useRef(null);
+  const [showTopFade, setShowTopFade] = useState(false);
+  const [showBottomFade, setShowBottomFade] = useState(false);
+
+  const updateEditorFades = () => {
+    const editorEl = quillRef.current?.getEditor()?.root;
+    if (!editorEl) return;
+    const { scrollTop, scrollHeight, clientHeight } = editorEl;
+    setShowTopFade(scrollTop > 0);
+    setShowBottomFade(scrollTop + clientHeight < scrollHeight);
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -65,6 +75,27 @@ export default function EntryEditor({
       }
     }
   }, []);
+
+  useEffect(() => {
+    let editorEl;
+    const interval = setInterval(() => {
+      editorEl = quillRef.current?.getEditor()?.root;
+      if (!editorEl) return;
+      updateEditorFades();
+      editorEl.addEventListener('scroll', updateEditorFades);
+      clearInterval(interval);
+    }, 100);
+    return () => {
+      clearInterval(interval);
+      if (editorEl) {
+        editorEl.removeEventListener('scroll', updateEditorFades);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    updateEditorFades();
+  }, [content]);
 
   useEffect(() => {
     return () => {
@@ -397,18 +428,28 @@ export default function EntryEditor({
                 </div>
                 <ExportMenu quillRef={quillRef} content={content} />
               </div>
-              <ReactQuill
-                ref={quillRef}
-                className={`editor-quill ${toolbarVisible ? '' : 'toolbar-hidden'}`}
-                theme="snow"
-                placeholder="Start writing here..."
-                value={content}
-                onChange={setContent}
-                onChangeSelection={handleSelectionChange}
-                modules={quillModules}
-                formats={quillFormats}
+              <div
+                className="editor-quill-wrapper"
                 style={{ maxWidth: `${maxWidth}%` }}
-              />
+              >
+                <ReactQuill
+                  ref={quillRef}
+                  className={`editor-quill ${toolbarVisible ? '' : 'toolbar-hidden'}`}
+                  theme="snow"
+                  placeholder="Start writing here..."
+                  value={content}
+                  onChange={setContent}
+                  onChangeSelection={handleSelectionChange}
+                  modules={quillModules}
+                  formats={quillFormats}
+                />
+                <div
+                  className={`quill-fade top ${showTopFade ? 'visible' : ''}`}
+                ></div>
+                <div
+                  className={`quill-fade bottom ${showBottomFade ? 'visible' : ''}`}
+                ></div>
+              </div>
             </>
           </div>
           <div className="editor-modal-footer"></div>
