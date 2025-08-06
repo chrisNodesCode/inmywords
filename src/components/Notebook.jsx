@@ -68,6 +68,7 @@ export default function Notebook() {
   const [fullFocusEnabled, setFullFocusEnabled] = useState(false);
   const [controllerKey, setControllerKey] = useState(0);
   const [activeDrag, setActiveDrag] = useState(null);
+  const [hoveredSubgroup, setHoveredSubgroup] = useState(null);
 
   const aliases = useMemo(
     () => ({
@@ -471,9 +472,8 @@ export default function Notebook() {
     if (!activeData || activeData.type !== 'entry') return;
     const sourceGroupId = activeData.groupId;
     const sourceSubgroupId = activeData.subgroupId;
-    let targetGroupId = overData?.groupId;
-    let targetSubgroupId = overData?.subgroupId;
-    let targetIndex = 0;
+    let targetGroupId;
+    let targetSubgroupId;
 
     setNotebook((prev) => {
       let movedEntry = null;
@@ -484,11 +484,11 @@ export default function Notebook() {
             subgroups: g.subgroups.map((s) => {
               if (s.id !== sourceSubgroupId) return s;
               const remaining = [];
-              s.entries.forEach((e) => {
+              s.entries.forEach((e, idx) => {
                 if (e.id === active.id) {
                   movedEntry = { ...e };
                 } else {
-                  remaining.push({ ...e, user_sort: remaining.length });
+                  remaining.push({ ...e, user_sort: idx });
                 }
               });
               fetch('/api/entries/reorder', {
@@ -509,13 +509,9 @@ export default function Notebook() {
       if (overData?.type === 'entry') {
         targetGroupId = overData.groupId;
         targetSubgroupId = overData.subgroupId;
-        const targetGroup = groups.find((g) => g.id === targetGroupId);
-        const targetSub = targetGroup?.subgroups.find((s) => s.id === targetSubgroupId);
-        targetIndex = targetSub?.entries.findIndex((e) => e.id === over.id) ?? 0;
       } else if (overData?.type === 'subgroup') {
         targetGroupId = overData.groupId;
         targetSubgroupId = over.id;
-        targetIndex = 0;
       } else {
         return prev;
       }
@@ -526,20 +522,14 @@ export default function Notebook() {
           ...g,
           subgroups: g.subgroups.map((s) => {
             if (s.id !== targetSubgroupId) return s;
-            const insert = [...s.entries];
-            insert.splice(targetIndex, 0, movedEntry);
-            const entries = insert.map((e, idx) => ({ ...e, subgroupId: targetSubgroupId, user_sort: idx }));
-            fetch('/api/entries/reorder', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orders: entries.map((e, idx) => ({ id: e.id, user_sort: idx })),
-              }),
-            }).catch((err) => console.error(err));
+            const entries = [
+              { ...movedEntry, subgroupId: targetSubgroupId, user_sort: 0 },
+              ...s.entries,
+            ];
             fetch(`/api/entries/${movedEntry.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ subgroupId: targetSubgroupId, user_sort: targetIndex }),
+              body: JSON.stringify({ subgroupId: targetSubgroupId, user_sort: 0 }),
             }).catch((err) => console.error(err));
             return { ...s, entries };
           }),
@@ -567,10 +557,27 @@ export default function Notebook() {
   const handleDragOver = ({ active, over }) => {
     const activeData = active.data.current;
     const overData = over?.data.current;
-    if (activeData?.type === 'entry' && overData?.type === 'group') {
-      if (!expandedGroups.includes(over.id)) {
-        setExpandedGroups((prev) => [...prev, over.id]);
+    if (activeData?.type === 'entry') {
+      if (overData?.type === 'group') {
+        if (!expandedGroups.includes(over.id)) {
+          setExpandedGroups((prev) => [...prev, over.id]);
+        }
+        setHoveredSubgroup(null);
+      } else if (overData?.type === 'subgroup') {
+        if (!expandedGroups.includes(overData.groupId)) {
+          setExpandedGroups((prev) => [...prev, overData.groupId]);
+        }
+        setHoveredSubgroup(over.id);
+      } else if (overData?.type === 'entry') {
+        if (!expandedGroups.includes(overData.groupId)) {
+          setExpandedGroups((prev) => [...prev, overData.groupId]);
+        }
+        setHoveredSubgroup(overData.subgroupId);
+      } else {
+        setHoveredSubgroup(null);
       }
+    } else {
+      setHoveredSubgroup(null);
     }
   };
 
@@ -578,6 +585,7 @@ export default function Notebook() {
     const { active, over } = event;
     if (!over) {
       setActiveDrag(null);
+      setHoveredSubgroup(null);
       document.body.classList.remove('dragging');
       return;
     }
@@ -591,11 +599,13 @@ export default function Notebook() {
       handleEntryMove(event);
     }
     setActiveDrag(null);
+    setHoveredSubgroup(null);
     document.body.classList.remove('dragging');
   };
 
   const handleDragCancel = () => {
     setActiveDrag(null);
+    setHoveredSubgroup(null);
     document.body.classList.remove('dragging');
   };
 
@@ -874,13 +884,11 @@ export default function Notebook() {
                     data={{ type: 'group' }}
                     disabled={!groupsReorderable}
                   >
-                    {({ setNodeRef, style, attributes, listeners, isOver }) => (
+                    {({ setNodeRef, style, attributes, listeners }) => (
                       <div
                         ref={setNodeRef}
                         style={style}
-                        className={`group-card ${expandedGroups.includes(group.id) ? 'open' : ''} ${
-                          isOver && activeDrag?.type === 'entry' ? 'drop-target' : ''
-                        }`}
+                        className={`group-card ${expandedGroups.includes(group.id) ? 'open' : ''}`}
                       >
                       <div
                         ref={(el) => {
@@ -942,16 +950,13 @@ export default function Notebook() {
                                       style: subStyle,
                                       attributes: subAttr,
                                       listeners: subListeners,
-                                      isOver: subOver,
                                     }) => (
                                       <div
                                         ref={setSubRef}
                                         style={subStyle}
                                         className={`subgroup-card ${
-                                          subOver && activeDrag?.type === 'entry'
-                                            ? expandedSubgroups.includes(sub.id)
-                                              ? 'drop-target'
-                                              : 'collapsed-drop-target'
+                                          hoveredSubgroup === sub.id && activeDrag?.type === 'entry'
+                                            ? 'insert-indicator'
                                             : ''
                                         }`}
                                       >
@@ -1022,7 +1027,6 @@ export default function Notebook() {
                                                   style: entryStyle,
                                                   attributes: entryAttr,
                                                   listeners: entryListeners,
-                                                  isOver: entryOver,
                                                 }) => (
                                                       <div
                                                         ref={(el) => {
@@ -1033,11 +1037,7 @@ export default function Notebook() {
                                                         style={entryStyle}
                                                         className={`entry-card ${
                                                           expandedEntries.includes(entry.id) ? 'open' : ''
-                                                        } ${entry.archived ? 'archived' : ''} ${
-                                                          entryOver && activeDrag?.type === 'entry'
-                                                            ? 'insert-indicator'
-                                                            : ''
-                                                        }`}
+                                                        } ${entry.archived ? 'archived' : ''}`}
                                                       >
                                                       <div
                                                         className="entry-header interactive"
