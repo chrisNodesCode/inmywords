@@ -215,7 +215,7 @@ export default function EntryEditor({
       drawerCloseTimeoutRef.current = setTimeout(() => {
         setDrawerOpen(false);
         drawerCloseTimeoutRef.current = null;
-      }, 20000);
+      }, 2000);
     }
   };
 
@@ -234,7 +234,7 @@ export default function EntryEditor({
     }
   };
 
-  // autosave every 5 minutes
+  // autosave every 30 seconds
   useEffect(() => {
     if (type !== 'entry' || mode === 'create') return;
     const interval = setInterval(() => {
@@ -272,7 +272,7 @@ export default function EntryEditor({
         onClose={onCancel}
         width={drawerWidth}
         title={renderHeading()}
-        bodyStyle={{ padding: '1rem' }}
+        body={{ padding: '1rem' }}
       >
         <div className="editor-modal-body">
           {parent?.label && (
@@ -438,8 +438,8 @@ export default function EntryEditor({
             closable={false}
             width={drawerWidth}
             getContainer={false}
-            style={{ position: 'absolute' }}
-            bodyStyle={{ padding: '1rem' }}
+            rootStyle={{ position: 'absolute' }}
+            body={{ padding: '1rem' }}
           >
             <h2 style={{ marginTop: 0 }}>
               {mode === 'edit'
