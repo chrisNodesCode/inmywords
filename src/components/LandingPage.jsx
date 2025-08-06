@@ -1,6 +1,7 @@
 import { signIn } from "next-auth/react";
 import React, { useState } from 'react';
 import { useRouter } from 'next/router';
+import { Checkbox } from 'antd';
 
 export default function LandingPage() {
   const [identifier, setIdentifier] = useState('');
@@ -70,6 +71,11 @@ export default function LandingPage() {
             onChange={e => setPassword(e.target.value)}
             style={{ width: '100%', marginBottom: '1rem' }}
           />
+        </div>
+        <div style={{ marginBottom: '1rem' }}>
+          <Checkbox>
+            I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+          </Checkbox>
         </div>
         <div>
           <button onClick={handleLogin} style={{ marginRight: '0.5rem' }}>
