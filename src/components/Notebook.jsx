@@ -956,7 +956,9 @@ export default function Notebook() {
                                         style={subStyle}
                                         className={`subgroup-card ${
                                           hoveredSubgroup === sub.id && activeDrag?.type === 'entry'
-                                            ? 'insert-indicator'
+                                            ? expandedSubgroups.includes(sub.id)
+                                              ? 'insert-indicator'
+                                              : 'drop-target'
                                             : ''
                                         }`}
                                       >
