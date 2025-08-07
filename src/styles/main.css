@@ -833,6 +833,19 @@ body[data-theme="dark"] .editor-modal-content.fullscreen .ql-toolbar {
   border: 1px solid #555;
 }
 
+body[data-theme="dark"] .ql-toolbar .ql-stroke {
+  stroke: #fff;
+}
+
+body[data-theme="dark"] .ql-toolbar .ql-fill {
+  fill: #fff;
+}
+
+body[data-theme="dark"] .ql-toolbar button,
+body[data-theme="dark"] .ql-toolbar .ql-picker {
+  color: #fff;
+}
+
 body[data-theme="dark"] .editor-modal-content.fullscreen .ql-editor {
   background-color: #1f1f1f;
   color: #fff;
