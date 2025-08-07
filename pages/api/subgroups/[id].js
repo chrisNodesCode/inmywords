@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         // Return subgroup details
         return res.status(200).json(subgroup);
 
-      case 'PUT':
+      case 'PUT': {
         // Update subgroup name/description
         const { name, description } = req.body;
         if (name !== undefined && typeof name !== 'string') {
@@ -52,11 +52,13 @@ export default async function handler(req, res) {
           }
         });
         return res.status(200).json(updated);
+      }
 
-      case 'DELETE':
+      case 'DELETE': {
         // Delete the subgroup (cascades entries via DB)
         await prisma.subgroup.delete({ where: { id } });
         return res.status(204).end();
+      }
 
       default:
         res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);

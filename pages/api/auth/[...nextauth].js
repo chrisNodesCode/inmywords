@@ -1,3 +1,5 @@
+/* eslint-env node */
+/* global process */
 // pages/api/auth/[...nextauth].js
 
 import NextAuth from 'next-auth';
@@ -58,9 +60,9 @@ export const authOptions = {
   pages: { signIn: '/' },
   debug: process.env.NODE_ENV !== 'production',
   logger: {
-    error(code, ...rest) { },
-    warn(code, ...rest) { },
-    debug(code, ...rest) { },
+    error() { },
+    warn() { },
+    debug() { },
   },
   events: {
     async signIn(message) {

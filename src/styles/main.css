@@ -6,6 +6,8 @@ body {
   margin: 0;
   background: #ffffff;
   color: #000000;
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Hide scrollbars globally for a consistent experience */
@@ -295,7 +297,7 @@ body.dragging button {
 }
 
 .editor-modal-overlay.fullscreen {
-  background: rgba(255, 255, 255, 1);
+  background-color: #fff;
 }
 
 .editor-modal-overlay.notebook {
@@ -680,6 +682,11 @@ button:hover {
 body[data-theme='dark'] {
   background: #141414;
   color: #fff;
+  color-scheme: dark;
+}
+
+body[data-theme='light'] {
+  color-scheme: light;
 }
 
 body[data-theme='dark'] .profile-menu,
