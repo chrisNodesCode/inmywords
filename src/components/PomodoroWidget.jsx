@@ -113,6 +113,21 @@ export default function PomodoroWidget() {
     return () => document.removeEventListener('click', handleDocClick);
   }, []);
 
+  useEffect(() => {
+    const startHandler = () => {
+      resume();
+    };
+    const stopHandler = () => {
+      pause();
+    };
+    window.addEventListener('pomodoro-start', startHandler);
+    window.addEventListener('pomodoro-stop', stopHandler);
+    return () => {
+      window.removeEventListener('pomodoro-start', startHandler);
+      window.removeEventListener('pomodoro-stop', stopHandler);
+    };
+  }, [resume, pause]);
+
   const updateDuration = (type, value) => {
     const mins = Math.max(1, Number(value));
     const secs = mins * 60;

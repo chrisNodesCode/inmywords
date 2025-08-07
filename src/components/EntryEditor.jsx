@@ -60,6 +60,18 @@ export default function EntryEditor({
   const [selectedSubgroupId, setSelectedSubgroupId] = useState(
     parent?.subgroupId || ''
   );
+  const [showShortcutList, setShowShortcutList] = useState(false);
+
+  const entryShortcuts = [
+    { action: 'Save Entry', keys: 'Ctrl+S' },
+    { action: 'Save & Close Entry', keys: 'Ctrl+Shift+S' },
+    { action: 'Cancel Edit Entry', keys: 'Esc' },
+    { action: 'Start Pomodoro', keys: 'Ctrl+Alt+P' },
+    { action: 'Stop Pomodoro', keys: 'Ctrl+Alt+Shift+P' },
+    { action: 'Focus Body', keys: 'Ctrl+Enter' },
+    { action: 'Open Drawer', keys: 'Ctrl+Alt+O' },
+    { action: 'Close Drawer', keys: 'Ctrl+Alt+C' },
+  ];
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -270,6 +282,50 @@ export default function EntryEditor({
     }, 30000);
     return () => clearInterval(interval);
   }, [type, title, content, parent, mode, safeData.id, onSave, selectedSubgroupId]);
+
+  useEffect(() => {
+    if (type !== 'entry') return;
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSave();
+      } else if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSave();
+        onCancel();
+      } else if (!e.ctrlKey && !e.altKey && e.key === 'Escape') {
+        e.preventDefault();
+        onCancel();
+      } else if (e.ctrlKey && e.altKey && !e.shiftKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        if (!pomodoroEnabled) {
+          setPomodoroEnabled(true);
+        }
+        window.dispatchEvent(new Event('pomodoro-start'));
+      } else if (
+        e.ctrlKey &&
+        e.altKey &&
+        e.shiftKey &&
+        e.key.toLowerCase() === 'p'
+      ) {
+        e.preventDefault();
+        window.dispatchEvent(new Event('pomodoro-stop'));
+      } else if (e.ctrlKey && !e.altKey && e.key === 'Enter') {
+        e.preventDefault();
+        quillRef.current?.getEditor?.().focus();
+      } else if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        setDrawerPinned(true);
+        setDrawerOpen(true);
+      } else if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        setDrawerPinned(false);
+        setDrawerOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [type, pomodoroEnabled, handleSave, onCancel]);
   const renderHeading = () => {
     if (mode === 'edit') {
       if (type === 'group') return `Edit ${aliases.group}`;
@@ -518,6 +574,18 @@ export default function EntryEditor({
                 </Button>
               )}
               <Button className="drawer-btn drawer-btn-cancel" onClick={onCancel}>Cancel</Button>
+              <Button type="link" onClick={() => setShowShortcutList((prev) => !prev)}>
+                Keyboard Shortcuts
+              </Button>
+              {showShortcutList && (
+                <ul style={{ paddingLeft: '1rem' }}>
+                  {entryShortcuts.map((s) => (
+                    <li key={s.action}>
+                      {s.action}: {s.keys}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </Drawer>
         </div>
