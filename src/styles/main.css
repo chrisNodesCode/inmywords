@@ -385,33 +385,11 @@ body.dragging button {
 }
 
 .editor-modal-content.fullscreen .editor-quill .ql-container {
-  /* border-radius: 0.5rem; */
   border: none;
   margin: auto;
 }
 
-/* .editor-modal-content.fullscreen .editor-quill .ql-editor {
-  min-height: 3em;
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-  font-size: 1.25rem;
-  font-family: 'IBM Plex Mono',
-    'Cutive Mono',
-    monospace;
-  overflow: auto;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  height: 83vh;
-  padding: 1rem;
-  resize: none;
-  overflow-y: auto;
-  scrollbar-width: none;
-  font-size: 1.25rem;
-} */
-
 .editor-modal-content.fullscreen .editor-quill .ql-editor {
-  /* your existing styles */
   min-height: 3em;
   margin-top: 2rem;
   margin-bottom: 2rem;
@@ -423,6 +401,7 @@ body.dragging button {
   width: 100%;
   height: 83vh;
   padding: 1rem;
+  padding-top: 1.5rem;
   resize: none;
   overflow-y: auto;
   scrollbar-width: none;
@@ -430,13 +409,13 @@ body.dragging button {
   /* ↓↓↓ mask fade effect ↓↓↓ */
   -webkit-mask-image: linear-gradient(to bottom,
       transparent 0%,
-      black 10%,
-      black 90%,
+      black 4%,
+      black 96%,
       transparent 100%);
   mask-image: linear-gradient(to bottom,
       transparent 0%,
-      black 10%,
-      black 90%,
+      black 4%,
+      black 96%,
       transparent 100%);
   mask-mode: alpha;
 
