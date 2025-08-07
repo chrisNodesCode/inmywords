@@ -66,8 +66,8 @@ body[data-theme='dark'] .ant-drawer-close {
 }
 
 .notebook-container {
-  padding: 1rem;
-  max-width: 75vw;
+  /* padding: 1rem; */
+  max-width: 65vw;
   margin: auto;
   display: flex;
   align-self: stretch;
@@ -101,6 +101,8 @@ body[data-theme='dark'] .ant-drawer-close {
 
 .groups-container {
   margin-top: 1rem;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .group-card {
@@ -111,20 +113,21 @@ body[data-theme='dark'] .ant-drawer-close {
   background-color: #ffffff;
   border: none;
   justify-content: flex-end;
-  padding: 2rem;
   margin-bottom: 0rem;
   scroll-margin-top: 1rem;
+  max-width: 100%;
 }
 
 .group-title {
   font-size: 2.5rem;
   font-weight: 400;
   margin-bottom: 0rem;
+  padding: 2rem;
+  width: 100%;
 }
 
 .subgroup-card {
-  /* background-color: #ffffff; */
-  margin-left: 2rem;
+  /* padding-left: 2rem; */
   margin-top: 0rem;
   border: none;
   position: relative;
@@ -645,8 +648,9 @@ button {
   cursor: pointer;
   transform: scale(1.02);
   filter: brightness(0.95);
-  margin-left: 0.5rem;
+  /* margin-left: 5rem; */
   max-width: 100%;
+  width: 100%;
 }
 
 button:hover {

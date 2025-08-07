@@ -895,14 +895,14 @@ export default function Notebook() {
                             if (el) groupRefs.current[group.id] = el;
                           }}
                           data-group-id={group.id}
-                          className="group-header interactive"
+                          className="group-header"
                           {...(groupsReorderable ? attributes : {})}
                           {...(groupsReorderable ? listeners : {})}
                           role="button"
                           tabIndex={0}
                           onClick={() => toggleGroup(group)}
                         >
-                          <h2 className="group-title">{group.name}</h2>
+                          <h2 className="group-title interactive">{group.name}</h2>
                           {expandedGroups.includes(group.id) && !isPrecursorNotebook && (
                             <button
                               className={`edit-button${showEdits ? '' : ' hidden'}`}
