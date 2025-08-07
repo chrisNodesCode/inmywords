@@ -270,14 +270,23 @@ body.dragging button {
 .add-entry {
   border-radius: 2rem;
   background-color: #fff;
-  margin-top: 0rem;
+  margin-top: 1rem;
   border: none;
   justify-content: flex-end;
   padding: 2rem;
   margin-left: 2rem;
+  margin-right: 2rem;
   margin-bottom: 1rem;
   color: #9b9b9b;
+  max-width: 100%
 }
+
+.add-group {
+  margin-top: 3rem;
+  margin-bottom: 6rem;
+}
+
+
 
 .editor-modal-overlay {
   position: fixed;
@@ -648,10 +657,25 @@ button {
   cursor: pointer;
   transform: scale(1.02);
   filter: brightness(0.95);
-  /* margin-left: 5rem; */
-  max-width: 100%;
-  width: 100%;
+  margin-left: 2rem;
+  margin-right: 2rem;
 }
+
+.group-title.interactive:hover {
+  margin-left: 0rem;
+  margin-right: 0rem;
+}
+
+.subgroup-header.interactive:hover {
+  margin-left: 0rem;
+  margin-right: 0rem;
+}
+
+.entry-header.interactive:hover {
+  margin-left: 0rem;
+  margin-right: 0rem;
+}
+
 
 button:hover {
   cursor: pointer;
