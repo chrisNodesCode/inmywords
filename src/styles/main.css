@@ -6,6 +6,8 @@ body {
   margin: 0;
   background: #ffffff;
   color: #000000;
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Hide scrollbars globally for a consistent experience */
@@ -148,7 +150,7 @@ body[data-theme='dark'] .ant-drawer-close {
 .subgroup-title {
   font-size: 1.75rem;
   font-weight: 300;
-  background-color: #fff;
+  background-color: inherit;
   margin: 5px;
 }
 
@@ -295,7 +297,7 @@ body.dragging button {
 }
 
 .editor-modal-overlay.fullscreen {
-  background: rgba(255, 255, 255, 1);
+  background-color: #fff;
 }
 
 .editor-modal-overlay.notebook {
@@ -635,7 +637,8 @@ body.dragging button {
 /* Add global interactive styles for clickable elements */
 .interactive,
 button {
-  transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out, margin-left 0.2s ease-in-out;
+  transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out,
+    margin-left 0.2s ease-in-out, background-color 0.2s ease-in-out;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
@@ -654,6 +657,17 @@ button:hover {
   cursor: pointer;
   transform: scale(1.02);
   filter: brightness(0.95);
+}
+
+body[data-theme='light'] .interactive:hover,
+body[data-theme='light'] button:hover {
+  background-color: #f0f0f0;
+}
+
+body[data-theme='dark'] .interactive:hover,
+body[data-theme='dark'] button:hover {
+  background-color: #262626;
+  filter: brightness(1.1);
 }
 
 .edit-button {
@@ -680,6 +694,11 @@ button:hover {
 body[data-theme='dark'] {
   background: #141414;
   color: #fff;
+  color-scheme: dark;
+}
+
+body[data-theme='light'] {
+  color-scheme: light;
 }
 
 body[data-theme='dark'] .profile-menu,
@@ -727,6 +746,18 @@ body[data-theme='dark'] button {
   border-color: #555;
 }
 
+body[data-theme='dark'] .group-card {
+  border-left: 3px solid rgba(255, 255, 255, 0.6);
+}
+
+body[data-theme='dark'] .group-card.open {
+  border-left: 3px dashed rgba(255, 255, 255, 0.6);
+}
+
+body[data-theme='dark'] .subgroup-header.open::after {
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.6);
+}
+
 body[data-theme='light'] button {
   background-color: #f5f5f5;
   color: #000;
@@ -767,6 +798,12 @@ body[data-theme="dark"] .editor-modal-content.fullscreen .entry-title-container 
   background: #1f1f1f;
 }
 
+body[data-theme="dark"] .editor-modal-content.fullscreen .entry-title-row,
+body[data-theme="dark"] .editor-modal-content.fullscreen .export-menu,
+body[data-theme="dark"] .editor-modal-content.fullscreen .export-menu .ant-menu-submenu-title {
+  background: #1f1f1f;
+}
+
 body[data-theme="dark"] .editor-modal-content.fullscreen .ql-toolbar {
   background-color: #333;
   border: 1px solid #555;
@@ -774,6 +811,10 @@ body[data-theme="dark"] .editor-modal-content.fullscreen .ql-toolbar {
 
 body[data-theme="dark"] .editor-modal-content.fullscreen .ql-editor {
   background-color: #1f1f1f;
+  color: #fff;
+}
+
+body[data-theme='dark'] .ql-editor.ql-blank::before {
   color: #fff;
 }
 
@@ -822,4 +863,105 @@ body[data-theme='dark'] .ql-toolbar .ql-picker-options {
 
 .ql-editor h2 {
   font-size: 1.5em;
+}
+
+/* Drawer button grayscale styling */
+.ant-btn.drawer-btn {
+  border: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.ant-btn.drawer-btn-save {
+  background-color: #000;
+  color: #fff;
+}
+.ant-btn.drawer-btn-save:hover {
+  background-color: #333;
+}
+.ant-btn.drawer-btn-delete {
+  background-color: #555;
+  color: #fff;
+}
+.ant-btn.drawer-btn-delete:hover {
+  background-color: #666;
+}
+.ant-btn.drawer-btn-archive,
+.ant-btn.drawer-btn-cancel {
+  background-color: #e6e6e6;
+  color: #000;
+}
+.ant-btn.drawer-btn-archive:hover,
+.ant-btn.drawer-btn-cancel:hover {
+  background-color: #ccc;
+}
+
+body[data-theme='dark'] .ant-btn.drawer-btn-save {
+  background-color: #fff;
+  color: #000;
+}
+body[data-theme='dark'] .ant-btn.drawer-btn-save:hover {
+  background-color: #e0e0e0;
+}
+body[data-theme='dark'] .ant-btn.drawer-btn-delete {
+  background-color: #888;
+  color: #000;
+}
+body[data-theme='dark'] .ant-btn.drawer-btn-delete:hover {
+  background-color: #777;
+}
+body[data-theme='dark'] .ant-btn.drawer-btn-archive,
+body[data-theme='dark'] .ant-btn.drawer-btn-cancel {
+  background-color: #333;
+  color: #fff;
+}
+body[data-theme='dark'] .ant-btn.drawer-btn-archive:hover,
+body[data-theme='dark'] .ant-btn.drawer-btn-cancel:hover {
+  background-color: #444;
+}
+
+/* Switch grayscale styling */
+.ant-switch {
+  background-color: #bfbfbf;
+}
+.ant-switch:hover {
+  background-color: #a6a6a6;
+}
+.ant-switch-checked {
+  background-color: #595959;
+}
+.ant-switch-checked:hover {
+  background-color: #434343;
+}
+.ant-switch .ant-switch-handle::before {
+  background-color: #fff;
+}
+.ant-switch .ant-switch-inner .ant-switch-inner-unchecked {
+  color: #000;
+}
+.ant-switch-checked .ant-switch-inner .ant-switch-inner-checked {
+  color: #fff;
+}
+
+body[data-theme='dark'] .ant-switch {
+  background-color: #333;
+}
+body[data-theme='dark'] .ant-switch:hover {
+  background-color: #404040;
+}
+body[data-theme='dark'] .ant-switch-checked {
+  background-color: #d9d9d9;
+}
+body[data-theme='dark'] .ant-switch-checked:hover {
+  background-color: #f0f0f0;
+}
+body[data-theme='dark'] .ant-switch .ant-switch-handle::before {
+  background-color: #fff;
+}
+body[data-theme='dark'] .ant-switch-checked .ant-switch-handle::before {
+  background-color: #000;
+}
+body[data-theme='dark'] .ant-switch .ant-switch-inner .ant-switch-inner-unchecked {
+  color: #fff;
+}
+body[data-theme='dark'] .ant-switch-checked .ant-switch-inner .ant-switch-inner-checked {
+  color: #000;
 }

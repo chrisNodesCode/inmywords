@@ -32,7 +32,7 @@ export default async function handler(req, res) {
         // Return entry details
         return res.status(200).json(entry);
 
-      case 'PUT':
+      case 'PUT': {
         // Parse and validate input
         const { title, content, subgroupId, tagIds, archived } = req.body;
         if (title !== undefined && typeof title !== 'string') {
@@ -80,11 +80,13 @@ export default async function handler(req, res) {
           },
         });
         return res.status(200).json(updated);
+      }
 
-      case 'DELETE':
+      case 'DELETE': {
         // Delete the entry
         await prisma.entry.delete({ where: { id } });
         return res.status(204).end();
+      }
 
       default:
         res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);

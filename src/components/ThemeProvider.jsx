@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useEffect, useState } from 'react';
-import { ConfigProvider, theme as antdTheme } from 'antd';
+import { ConfigProvider } from 'antd';
 
 export const ThemeContext = createContext({
   darkMode: false,
@@ -9,6 +9,22 @@ export const ThemeContext = createContext({
 
 export default function ThemeProvider({ children }) {
   const [darkMode, setDarkMode] = useState(false);
+
+  const lightTokens = {
+    colorBgBase: '#ffffff',
+    colorBgContainer: '#ffffff',
+    colorTextBase: '#000000',
+    colorText: '#000000',
+    colorPrimary: '#547b5f',
+  };
+
+  const darkTokens = {
+    colorBgBase: '#141414',
+    colorBgContainer: '#1f1f1f',
+    colorTextBase: '#ffffff',
+    colorText: '#ffffff',
+    colorPrimary: '#547b5f',
+  };
 
   // Initialize theme from localStorage or matchMedia
   useEffect(() => {
@@ -34,24 +50,32 @@ export default function ThemeProvider({ children }) {
     setDarkMode((prev) => !prev);
   };
 
+  const tokens = darkMode ? darkTokens : lightTokens;
+
+  const switchTokens = darkMode
+    ? {
+        handleBg: '#fff',
+        colorPrimary: '#d9d9d9',
+        colorPrimaryHover: '#f0f0f0',
+      }
+    : {
+        handleBg: '#fff',
+        colorPrimary: '#595959',
+        colorPrimaryHover: '#434343',
+      };
+
   return (
     <ConfigProvider
       theme={{
-        algorithm: darkMode
-          ? antdTheme.darkAlgorithm
-          : antdTheme.defaultAlgorithm,
         token: {
           fontFamily: "'IBM Plex Mono', 'Cutive Mono', monospace",
+          ...tokens,
         },
         components: {
-          Switch: {
-            handleBg: "#7c7c7cff",
-            colorPrimary: "#547b5f",
-            colorPrimaryHover: "#547b5f",
-          },
+          Switch: switchTokens,
           Drawer: {
-            colorBgElevated: darkMode ? "#1f1f1f" : "#ffffff",
-            colorText: darkMode ? "#ffffff" : "#000000",
+            colorBgElevated: tokens.colorBgContainer,
+            colorText: tokens.colorText,
           },
         },
       }}

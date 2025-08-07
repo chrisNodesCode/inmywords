@@ -346,15 +346,15 @@ export default function EntryEditor({
             </>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
-            <Button type="primary" onClick={handleSave}>
+            <Button className="drawer-btn drawer-btn-save" onClick={handleSave}>
               Save
             </Button>
             {mode === 'edit' && onDelete && (
-              <Button danger onClick={handleDelete}>
+              <Button className="drawer-btn drawer-btn-delete" onClick={handleDelete}>
                 Delete
               </Button>
             )}
-            <Button onClick={onCancel}>Cancel</Button>
+            <Button className="drawer-btn drawer-btn-cancel" onClick={onCancel}>Cancel</Button>
           </div>
         </div>
       </Drawer>
@@ -503,20 +503,20 @@ export default function EntryEditor({
                   size="small"
                 />
               )}
-              <Button type="primary" onClick={handleSave}>
+              <Button className="drawer-btn drawer-btn-save" onClick={handleSave}>
                 Save
               </Button>
               {mode === 'edit' && onDelete && (
-                <Button danger onClick={handleDelete}>
+                <Button className="drawer-btn drawer-btn-delete" onClick={handleDelete}>
                   Delete
                 </Button>
               )}
               {mode === 'edit' && onArchive && (
-                <Button onClick={onArchive}>
+                <Button className="drawer-btn drawer-btn-archive" onClick={onArchive}>
                   {safeData.archived ? 'Restore' : 'Archive'}
                 </Button>
               )}
-              <Button onClick={onCancel}>Cancel</Button>
+              <Button className="drawer-btn drawer-btn-cancel" onClick={onCancel}>Cancel</Button>
             </div>
           </Drawer>
         </div>

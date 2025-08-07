@@ -1,8 +1,9 @@
+/* eslint-env node */
 // pages/api/debug-prisma.js
 export default async function handler(req, res) {
   try {
     // Pull in the module exactly how your NextAuth route does
-    const pkg = require('@prisma/client');
+    const pkg = await import('@prisma/client');
     // Log to Vercel function logs
     console.log('[@prisma/client] keys:', Object.keys(pkg));
     console.log('[@prisma/client].PrismaClient:', pkg.PrismaClient);

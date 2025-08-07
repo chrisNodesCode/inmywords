@@ -1006,7 +1006,12 @@ export default function Notebook() {
                                             toggleSubgroup(sub);
                                           }}
                                         >
-                                          <div className="subgroup-title">{sub.name}</div>
+                                          <div
+                                            className="subgroup-title"
+                                            style={{ backgroundColor: 'inherit' }}
+                                          >
+                                            {sub.name}
+                                          </div>
                                           {expandedSubgroups.includes(sub.id) && !isPrecursorNotebook && (
                                             <button
                                               className={`edit-button${showEdits ? '' : ' hidden'}`}

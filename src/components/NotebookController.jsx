@@ -89,8 +89,8 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
           Add New
         </button>
         <Switch
-          checkedChildren={<EditOutlined />}
-          unCheckedChildren={<EditOutlined />}
+          checkedChildren={<EditOutlined style={{ color: darkMode ? '#000' : '#fff' }} />}
+          unCheckedChildren={<EditOutlined style={{ color: darkMode ? '#fff' : '#000' }} />}
           checked={showEdits}
           onChange={onToggleEdits}
           style={{ marginLeft: '0.5rem' }}
