@@ -161,36 +161,52 @@ export default function EntryEditor({
     }
   }, [type, mode]);
 
+  const injectedIdRef = useRef(null);
+  const lastTitleRef = useRef('');
+
   useEffect(() => {
     if (type !== 'entry') return;
     const editor =
       quillRef.current?.getEditor?.() || quillRef.current;
     if (!editor || !editor.clipboard) return;
-    const padding = '<p><br/></p>'.repeat(PADDING_LINES);
-    const html = `<h1>${title}</h1><p><br/></p>${content}${padding}`;
-    const delta = editor.clipboard.convert(html);
-    editor.setContents(delta, 'silent');
-    editor.setSelection(title.length + 1, 0);
-    editor.focus();
-  }, [quillRef.current, title, initialData?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const initialContent = safeData.content || '';
+    if (injectedIdRef.current !== initialData?.id) {
+      if (content !== initialContent) return;
+      const padding = '<p><br/></p>'.repeat(PADDING_LINES);
+      const html = `<h1>${title}</h1><p><br/></p>${content}${padding}`;
+      const delta = editor.clipboard.convert(html);
+      editor.setContents(delta, 'silent');
+      editor.setSelection(title.length + 1, 0);
+      editor.focus();
+      injectedIdRef.current = initialData?.id;
+      lastTitleRef.current = title;
+    } else if (title !== lastTitleRef.current) {
+      const h1 = editor.root.querySelector('h1');
+      if (h1) h1.textContent = title;
+      lastTitleRef.current = title;
+    }
+  }, [title, content, initialData?.id, type, safeData.content]);
 
   const handleSave = () => {
     if (type === 'entry') {
       const editor =
         quillRef.current?.getEditor?.() || quillRef.current;
+      const currentTitle = isEditingTitle ? titleInput : title;
       const clean = stripEditorWrappers(editor?.root?.innerHTML || '');
-      if (!title.trim() || !clean.trim()) {
+      if (!currentTitle.trim() || !clean.trim()) {
         alert('Title and content cannot be empty.');
         return;
       }
       onSave({
-        title: title.trim(),
+        title: currentTitle.trim(),
         content: clean.trim(),
         parent,
         mode,
         id: safeData.id,
         subgroupId: selectedSubgroupId,
       });
+      setTitle(currentTitle);
       setContent(clean);
       setLastSaved(new Date());
       return;
@@ -295,8 +311,9 @@ export default function EntryEditor({
       const editor =
         quillRef.current?.getEditor?.() || quillRef.current;
       const clean = editor ? stripEditorWrappers(editor.root.innerHTML) : content;
+      const currentTitle = isEditingTitle ? titleInput : title;
       onSave({
-        title: title.trim(),
+        title: currentTitle.trim(),
         content: clean.trim(),
         parent,
         mode,
@@ -304,11 +321,12 @@ export default function EntryEditor({
         subgroupId: selectedSubgroupId,
         autoSave: true,
       });
+      setTitle(currentTitle);
       setContent(clean);
       setLastSaved(new Date());
     }, 30000);
     return () => clearInterval(interval);
-  }, [type, title, content, parent, mode, safeData.id, onSave, selectedSubgroupId]);
+  }, [type, title, content, parent, mode, safeData.id, onSave, selectedSubgroupId, isEditingTitle, titleInput]);
   const renderHeading = () => {
     if (mode === 'edit') {
       if (type === 'group') return `Edit ${aliases.group}`;
@@ -532,8 +550,9 @@ export default function EntryEditor({
                   onChange={(val) => {
                     setSelectedSubgroupId(val);
                     if (mode === 'edit') {
+                      const currentTitle = isEditingTitle ? titleInput : title;
                       onSave({
-                        title: title.trim(),
+                        title: currentTitle.trim(),
                         content: content.trim(),
                         parent,
                         mode,
@@ -541,6 +560,7 @@ export default function EntryEditor({
                         subgroupId: val,
                         autoSave: true,
                       });
+                      setTitle(currentTitle);
                       setLastSaved(new Date());
                     }
                   }}
