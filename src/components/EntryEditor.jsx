@@ -110,6 +110,31 @@ export default function EntryEditor({
 
   const quillFormats = ['header', 'bold', 'italic', 'underline', 'list', 'bullet'];
 
+  const PADDING_LINES = 5;
+
+  const stripEditorWrappers = (html) => {
+    const div = document.createElement('div');
+    div.innerHTML = html;
+
+    const firstH1 = div.querySelector('h1');
+    if (firstH1) firstH1.remove();
+
+    const first = div.firstChild;
+    if (first && first.tagName === 'P' && first.innerHTML === '<br>') {
+      first.remove();
+    }
+
+    while (
+      div.lastChild &&
+      div.lastChild.tagName === 'P' &&
+      div.lastChild.innerHTML === '<br>'
+    ) {
+      div.removeChild(div.lastChild);
+    }
+
+    return div.innerHTML;
+  };
+
   // Update state when the modal is opened for a different item
   useEffect(() => {
     const data = initialData || {};
@@ -136,20 +161,35 @@ export default function EntryEditor({
     }
   }, [type, mode]);
 
+  useEffect(() => {
+    if (type !== 'entry') return;
+    const editor = quillRef.current?.getEditor();
+    if (!editor) return;
+    const padding = '<p><br/></p>'.repeat(PADDING_LINES);
+    const html = `<h1>${title}</h1><p><br/></p>${content}${padding}`;
+    const delta = editor.clipboard.convert(html);
+    editor.setContents(delta, 'silent');
+    editor.setSelection(title.length + 1, 0);
+    editor.focus();
+  }, [quillRef.current, title, initialData?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSave = () => {
     if (type === 'entry') {
-      if (!title.trim() || !content.trim()) {
+      const editor = quillRef.current?.getEditor();
+      const clean = stripEditorWrappers(editor?.root.innerHTML || '');
+      if (!title.trim() || !clean.trim()) {
         alert('Title and content cannot be empty.');
         return;
       }
       onSave({
         title: title.trim(),
-        content: content.trim(),
+        content: clean.trim(),
         parent,
         mode,
         id: safeData.id,
         subgroupId: selectedSubgroupId,
       });
+      setContent(clean);
       setLastSaved(new Date());
       return;
     }
@@ -250,15 +290,18 @@ export default function EntryEditor({
   useEffect(() => {
     if (type !== 'entry' || mode === 'create') return;
     const interval = setInterval(() => {
+      const editor = quillRef.current?.getEditor();
+      const clean = editor ? stripEditorWrappers(editor.root.innerHTML) : content;
       onSave({
         title: title.trim(),
-        content: content.trim(),
+        content: clean.trim(),
         parent,
         mode,
         id: safeData.id,
         subgroupId: selectedSubgroupId,
         autoSave: true,
       });
+      setContent(clean);
       setLastSaved(new Date());
     }, 30000);
     return () => clearInterval(interval);
@@ -415,8 +458,7 @@ export default function EntryEditor({
                 className={`editor-quill ${toolbarVisible ? '' : 'toolbar-hidden'}`}
                 theme="snow"
                 placeholder="Start writing here..."
-                value={content}
-                onChange={setContent}
+                onChange={(html) => setContent(stripEditorWrappers(html))}
                 onChangeSelection={handleSelectionChange}
                 modules={quillModules}
                 formats={quillFormats}
