@@ -36,6 +36,15 @@ body {
   color: #000000;
 }
 
+/* Fixed container for entry editor side drawer */
+.entry-editor-drawer-wrapper {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1001;
+}
+
 body[data-theme='dark'] .ant-drawer-content,
 body[data-theme='dark'] .ant-drawer-header {
   background-color: #1f1f1f;
