@@ -10,7 +10,7 @@ export default function ExportMenu({ quillRef, content }) {
     try {
       const editor =
         quillRef.current?.getEditor?.() || quillRef.current;
-      const text = editor ? editor.getText() : '';
+      const text = editor?.getText ? editor.getText() : '';
       await navigator.clipboard.writeText(text.trim());
     } catch (err) {
       console.error('Failed to copy text', err);
@@ -22,7 +22,7 @@ export default function ExportMenu({ quillRef, content }) {
       if (navigator.clipboard && navigator.clipboard.write) {
         const editor =
           quillRef.current?.getEditor?.() || quillRef.current;
-        const text = editor ? editor.getText() : '';
+        const text = editor?.getText ? editor.getText() : '';
         await navigator.clipboard.write([
           new ClipboardItem({
             'text/plain': new Blob([text], { type: 'text/plain' }),

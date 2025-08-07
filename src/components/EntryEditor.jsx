@@ -165,7 +165,7 @@ export default function EntryEditor({
     if (type !== 'entry') return;
     const editor =
       quillRef.current?.getEditor?.() || quillRef.current;
-    if (!editor) return;
+    if (!editor || !editor.clipboard) return;
     const padding = '<p><br/></p>'.repeat(PADDING_LINES);
     const html = `<h1>${title}</h1><p><br/></p>${content}${padding}`;
     const delta = editor.clipboard.convert(html);
@@ -178,7 +178,7 @@ export default function EntryEditor({
     if (type === 'entry') {
       const editor =
         quillRef.current?.getEditor?.() || quillRef.current;
-      const clean = stripEditorWrappers(editor?.root.innerHTML || '');
+      const clean = stripEditorWrappers(editor?.root?.innerHTML || '');
       if (!title.trim() || !clean.trim()) {
         alert('Title and content cannot be empty.');
         return;
