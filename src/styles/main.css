@@ -155,7 +155,7 @@ body[data-theme='dark'] .ant-drawer-close {
 }
 
 body[data-theme='dark'] .subgroup-title {
-  background-color: #000;
+  background-color: #1f1f1f;
 }
 
 /* arrow icons for expandable items */
@@ -736,6 +736,18 @@ body[data-theme='dark'] button {
   background-color: #333;
   color: #fff;
   border-color: #555;
+}
+
+body[data-theme='dark'] .group-card {
+  border-left: 3px solid rgba(255, 255, 255, 0.6);
+}
+
+body[data-theme='dark'] .group-card.open {
+  border-left: 3px dashed rgba(255, 255, 255, 0.6);
+}
+
+body[data-theme='dark'] .subgroup-header.open::after {
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.6);
 }
 
 body[data-theme='light'] button {
