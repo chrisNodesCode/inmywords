@@ -164,10 +164,14 @@ export default function EntryEditor({
   const injectedIdRef = useRef(null);
   const lastTitleRef = useRef('');
 
+  // Ensure the initial title and content are injected only after the
+  // ReactQuill editor is ready. Previously, the effect could run before the
+  // editor was mounted, causing the title and content to remain empty.
+  const quillInstance = quillRef.current;
+
   useEffect(() => {
-    if (type !== 'entry') return;
-    const editor =
-      quillRef.current?.getEditor?.() || quillRef.current;
+    if (type !== 'entry' || !quillInstance) return;
+    const editor = quillInstance.getEditor?.() || quillInstance;
     if (!editor || !editor.clipboard) return;
 
     const initialContent = safeData.content || '';
@@ -186,7 +190,7 @@ export default function EntryEditor({
       if (h1) h1.textContent = title;
       lastTitleRef.current = title;
     }
-  }, [title, content, initialData?.id, type, safeData.content]);
+  }, [quillInstance, title, content, initialData?.id, type, safeData.content]);
 
   const handleSave = () => {
     if (type === 'entry') {
