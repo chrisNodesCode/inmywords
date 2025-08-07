@@ -103,12 +103,20 @@ export default function EntryEditor({
   const quillModules = {
     toolbar: [
       [{ header: [1, 2, false] }],
-      ['bold', 'italic', 'underline'],
+      ['bold', 'italic', 'underline', 'code-block'],
       [{ list: 'bullet' }],
     ],
   };
 
-  const quillFormats = ['header', 'bold', 'italic', 'underline', 'list', 'bullet'];
+  const quillFormats = [
+    'header',
+    'bold',
+    'italic',
+    'underline',
+    'code-block',
+    'list',
+    'bullet',
+  ];
 
   // Update state when the modal is opened for a different item
   useEffect(() => {
