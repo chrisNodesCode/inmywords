@@ -91,8 +91,6 @@ export default function Notebook() {
   const groupRefs = useRef({});
   const subgroupRefs = useRef({});
   const entryRefs = useRef({});
-  const [activeGroup, setActiveGroup] = useState(null);
-  const [activeSubgroup, setActiveSubgroup] = useState(null);
 
   const handleFullFocusToggle = async (checked) => {
     setFullFocusEnabled(checked);
@@ -131,42 +129,6 @@ export default function Notebook() {
           })),
       })),
   });
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!notebook) return;
-      let newSub = null;
-      let newGroup = null;
-      for (const g of notebook.groups) {
-        const gRef = groupRefs.current[g.id];
-        if (gRef) {
-          const rect = gRef.getBoundingClientRect();
-          if (rect.top <= 0 && rect.bottom >= 0) {
-            newGroup = g.id;
-          }
-        }
-        if (expandedGroups.includes(g.id)) {
-          for (const s of g.subgroups) {
-            if (!expandedSubgroups.includes(s.id)) continue;
-            const sRef = subgroupRefs.current[s.id];
-            if (!sRef) continue;
-            const sRect = sRef.getBoundingClientRect();
-            if (sRect.top <= 0 && sRect.bottom >= 0) {
-              newSub = s.id;
-              newGroup = g.id;
-              break;
-            }
-          }
-        }
-        if (newSub) break;
-      }
-      setActiveSubgroup(newSub);
-      setActiveGroup(newGroup);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [notebook, expandedGroups, expandedSubgroups]);
 
   const loadNotebook = async (id) => {
     setLoading(true);
@@ -922,8 +884,7 @@ export default function Notebook() {
                             if (el) groupRefs.current[group.id] = el;
                           }}
                           data-group-id={group.id}
-                          className={`group-header interactive ${activeSubgroup && activeGroup === group.id ? 'fade-out' : ''
-                            }`}
+                          className="group-header interactive"
                           {...(groupsReorderable ? attributes : {})}
                           {...(groupsReorderable ? listeners : {})}
                           role="button"
