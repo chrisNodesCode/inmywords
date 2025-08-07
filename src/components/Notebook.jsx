@@ -70,6 +70,7 @@ export default function Notebook() {
   const [controllerKey, setControllerKey] = useState(0);
   const [activeDrag, setActiveDrag] = useState(null);
   const [hoveredSubgroup, setHoveredSubgroup] = useState(null);
+  const [showShortcutFlyout, setShowShortcutFlyout] = useState(false);
 
   const aliases = useMemo(
     () => ({
@@ -79,6 +80,14 @@ export default function Notebook() {
     }),
     [notebook]
   );
+
+  const notebookShortcuts = [
+    { action: `Add ${aliases.group}`, keys: 'Ctrl+Alt+G' },
+    { action: `Add ${aliases.subgroup}`, keys: 'Ctrl+Alt+S' },
+    { action: `Add ${aliases.entry}`, keys: 'Ctrl+Alt+E' },
+    { action: 'Toggle Full Focus', keys: 'Ctrl+Alt+F' },
+    { action: 'Toggle Edit Entities', keys: 'Ctrl+Alt+M' },
+  ];
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -115,6 +124,73 @@ export default function Notebook() {
       document.removeEventListener('fullscreenchange', handleFullScreenChange);
     };
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!notebook || isPrecursorNotebook || editorState.isOpen) return;
+      if (e.ctrlKey && e.altKey && !e.shiftKey && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        openEditor('group', { label: `${aliases.group} Root` }, notebook.groups.length - 1);
+      } else if (e.ctrlKey && e.altKey && !e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        const lastGroupId = expandedGroups[expandedGroups.length - 1];
+        const group = notebook.groups.find((g) => g.id === lastGroupId);
+        if (group) {
+          openEditor(
+            'subgroup',
+            { groupId: group.id, label: `${aliases.group}: ${group.name}` },
+            group.subgroups.length - 1
+          );
+        }
+      } else if (e.ctrlKey && e.altKey && !e.shiftKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        const lastSubgroupId = expandedSubgroups[expandedSubgroups.length - 1];
+        let group = null;
+        let subgroup = null;
+        notebook.groups.forEach((g) => {
+          const found = g.subgroups.find((s) => s.id === lastSubgroupId);
+          if (found) {
+            group = g;
+            subgroup = found;
+          }
+        });
+        if (group && subgroup) {
+          openEditor(
+            'entry',
+            {
+              subgroupId: subgroup.id,
+              groupId: group.id,
+              label: `${aliases.subgroup}: ${subgroup.name}`,
+            },
+            subgroup.entries.length - 1,
+            null,
+            'create',
+            null,
+            null,
+            { groups: notebook.groups }
+          );
+        }
+      } else if (e.ctrlKey && e.altKey && !e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        handleFullFocusToggle(!fullFocusEnabled);
+      } else if (e.ctrlKey && e.altKey && !e.shiftKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        setShowEdits((prev) => !prev);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [
+    notebook,
+    expandedGroups,
+    expandedSubgroups,
+    fullFocusEnabled,
+    showEdits,
+    isPrecursorNotebook,
+    aliases,
+    handleFullFocusToggle,
+    editorState,
+  ]);
 
   const sortTree = (tree) => ({
     ...tree,
@@ -821,6 +897,34 @@ export default function Notebook() {
             onChange={handleFullFocusToggle}
             size="small"
           />
+        </div>
+        <div className="shortcut-link" style={{ position: 'relative', marginLeft: '1rem' }}>
+          <button onClick={() => setShowShortcutFlyout((prev) => !prev)}>
+            Shortcuts
+          </button>
+          {showShortcutFlyout && (
+            <div
+              className="shortcut-flyout"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                background: '#fff',
+                border: '1px solid #ccc',
+                padding: '0.5rem',
+                zIndex: 1000,
+                color: '#000',
+              }}
+            >
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                {notebookShortcuts.map((s) => (
+                  <li key={s.action}>
+                    {s.action}: {s.keys}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
       <div className="notebook-title-row">
