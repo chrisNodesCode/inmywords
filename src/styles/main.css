@@ -443,16 +443,19 @@ body.dragging button {
   background-color: rgba(255, 255, 255, 1);
   box-shadow: 2px 4px 8px 0px rgba(0, 0, 0, 0.2);
   font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
-  text-align: center;
   border-radius: 1rem;
-  height: 40px;
+  height: 3.5rem;
   transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
   transform: translateY(0);
   position: absolute;
-  top: -2.5rem;
+  top: -3.5rem;
   left: 0;
   right: 0;
   z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
 }
 
 .editor-modal-content.fullscreen .toolbar-hidden .ql-toolbar {
@@ -831,6 +834,32 @@ body[data-theme="dark"] .editor-modal-content.fullscreen .export-menu .ant-menu-
 body[data-theme="dark"] .editor-modal-content.fullscreen .ql-toolbar {
   background-color: #333;
   border: 1px solid #555;
+}
+
+.editor-modal-content.fullscreen .ql-toolbar .ql-formats {
+  float: none;
+  display: flex;
+  align-items: center;
+}
+
+.editor-modal-content.fullscreen .ql-toolbar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  float: none;
+}
+
+body[data-theme="dark"] .ql-toolbar .ql-stroke {
+  stroke: #fff;
+}
+
+body[data-theme="dark"] .ql-toolbar .ql-fill {
+  fill: #fff;
+}
+
+body[data-theme="dark"] .ql-toolbar button,
+body[data-theme="dark"] .ql-toolbar .ql-picker {
+  color: #fff;
 }
 
 body[data-theme="dark"] .editor-modal-content.fullscreen .ql-editor {
