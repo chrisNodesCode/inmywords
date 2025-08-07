@@ -52,6 +52,18 @@ export default function ThemeProvider({ children }) {
 
   const tokens = darkMode ? darkTokens : lightTokens;
 
+  const switchTokens = darkMode
+    ? {
+        handleBg: '#fff',
+        colorPrimary: '#d9d9d9',
+        colorPrimaryHover: '#f0f0f0',
+      }
+    : {
+        handleBg: '#fff',
+        colorPrimary: '#595959',
+        colorPrimaryHover: '#434343',
+      };
+
   return (
     <ConfigProvider
       theme={{
@@ -60,11 +72,7 @@ export default function ThemeProvider({ children }) {
           ...tokens,
         },
         components: {
-          Switch: {
-            handleBg: '#7c7c7cff',
-            colorPrimary: '#547b5f',
-            colorPrimaryHover: '#547b5f',
-          },
+          Switch: switchTokens,
           Drawer: {
             colorBgElevated: tokens.colorBgContainer,
             colorText: tokens.colorText,
