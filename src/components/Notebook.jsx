@@ -3,19 +3,37 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 import EntryEditor from './EntryEditor';
 import NotebookController from './NotebookController';
-import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
-import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  arrayMove,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Switch } from 'antd';
 
-function SortableWrapper({ id, disabled, children }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id, disabled });
+function SortableWrapper({ id, disabled, data, children }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isOver,
+  } = useSortable({ id, disabled, data });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     touchAction: 'manipulation',
   };
-  return children({ attributes, listeners, setNodeRef, style });
+  return children({ attributes, listeners, setNodeRef, style, isOver });
 }
 
 const htmlToText = (html) => {
@@ -49,6 +67,8 @@ export default function Notebook() {
   const isPrecursorNotebook = !!notebook?.precursorId;
   const [fullFocusEnabled, setFullFocusEnabled] = useState(false);
   const [controllerKey, setControllerKey] = useState(0);
+  const [activeDrag, setActiveDrag] = useState(null);
+  const [hoveredSubgroup, setHoveredSubgroup] = useState(null);
 
   const aliases = useMemo(
     () => ({
@@ -401,11 +421,11 @@ export default function Notebook() {
     setEditorState({ isOpen: true, type, parent, index, item, mode, onDelete, onArchive });
   };
 
-  const handleGroupDragEnd = ({ active, over }) => {
-    if (!over || active.id === over.id) return;
+  const handleGroupReorder = (activeId, overId) => {
+    if (activeId === overId) return;
     setNotebook((prev) => {
-      const oldIndex = prev.groups.findIndex((g) => g.id === active.id);
-      const newIndex = prev.groups.findIndex((g) => g.id === over.id);
+      const oldIndex = prev.groups.findIndex((g) => g.id === activeId);
+      const newIndex = prev.groups.findIndex((g) => g.id === overId);
       const groups = arrayMove(prev.groups, oldIndex, newIndex).map((g, idx) => ({
         ...g,
         user_sort: idx,
@@ -421,13 +441,13 @@ export default function Notebook() {
     });
   };
 
-  const handleSubgroupDragEnd = (groupId) => ({ active, over }) => {
-    if (!over || active.id === over.id) return;
+  const handleSubgroupReorder = (groupId, activeId, overId) => {
+    if (activeId === overId) return;
     setNotebook((prev) => {
       const groups = prev.groups.map((g) => {
         if (g.id !== groupId) return g;
-        const oldIndex = g.subgroups.findIndex((s) => s.id === active.id);
-        const newIndex = g.subgroups.findIndex((s) => s.id === over.id);
+        const oldIndex = g.subgroups.findIndex((s) => s.id === activeId);
+        const newIndex = g.subgroups.findIndex((s) => s.id === overId);
         const subgroups = arrayMove(g.subgroups, oldIndex, newIndex).map((s, idx) => ({
           ...s,
           user_sort: idx,
@@ -445,34 +465,148 @@ export default function Notebook() {
     });
   };
 
-  const handleEntryDragEnd = (groupId, subgroupId) => ({ active, over }) => {
-    if (!over || active.id === over.id) return;
+  const handleEntryMove = ({ active, over }) => {
+    if (!over) return;
+    const activeData = active.data.current;
+    const overData = over.data.current;
+    if (!activeData || activeData.type !== 'entry') return;
+    const sourceGroupId = activeData.groupId;
+    const sourceSubgroupId = activeData.subgroupId;
+    let targetGroupId;
+    let targetSubgroupId;
+
     setNotebook((prev) => {
+      let movedEntry = null;
       const groups = prev.groups.map((g) => {
-        if (g.id !== groupId) return g;
+        if (g.id === sourceGroupId) {
+          return {
+            ...g,
+            subgroups: g.subgroups.map((s) => {
+              if (s.id !== sourceSubgroupId) return s;
+              const remaining = [];
+              s.entries.forEach((e, idx) => {
+                if (e.id === active.id) {
+                  movedEntry = { ...e };
+                } else {
+                  remaining.push({ ...e, user_sort: idx });
+                }
+              });
+              fetch('/api/entries/reorder', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orders: remaining.map((e, idx) => ({ id: e.id, user_sort: idx })),
+                }),
+              }).catch((err) => console.error(err));
+              return { ...s, entries: remaining };
+            }),
+          };
+        }
+        return g;
+      });
+      if (!movedEntry) return prev;
+
+      if (overData?.type === 'entry') {
+        targetGroupId = overData.groupId;
+        targetSubgroupId = overData.subgroupId;
+      } else if (overData?.type === 'subgroup') {
+        targetGroupId = overData.groupId;
+        targetSubgroupId = over.id;
+      } else {
+        return prev;
+      }
+
+      const updatedGroups = groups.map((g) => {
+        if (g.id !== targetGroupId) return g;
         return {
           ...g,
           subgroups: g.subgroups.map((s) => {
-            if (s.id !== subgroupId) return s;
-            const oldIndex = s.entries.findIndex((e) => e.id === active.id);
-            const newIndex = s.entries.findIndex((e) => e.id === over.id);
-            const entries = arrayMove(s.entries, oldIndex, newIndex).map((e, idx) => ({
-              ...e,
-              user_sort: idx,
-            }));
-            fetch('/api/entries/reorder', {
-              method: 'PATCH',
+            if (s.id !== targetSubgroupId) return s;
+            const entries = [
+              { ...movedEntry, subgroupId: targetSubgroupId, user_sort: 0 },
+              ...s.entries,
+            ];
+            fetch(`/api/entries/${movedEntry.id}`, {
+              method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orders: entries.map((e, idx) => ({ id: e.id, user_sort: idx })),
-              }),
+              body: JSON.stringify({ subgroupId: targetSubgroupId, user_sort: 0 }),
             }).catch((err) => console.error(err));
             return { ...s, entries };
           }),
         };
       });
-      return { ...prev, groups };
+      return { ...prev, groups: updatedGroups };
     });
+    if (targetGroupId) {
+      setExpandedGroups((prev) =>
+        prev.includes(targetGroupId) ? prev : [...prev, targetGroupId]
+      );
+    }
+    if (targetSubgroupId) {
+      setExpandedSubgroups((prev) =>
+        prev.includes(targetSubgroupId) ? prev : [...prev, targetSubgroupId]
+      );
+    }
+  };
+
+  const handleDragStart = (event) => {
+    document.body.classList.add('dragging');
+    setActiveDrag(event.active.data.current);
+  };
+
+  const handleDragOver = ({ active, over }) => {
+    const activeData = active.data.current;
+    const overData = over?.data.current;
+    if (activeData?.type === 'entry') {
+      if (overData?.type === 'group') {
+        if (!expandedGroups.includes(over.id)) {
+          setExpandedGroups((prev) => [...prev, over.id]);
+        }
+        setHoveredSubgroup(null);
+      } else if (overData?.type === 'subgroup') {
+        if (!expandedGroups.includes(overData.groupId)) {
+          setExpandedGroups((prev) => [...prev, overData.groupId]);
+        }
+        setHoveredSubgroup(over.id);
+      } else if (overData?.type === 'entry') {
+        if (!expandedGroups.includes(overData.groupId)) {
+          setExpandedGroups((prev) => [...prev, overData.groupId]);
+        }
+        setHoveredSubgroup(overData.subgroupId);
+      } else {
+        setHoveredSubgroup(null);
+      }
+    } else {
+      setHoveredSubgroup(null);
+    }
+  };
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over) {
+      setActiveDrag(null);
+      setHoveredSubgroup(null);
+      document.body.classList.remove('dragging');
+      return;
+    }
+    const activeData = active.data.current;
+    const overData = over.data.current;
+    if (activeData?.type === 'group' && overData?.type === 'group') {
+      handleGroupReorder(active.id, over.id);
+    } else if (activeData?.type === 'subgroup' && overData?.type === 'subgroup' && activeData.groupId === overData.groupId) {
+      handleSubgroupReorder(activeData.groupId, active.id, over.id);
+    } else if (activeData?.type === 'entry') {
+      handleEntryMove(event);
+    }
+    setActiveDrag(null);
+    setHoveredSubgroup(null);
+    document.body.classList.remove('dragging');
+  };
+
+  const handleDragCancel = () => {
+    setActiveDrag(null);
+    setHoveredSubgroup(null);
+    document.body.classList.remove('dragging');
   };
 
   const toggleGroup = (group) => {
@@ -728,9 +862,13 @@ export default function Notebook() {
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
-            onDragEnd={groupsReorderable ? handleGroupDragEnd : undefined}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
             <SortableContext
+              id="groups"
               items={notebook.groups.map((g) => g.id)}
               strategy={verticalListSortingStrategy}
             >
@@ -740,7 +878,12 @@ export default function Notebook() {
                   expandedGroups.includes(group.id) &&
                   !group.subgroups.some((s) => expandedSubgroups.includes(s.id));
                 return (
-                  <SortableWrapper key={group.id} id={group.id} disabled={!groupsReorderable}>
+                  <SortableWrapper
+                    key={group.id}
+                    id={group.id}
+                    data={{ type: 'group' }}
+                    disabled={!groupsReorderable}
+                  >
                     {({ setNodeRef, style, attributes, listeners }) => (
                       <div
                         ref={setNodeRef}
@@ -786,18 +929,12 @@ export default function Notebook() {
                             expandedGroups.includes(group.id) ? 'open' : ''
                           }`}
                         >
-                          <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={
-                              subgroupsReorderable ? handleSubgroupDragEnd(group.id) : undefined
-                            }
+                          <SortableContext
+                            id={group.id}
+                            items={group.subgroups.map((s) => s.id)}
+                            strategy={verticalListSortingStrategy}
                           >
-                            <SortableContext
-                              items={group.subgroups.map((s) => s.id)}
-                              strategy={verticalListSortingStrategy}
-                            >
-                              {group.subgroups.map((sub) => {
+                            {group.subgroups.map((sub) => {
                                 const entriesReorderable =
                                   expandedSubgroups.includes(sub.id) &&
                                   !sub.entries.some((e) => expandedEntries.includes(e.id));
@@ -805,6 +942,7 @@ export default function Notebook() {
                                   <SortableWrapper
                                     key={sub.id}
                                     id={sub.id}
+                                    data={{ type: 'subgroup', groupId: group.id }}
                                     disabled={!subgroupsReorderable}
                                   >
                                     {({
@@ -813,7 +951,17 @@ export default function Notebook() {
                                       attributes: subAttr,
                                       listeners: subListeners,
                                     }) => (
-                                      <div ref={setSubRef} style={subStyle} className="subgroup-card">
+                                      <div
+                                        ref={setSubRef}
+                                        style={subStyle}
+                                        className={`subgroup-card ${
+                                          hoveredSubgroup === sub.id && activeDrag?.type === 'entry'
+                                            ? expandedSubgroups.includes(sub.id)
+                                              ? 'insert-indicator'
+                                              : 'drop-target'
+                                            : ''
+                                        }`}
+                                      >
                                         <div
                                           ref={(el) => {
                                             if (el) subgroupRefs.current[sub.id] = el;
@@ -856,33 +1004,32 @@ export default function Notebook() {
                                             expandedSubgroups.includes(sub.id) ? 'open' : ''
                                           }`}
                                         >
-                                          <DndContext
-                                            sensors={sensors}
-                                            collisionDetection={closestCenter}
-                                            onDragEnd={
-                                              entriesReorderable
-                                                ? handleEntryDragEnd(group.id, sub.id)
-                                                : undefined
-                                            }
+                                          <SortableContext
+                                            id={sub.id}
+                                            items={sub.entries
+                                              .filter((e) => showArchived || !e.archived)
+                                              .map((e) => e.id)}
+                                            strategy={verticalListSortingStrategy}
                                           >
-                                            <SortableContext
-                                              items={sub.entries.map((e) => e.id)}
-                                              strategy={verticalListSortingStrategy}
-                                            >
-                                              {sub.entries
-                                                .filter((e) => showArchived || !e.archived)
-                                                .map((entry) => (
-                                                  <SortableWrapper
-                                                    key={entry.id}
-                                                    id={entry.id}
-                                                    disabled={!entriesReorderable}
-                                                  >
-                                                    {({
-                                                      setNodeRef: setEntryRef,
-                                                      style: entryStyle,
-                                                      attributes: entryAttr,
-                                                      listeners: entryListeners,
-                                                    }) => (
+                                            {sub.entries
+                                              .filter((e) => showArchived || !e.archived)
+                                              .map((entry) => (
+                                              <SortableWrapper
+                                                key={entry.id}
+                                                id={entry.id}
+                                                data={{
+                                                  type: 'entry',
+                                                  groupId: group.id,
+                                                  subgroupId: sub.id,
+                                                }}
+                                                disabled={!entriesReorderable}
+                                              >
+                                                {({
+                                                  setNodeRef: setEntryRef,
+                                                  style: entryStyle,
+                                                  attributes: entryAttr,
+                                                  listeners: entryListeners,
+                                                }) => (
                                                       <div
                                                         ref={(el) => {
                                                           setEntryRef(el);
@@ -1087,7 +1234,6 @@ export default function Notebook() {
                                                 Add {aliases.entry}
                                               </div>
                                             </SortableContext>
-                                          </DndContext>
                                         </div>
                                       </div>
                                     )}
@@ -1112,7 +1258,6 @@ export default function Notebook() {
                                 </div>
                               )}
                             </SortableContext>
-                          </DndContext>
                         </div>
                       </div>
                     )}
