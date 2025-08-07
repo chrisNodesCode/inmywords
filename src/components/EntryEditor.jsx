@@ -110,31 +110,6 @@ export default function EntryEditor({
 
   const quillFormats = ['header', 'bold', 'italic', 'underline', 'list', 'bullet'];
 
-  const PADDING_LINES = 5;
-
-  const stripEditorWrappers = (html) => {
-    const div = document.createElement('div');
-    div.innerHTML = html;
-
-    const firstH1 = div.querySelector('h1');
-    if (firstH1) firstH1.remove();
-
-    const first = div.firstChild;
-    if (first && first.tagName === 'P' && first.innerHTML === '<br>') {
-      first.remove();
-    }
-
-    while (
-      div.lastChild &&
-      div.lastChild.tagName === 'P' &&
-      div.lastChild.innerHTML === '<br>'
-    ) {
-      div.removeChild(div.lastChild);
-    }
-
-    return div.innerHTML;
-  };
-
   // Update state when the modal is opened for a different item
   useEffect(() => {
     const data = initialData || {};
@@ -161,53 +136,20 @@ export default function EntryEditor({
     }
   }, [type, mode]);
 
-  const injectedIdRef = useRef(null);
-  const lastTitleRef = useRef('');
-
-  useEffect(() => {
-    if (type !== 'entry') return;
-    const editor =
-      quillRef.current?.getEditor?.() || quillRef.current;
-    if (!editor || !editor.clipboard) return;
-
-    const initialContent = safeData.content || '';
-    if (injectedIdRef.current !== initialData?.id) {
-      if (content !== initialContent) return;
-      const padding = '<p><br/></p>'.repeat(PADDING_LINES);
-      const html = `<h1>${title}</h1><p><br/></p>${content}${padding}`;
-      const delta = editor.clipboard.convert(html);
-      editor.setContents(delta, 'silent');
-      editor.setSelection(title.length + 1, 0);
-      editor.focus();
-      injectedIdRef.current = initialData?.id;
-      lastTitleRef.current = title;
-    } else if (title !== lastTitleRef.current) {
-      const h1 = editor.root.querySelector('h1');
-      if (h1) h1.textContent = title;
-      lastTitleRef.current = title;
-    }
-  }, [title, content, initialData?.id, type, safeData.content]);
-
   const handleSave = () => {
     if (type === 'entry') {
-      const editor =
-        quillRef.current?.getEditor?.() || quillRef.current;
-      const currentTitle = isEditingTitle ? titleInput : title;
-      const clean = stripEditorWrappers(editor?.root?.innerHTML || '');
-      if (!currentTitle.trim() || !clean.trim()) {
+      if (!title.trim() || !content.trim()) {
         alert('Title and content cannot be empty.');
         return;
       }
       onSave({
-        title: currentTitle.trim(),
-        content: clean.trim(),
+        title: title.trim(),
+        content: content.trim(),
         parent,
         mode,
         id: safeData.id,
         subgroupId: selectedSubgroupId,
       });
-      setTitle(currentTitle);
-      setContent(clean);
       setLastSaved(new Date());
       return;
     }
@@ -308,25 +250,19 @@ export default function EntryEditor({
   useEffect(() => {
     if (type !== 'entry' || mode === 'create') return;
     const interval = setInterval(() => {
-      const editor =
-        quillRef.current?.getEditor?.() || quillRef.current;
-      const clean = editor ? stripEditorWrappers(editor.root.innerHTML) : content;
-      const currentTitle = isEditingTitle ? titleInput : title;
       onSave({
-        title: currentTitle.trim(),
-        content: clean.trim(),
+        title: title.trim(),
+        content: content.trim(),
         parent,
         mode,
         id: safeData.id,
         subgroupId: selectedSubgroupId,
         autoSave: true,
       });
-      setTitle(currentTitle);
-      setContent(clean);
       setLastSaved(new Date());
     }, 30000);
     return () => clearInterval(interval);
-  }, [type, title, content, parent, mode, safeData.id, onSave, selectedSubgroupId, isEditingTitle, titleInput]);
+  }, [type, title, content, parent, mode, safeData.id, onSave, selectedSubgroupId]);
   const renderHeading = () => {
     if (mode === 'edit') {
       if (type === 'group') return `Edit ${aliases.group}`;
@@ -479,7 +415,8 @@ export default function EntryEditor({
                 className={`editor-quill ${toolbarVisible ? '' : 'toolbar-hidden'}`}
                 theme="snow"
                 placeholder="Start writing here..."
-                onChange={(html) => setContent(stripEditorWrappers(html))}
+                value={content}
+                onChange={setContent}
                 onChangeSelection={handleSelectionChange}
                 modules={quillModules}
                 formats={quillFormats}
@@ -550,9 +487,8 @@ export default function EntryEditor({
                   onChange={(val) => {
                     setSelectedSubgroupId(val);
                     if (mode === 'edit') {
-                      const currentTitle = isEditingTitle ? titleInput : title;
                       onSave({
-                        title: currentTitle.trim(),
+                        title: title.trim(),
                         content: content.trim(),
                         parent,
                         mode,
@@ -560,7 +496,6 @@ export default function EntryEditor({
                         subgroupId: val,
                         autoSave: true,
                       });
-                      setTitle(currentTitle);
                       setLastSaved(new Date());
                     }
                   }}
