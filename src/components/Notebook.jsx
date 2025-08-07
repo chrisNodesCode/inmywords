@@ -663,16 +663,16 @@ export default function Notebook() {
 
   const toggleSubgroup = (subgroup) => {
     const isOpen = expandedSubgroups.includes(subgroup.id);
-    setExpandedSubgroups((prev) => {
-      if (isOpen) {
-        setExpandedEntries((ents) =>
-          ents.filter((id) => !subgroup.entries.some((e) => e.id === id))
-        );
-        return prev.filter((id) => id !== subgroup.id);
-      }
-      return [...prev, subgroup.id];
-    });
-    if (!isOpen) {
+    if (isOpen) {
+      setExpandedSubgroups((prev) => prev.filter((id) => id !== subgroup.id));
+      setExpandedEntries((ents) =>
+        ents.filter((id) => !subgroup.entries.some((e) => e.id === id))
+      );
+    } else {
+      setExpandedSubgroups([subgroup.id]);
+      setExpandedEntries((ents) =>
+        ents.filter((id) => subgroup.entries.some((e) => e.id === id))
+      );
       setTimeout(() => {
         subgroupRefs.current[subgroup.id]?.scrollIntoView({
           behavior: 'smooth',
