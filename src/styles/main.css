@@ -154,6 +154,10 @@ body[data-theme='dark'] .ant-drawer-close {
   margin: 5px;
 }
 
+body[data-theme='dark'] .subgroup-title {
+  background-color: #000;
+}
+
 /* arrow icons for expandable items */
 .group-title::before,
 .subgroup-title::before,
@@ -771,6 +775,12 @@ body[data-theme="dark"] .editor-modal-content {
 }
 
 body[data-theme="dark"] .editor-modal-content.fullscreen .entry-title-container {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .editor-modal-content.fullscreen .entry-title-row,
+body[data-theme="dark"] .editor-modal-content.fullscreen .export-menu,
+body[data-theme="dark"] .editor-modal-content.fullscreen .export-menu .ant-menu-submenu-title {
   background: #1f1f1f;
 }
 
