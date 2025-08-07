@@ -8,7 +8,8 @@ export default function ExportMenu({ quillRef, content }) {
 
   const copyTextOnly = async () => {
     try {
-      const editor = quillRef.current?.getEditor();
+      const editor =
+        quillRef.current?.getEditor?.() || quillRef.current;
       const text = editor ? editor.getText() : '';
       await navigator.clipboard.writeText(text.trim());
     } catch (err) {
@@ -19,7 +20,8 @@ export default function ExportMenu({ quillRef, content }) {
   const copyHtml = async () => {
     try {
       if (navigator.clipboard && navigator.clipboard.write) {
-        const editor = quillRef.current?.getEditor();
+        const editor =
+          quillRef.current?.getEditor?.() || quillRef.current;
         const text = editor ? editor.getText() : '';
         await navigator.clipboard.write([
           new ClipboardItem({
