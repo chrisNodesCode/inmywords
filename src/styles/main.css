@@ -150,12 +150,8 @@ body[data-theme='dark'] .ant-drawer-close {
 .subgroup-title {
   font-size: 1.75rem;
   font-weight: 300;
-  background-color: #fff;
+  background-color: inherit;
   margin: 5px;
-}
-
-body[data-theme='dark'] .subgroup-title {
-  background-color: #1f1f1f;
 }
 
 /* arrow icons for expandable items */
