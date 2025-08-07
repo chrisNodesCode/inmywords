@@ -140,7 +140,6 @@ body[data-theme='dark'] .ant-drawer-close {
   position: sticky;
   top: 0;
   z-index: 30;
-  scroll-margin-top: 1rem;
 }
 
 .subgroup-title {

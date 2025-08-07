@@ -90,6 +90,7 @@ export default function Notebook() {
 
   const groupRefs = useRef({});
   const subgroupRefs = useRef({});
+  const subgroupChildrenRefs = useRef({});
   const entryRefs = useRef({});
 
   const handleFullFocusToggle = async (checked) => {
@@ -631,16 +632,26 @@ export default function Notebook() {
       setExpandedEntries((ents) =>
         ents.filter((id) => !subgroup.entries.some((e) => e.id === id))
       );
+      subgroupChildrenRefs.current[subgroup.id]?.style.removeProperty('max-height');
     } else {
+      expandedSubgroups.forEach((id) => {
+        if (id !== subgroup.id) {
+          subgroupChildrenRefs.current[id]?.style.removeProperty('max-height');
+        }
+      });
       setExpandedSubgroups([subgroup.id]);
       setExpandedEntries((ents) =>
         ents.filter((id) => subgroup.entries.some((e) => e.id === id))
       );
       setTimeout(() => {
-        subgroupRefs.current[subgroup.id]?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
+        const headerEl = subgroupRefs.current[subgroup.id];
+        const childrenEl = subgroupChildrenRefs.current[subgroup.id];
+        headerEl?.scrollIntoView({ block: 'start' });
+        if (childrenEl) {
+          childrenEl.scrollTop = 0;
+          const headerHeight = headerEl?.offsetHeight || 0;
+          childrenEl.style.maxHeight = `calc(100vh - ${headerHeight}px - 2rem)`;
+        }
       }, 0);
     }
   };
@@ -989,8 +1000,10 @@ export default function Notebook() {
                                         )}
                                       </div>
                                       <div
-                                        className={`subgroup-children collapsible ${expandedSubgroups.includes(sub.id) ? 'open' : ''
-                                          }`}
+                                        className={`subgroup-children collapsible ${expandedSubgroups.includes(sub.id) ? 'open' : ''}`}
+                                        ref={(el) => {
+                                          if (el) subgroupChildrenRefs.current[sub.id] = el;
+                                        }}
                                       >
                                         <SortableContext
                                           id={sub.id}
