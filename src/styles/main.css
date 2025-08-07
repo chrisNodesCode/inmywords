@@ -641,7 +641,8 @@ body.dragging button {
 /* Add global interactive styles for clickable elements */
 .interactive,
 button {
-  transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out, margin-left 0.2s ease-in-out;
+  transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out,
+    margin-left 0.2s ease-in-out, background-color 0.2s ease-in-out;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
@@ -660,6 +661,17 @@ button:hover {
   cursor: pointer;
   transform: scale(1.02);
   filter: brightness(0.95);
+}
+
+body[data-theme='light'] .interactive:hover,
+body[data-theme='light'] button:hover {
+  background-color: #f0f0f0;
+}
+
+body[data-theme='dark'] .interactive:hover,
+body[data-theme='dark'] button:hover {
+  background-color: #262626;
+  filter: brightness(1.1);
 }
 
 .edit-button {
