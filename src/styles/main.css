@@ -125,7 +125,7 @@ body[data-theme='dark'] .ant-drawer-close {
 }
 
 .subgroup-card {
-  background-color: #ffffff;
+  /* background-color: #ffffff; */
   margin-left: 2rem;
   margin-top: 0rem;
   border: none;
@@ -134,7 +134,7 @@ body[data-theme='dark'] .ant-drawer-close {
 
 .subgroup-header {
   border-radius: 0rem;
-  padding: 2rem;
+  padding: 1rem;
   padding-left: 2rem;
   border: none;
   background-color: #fff;
@@ -148,6 +148,8 @@ body[data-theme='dark'] .ant-drawer-close {
 .subgroup-title {
   font-size: 1.75rem;
   font-weight: 300;
+  background-color: #fff;
+  margin: 5px;
 }
 
 /* arrow icons for expandable items */
@@ -170,8 +172,6 @@ body[data-theme='dark'] .ant-drawer-close {
   content: '▸';
   width: 10px !important;
 }
-
-
 
 .group-card.open .group-title::before,
 .subgroup-header.open .subgroup-title::before,
@@ -206,10 +206,10 @@ body[data-theme='dark'] .ant-drawer-close {
   top: 0;
   bottom: 0;
   left: 0;
-  border-left: 3px dashed #959b3a;
+  border-left: 10px dashed #959b3a;
 }
 
-.subgroup-card.drop-target {
+.subgroup-card.drop-target::before {
   outline: 3px dashed rgba(149, 155, 58, 0.5);
   outline-offset: -3px;
 }
@@ -231,8 +231,8 @@ body.dragging button {
   padding: 2rem;
   border: 1px solid rgba(0, 0, 0, 0.3);
   border-radius: 2rem;
-  margin-bottom: 3rem;
-  background-color: #fff;
+  margin-bottom: 0.5rem;
+  /* background-color: #fff; */
   position: relative;
 }
 
@@ -256,8 +256,8 @@ body.dragging button {
 .entry-card-content {
   font-size: 1.25rem;
   font-weight: 300;
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 
