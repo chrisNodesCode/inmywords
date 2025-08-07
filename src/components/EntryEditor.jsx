@@ -206,7 +206,6 @@ export default function EntryEditor({
     });
   };
 
-  const drawerBottomOffset = pomodoroEnabled ? 'calc(80px + 2rem)' : 0;
   const subgroupOptions = groups.flatMap((g) =>
     g.subgroups.map((s) => ({ value: s.id, label: `${g.name} / ${s.name}` }))
   );
@@ -435,14 +434,8 @@ export default function EntryEditor({
         <div
           onMouseEnter={handleDrawerMouseEnter}
           onMouseLeave={handleDrawerMouseLeave}
-          style={{
-            position: 'fixed',
-            top: 0,
-            right: 0,
-            bottom: drawerBottomOffset,
-            width: drawerWidth,
-            zIndex: 1001,
-          }}
+          className="entry-editor-drawer-wrapper"
+          style={{ width: drawerWidth }}
         >
           <Drawer
             placement="right"
