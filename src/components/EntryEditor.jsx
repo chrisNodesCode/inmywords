@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import { listPrecursors } from '../api/precursors';
-import { Switch, InputNumber, Drawer, Button } from 'antd';
+import { Switch, InputNumber, Drawer, Button, Select } from 'antd';
 import { MenuOutlined } from '@ant-design/icons';
 import PomodoroWidget from './PomodoroWidget';
 import ExportMenu from './ExportMenu';
@@ -25,6 +25,7 @@ export default function EntryEditor({
   initialData = {},
   mode = 'create',
   aliases = { group: 'Group', subgroup: 'Subgroup', entry: 'Entry' },
+  groups = [],
 }) {
   // `initialData` may explicitly be passed as `null` when creating a new item.
   // Normalize it to an empty object so property accesses do not fail.
@@ -56,6 +57,9 @@ export default function EntryEditor({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerPinned, setDrawerPinned] = useState(false);
   const drawerCloseTimeoutRef = useRef(null);
+  const [selectedSubgroupId, setSelectedSubgroupId] = useState(
+    parent?.subgroupId || ''
+  );
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -118,7 +122,11 @@ export default function EntryEditor({
     setSubgroupAlias((data.user_notebook_tree && data.user_notebook_tree[1]) || '');
     setEntryAlias((data.user_notebook_tree && data.user_notebook_tree[2]) || '');
     setSelectedPrecursor('');
-  }, [initialData?.id]);
+  }, [initialData?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setSelectedSubgroupId(parent?.subgroupId || '');
+  }, [parent?.subgroupId]);
 
   useEffect(() => {
     if (type === 'notebook' && mode === 'create') {
@@ -140,6 +148,7 @@ export default function EntryEditor({
         parent,
         mode,
         id: safeData.id,
+        subgroupId: selectedSubgroupId,
       });
       setLastSaved(new Date());
       return;
@@ -198,6 +207,9 @@ export default function EntryEditor({
   };
 
   const drawerBottomOffset = pomodoroEnabled ? 'calc(80px + 2rem)' : 0;
+  const subgroupOptions = groups.flatMap((g) =>
+    g.subgroups.map((s) => ({ value: s.id, label: `${g.name} / ${s.name}` }))
+  );
 
   const handleDrawerMouseEnter = () => {
     if (drawerCloseTimeoutRef.current) {
@@ -244,12 +256,13 @@ export default function EntryEditor({
         parent,
         mode,
         id: safeData.id,
+        subgroupId: selectedSubgroupId,
         autoSave: true,
       });
       setLastSaved(new Date());
     }, 30000);
     return () => clearInterval(interval);
-  }, [type, title, content, parent, mode, safeData.id, onSave]);
+  }, [type, title, content, parent, mode, safeData.id, onSave, selectedSubgroupId]);
   const renderHeading = () => {
     if (mode === 'edit') {
       if (type === 'group') return `Edit ${aliases.group}`;
@@ -468,6 +481,14 @@ export default function EntryEditor({
                   parser={(value) => value.replace('%', '')}
                 />
               </div>
+              {type === 'entry' && groups.length > 0 && (
+                <Select
+                  value={selectedSubgroupId}
+                  onChange={(val) => setSelectedSubgroupId(val)}
+                  options={subgroupOptions}
+                  size="small"
+                />
+              )}
               <Button type="primary" onClick={handleSave}>
                 Save
               </Button>

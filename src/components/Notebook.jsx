@@ -202,14 +202,63 @@ export default function Notebook() {
     try {
       if (editorState.type === 'entry') {
         if (editorState.mode === 'edit') {
+          const updatePayload = {
+            title: payload.title,
+            content: payload.content,
+          };
+          let targetGroupId = editorState.parent.groupId;
+          if (
+            payload.subgroupId &&
+            payload.subgroupId !== editorState.parent.subgroupId
+          ) {
+            updatePayload.subgroupId = payload.subgroupId;
+            updatePayload.user_sort = 0;
+            notebook.groups.forEach((g) => {
+              if (g.subgroups.some((s) => s.id === payload.subgroupId)) {
+                targetGroupId = g.id;
+              }
+            });
+          }
           const res = await fetch(`/api/entries/${editorState.item.id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: payload.title, content: payload.content }),
+            body: JSON.stringify(updatePayload),
           });
           if (!res.ok) throw new Error('Failed to update entry');
           const updated = await res.json();
           setNotebook((prev) => {
+            if (
+              payload.subgroupId &&
+              payload.subgroupId !== editorState.parent.subgroupId
+            ) {
+              let groups = prev.groups.map((g) => {
+                if (g.id === editorState.parent.groupId) {
+                  return {
+                    ...g,
+                    subgroups: g.subgroups.map((s) =>
+                      s.id === editorState.parent.subgroupId
+                        ? { ...s, entries: s.entries.filter((e) => e.id !== updated.id) }
+                        : s
+                    ),
+                  };
+                }
+                return g;
+              });
+              groups = groups.map((g) => {
+                if (g.id === targetGroupId) {
+                  return {
+                    ...g,
+                    subgroups: g.subgroups.map((s) =>
+                      s.id === payload.subgroupId
+                        ? { ...s, entries: [updated, ...s.entries] }
+                        : s
+                    ),
+                  };
+                }
+                return g;
+              });
+              return { ...prev, groups };
+            }
             const groups = prev.groups.map((g) => {
               if (g.id !== editorState.parent.groupId) return g;
               return {
@@ -225,6 +274,19 @@ export default function Notebook() {
             });
             return { ...prev, groups };
           });
+          if (
+            payload.subgroupId &&
+            payload.subgroupId !== editorState.parent.subgroupId
+          ) {
+            setEditorState((prev) => ({
+              ...prev,
+              parent: {
+                ...prev.parent,
+                subgroupId: payload.subgroupId,
+                groupId: targetGroupId,
+              },
+            }));
+          }
         } else {
           const res = await fetch('/api/entries', {
             method: 'POST',
@@ -232,26 +294,48 @@ export default function Notebook() {
             body: JSON.stringify({
               title: payload.title,
               content: payload.content,
-              subgroupId: editorState.parent.subgroupId,
+              subgroupId: payload.subgroupId || editorState.parent.subgroupId,
             }),
           });
           if (!res.ok) throw new Error('Failed to create entry');
           const newEntry = await res.json();
+          const targetSubgroupId =
+            payload.subgroupId || editorState.parent.subgroupId;
+          let targetGroupId = editorState.parent.groupId;
+          notebook.groups.forEach((g) => {
+            if (g.subgroups.some((s) => s.id === targetSubgroupId)) {
+              targetGroupId = g.id;
+            }
+          });
           setNotebook((prev) => {
             const groups = prev.groups.map((g) => {
-              if (g.id !== editorState.parent.groupId) return g;
+              if (g.id !== targetGroupId) return g;
               return {
                 ...g,
                 subgroups: g.subgroups.map((s) => {
-                  if (s.id !== editorState.parent.subgroupId) return s;
+                  if (s.id !== targetSubgroupId) return s;
                   const entries = [...s.entries];
-                  entries.splice(editorState.index + 1, 0, { ...newEntry, tags: [] });
+                  if (targetSubgroupId === editorState.parent.subgroupId) {
+                    entries.splice(editorState.index + 1, 0, { ...newEntry, tags: [] });
+                  } else {
+                    entries.unshift({ ...newEntry, tags: [] });
+                  }
                   return { ...s, entries };
                 }),
               };
             });
             return { ...prev, groups };
           });
+          if (payload.subgroupId && payload.subgroupId !== editorState.parent.subgroupId) {
+            setEditorState((prev) => ({
+              ...prev,
+              parent: {
+                ...prev.parent,
+                subgroupId: payload.subgroupId,
+                groupId: targetGroupId,
+              },
+            }));
+          }
         }
       } else if (editorState.type === 'subgroup') {
         if (editorState.mode === 'edit') {
@@ -416,9 +500,20 @@ export default function Notebook() {
     item = null,
     mode = 'create',
     onDelete = null,
-    onArchive = null
+    onArchive = null,
+    extra = {}
   ) => {
-    setEditorState({ isOpen: true, type, parent, index, item, mode, onDelete, onArchive });
+    setEditorState({
+      isOpen: true,
+      type,
+      parent,
+      index,
+      item,
+      mode,
+      onDelete,
+      onArchive,
+      ...extra,
+    });
   };
 
   const handleGroupReorder = (activeId, overId) => {
@@ -465,88 +560,33 @@ export default function Notebook() {
     });
   };
 
-  const handleEntryMove = ({ active, over }) => {
-    if (!over) return;
-    const activeData = active.data.current;
-    const overData = over.data.current;
-    if (!activeData || activeData.type !== 'entry') return;
-    const sourceGroupId = activeData.groupId;
-    const sourceSubgroupId = activeData.subgroupId;
-    let targetGroupId;
-    let targetSubgroupId;
-
+  const handleEntryReorder = (groupId, subgroupId, activeId, overId) => {
+    if (activeId === overId) return;
     setNotebook((prev) => {
-      let movedEntry = null;
       const groups = prev.groups.map((g) => {
-        if (g.id === sourceGroupId) {
-          return {
-            ...g,
-            subgroups: g.subgroups.map((s) => {
-              if (s.id !== sourceSubgroupId) return s;
-              const remaining = [];
-              s.entries.forEach((e, idx) => {
-                if (e.id === active.id) {
-                  movedEntry = { ...e };
-                } else {
-                  remaining.push({ ...e, user_sort: idx });
-                }
-              });
-              fetch('/api/entries/reorder', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  orders: remaining.map((e, idx) => ({ id: e.id, user_sort: idx })),
-                }),
-              }).catch((err) => console.error(err));
-              return { ...s, entries: remaining };
-            }),
-          };
-        }
-        return g;
-      });
-      if (!movedEntry) return prev;
-
-      if (overData?.type === 'entry') {
-        targetGroupId = overData.groupId;
-        targetSubgroupId = overData.subgroupId;
-      } else if (overData?.type === 'subgroup') {
-        targetGroupId = overData.groupId;
-        targetSubgroupId = over.id;
-      } else {
-        return prev;
-      }
-
-      const updatedGroups = groups.map((g) => {
-        if (g.id !== targetGroupId) return g;
+        if (g.id !== groupId) return g;
         return {
           ...g,
           subgroups: g.subgroups.map((s) => {
-            if (s.id !== targetSubgroupId) return s;
-            const entries = [
-              { ...movedEntry, subgroupId: targetSubgroupId, user_sort: 0 },
-              ...s.entries,
-            ];
-            fetch(`/api/entries/${movedEntry.id}`, {
-              method: 'PUT',
+            if (s.id !== subgroupId) return s;
+            const oldIndex = s.entries.findIndex((e) => e.id === activeId);
+            const newIndex = s.entries.findIndex((e) => e.id === overId);
+            const entries = arrayMove(s.entries, oldIndex, newIndex).map(
+              (e, idx) => ({ ...e, user_sort: idx })
+            );
+            fetch('/api/entries/reorder', {
+              method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ subgroupId: targetSubgroupId, user_sort: 0 }),
+              body: JSON.stringify({
+                orders: entries.map((e, idx) => ({ id: e.id, user_sort: idx })),
+              }),
             }).catch((err) => console.error(err));
             return { ...s, entries };
           }),
         };
       });
-      return { ...prev, groups: updatedGroups };
+      return { ...prev, groups };
     });
-    if (targetGroupId) {
-      setExpandedGroups((prev) =>
-        prev.includes(targetGroupId) ? prev : [...prev, targetGroupId]
-      );
-    }
-    if (targetSubgroupId) {
-      setExpandedSubgroups((prev) =>
-        prev.includes(targetSubgroupId) ? prev : [...prev, targetSubgroupId]
-      );
-    }
   };
 
   const handleDragStart = (event) => {
@@ -554,31 +594,8 @@ export default function Notebook() {
     setActiveDrag(event.active.data.current);
   };
 
-  const handleDragOver = ({ active, over }) => {
-    const activeData = active.data.current;
-    const overData = over?.data.current;
-    if (activeData?.type === 'entry') {
-      if (overData?.type === 'group') {
-        if (!expandedGroups.includes(over.id)) {
-          setExpandedGroups((prev) => [...prev, over.id]);
-        }
-        setHoveredSubgroup(null);
-      } else if (overData?.type === 'subgroup') {
-        if (!expandedGroups.includes(overData.groupId)) {
-          setExpandedGroups((prev) => [...prev, overData.groupId]);
-        }
-        setHoveredSubgroup(over.id);
-      } else if (overData?.type === 'entry') {
-        if (!expandedGroups.includes(overData.groupId)) {
-          setExpandedGroups((prev) => [...prev, overData.groupId]);
-        }
-        setHoveredSubgroup(overData.subgroupId);
-      } else {
-        setHoveredSubgroup(null);
-      }
-    } else {
-      setHoveredSubgroup(null);
-    }
+  const handleDragOver = () => {
+    setHoveredSubgroup(null);
   };
 
   const handleDragEnd = (event) => {
@@ -593,10 +610,18 @@ export default function Notebook() {
     const overData = over.data.current;
     if (activeData?.type === 'group' && overData?.type === 'group') {
       handleGroupReorder(active.id, over.id);
-    } else if (activeData?.type === 'subgroup' && overData?.type === 'subgroup' && activeData.groupId === overData.groupId) {
+    } else if (
+      activeData?.type === 'subgroup' &&
+      overData?.type === 'subgroup' &&
+      activeData.groupId === overData.groupId
+    ) {
       handleSubgroupReorder(activeData.groupId, active.id, over.id);
-    } else if (activeData?.type === 'entry') {
-      handleEntryMove(event);
+    } else if (
+      activeData?.type === 'entry' &&
+      overData?.type === 'entry' &&
+      activeData.subgroupId === overData.subgroupId
+    ) {
+      handleEntryReorder(activeData.groupId, activeData.subgroupId, active.id, over.id);
     }
     setActiveDrag(null);
     setHoveredSubgroup(null);
@@ -1067,7 +1092,8 @@ export default function Notebook() {
                                                                   sub.id,
                                                                   entry.id,
                                                                   !entry.archived
-                                                                )
+                                                                ),
+                                                              { groups: notebook.groups }
                                                             );
                                                           } else {
                                                             toggleEntry(entry.id);
@@ -1162,30 +1188,31 @@ export default function Notebook() {
                                                           <button
                                                             onClick={(e) => {
                                                               e.stopPropagation();
-                                                              openEditor(
-                                                                'entry',
-                                                                {
-                                                                  subgroupId: sub.id,
-                                                                  groupId: group.id,
-                                                                  entryId: entry.id,
-                                                                },
-                                                                null,
-                                                                entry,
-                                                                'edit',
-                                                                () =>
-                                                                  handleDeleteEntry(group.id, sub.id, entry.id),
-                                                                () =>
-                                                                  handleToggleArchiveEntry(
-                                                                    group.id,
-                                                                    sub.id,
-                                                                    entry.id,
-                                                                    !entry.archived
-                                                                  )
-                                                              );
-                                                            }}
-                                                          >
-                                                            Edit
-                                                          </button>
+                                                            openEditor(
+                                                              'entry',
+                                                              {
+                                                                subgroupId: sub.id,
+                                                                groupId: group.id,
+                                                                entryId: entry.id,
+                                                              },
+                                                              null,
+                                                              entry,
+                                                              'edit',
+                                                              () =>
+                                                                handleDeleteEntry(group.id, sub.id, entry.id),
+                                                              () =>
+                                                                handleToggleArchiveEntry(
+                                                                  group.id,
+                                                                  sub.id,
+                                                                  entry.id,
+                                                                  !entry.archived
+                                                                ),
+                                                              { groups: notebook.groups }
+                                                            );
+                                                          }}
+                                                        >
+                                                          Edit
+                                                        </button>
                                                           <button
                                                             onClick={(e) => {
                                                               e.stopPropagation();
@@ -1227,7 +1254,12 @@ export default function Notebook() {
                                                       groupId: group.id,
                                                       label: `${aliases.subgroup}: ${sub.name}`,
                                                     },
-                                                    sub.entries.length - 1
+                                                    sub.entries.length - 1,
+                                                    null,
+                                                    'create',
+                                                    null,
+                                                    null,
+                                                    { groups: notebook.groups }
                                                   );
                                                 }}
                                               >
