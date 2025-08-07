@@ -484,7 +484,21 @@ export default function EntryEditor({
               {type === 'entry' && groups.length > 0 && (
                 <Select
                   value={selectedSubgroupId}
-                  onChange={(val) => setSelectedSubgroupId(val)}
+                  onChange={(val) => {
+                    setSelectedSubgroupId(val);
+                    if (mode === 'edit') {
+                      onSave({
+                        title: title.trim(),
+                        content: content.trim(),
+                        parent,
+                        mode,
+                        id: safeData.id,
+                        subgroupId: val,
+                        autoSave: true,
+                      });
+                      setLastSaved(new Date());
+                    }
+                  }}
                   options={subgroupOptions}
                   size="small"
                 />

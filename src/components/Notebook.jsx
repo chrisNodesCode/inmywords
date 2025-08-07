@@ -1328,6 +1328,7 @@ export default function Notebook() {
           initialData={editorState.item}
           mode={editorState.mode}
           aliases={aliases}
+          groups={editorState.groups || []}
         />
       )}
     </div>
