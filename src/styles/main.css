@@ -187,6 +187,7 @@ body[data-theme='dark'] .ant-drawer-close {
   background-color: #fff;
   margin-top: 2rem;
   margin-left: 2rem;
+  margin-bottom: 0rem;
   max-width: 90%;
   scroll-margin-top: 1rem;
   position: relative;
@@ -233,7 +234,7 @@ body.dragging button {
   padding: 2rem;
   border: 1px solid rgba(0, 0, 0, 0.3);
   border-radius: 2rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
   /* background-color: #fff; */
   position: relative;
 }
@@ -271,12 +272,12 @@ body.dragging button {
 .add-entry {
   border-radius: 2rem;
   background-color: #fff;
-  margin-top: 1rem;
+  margin-top: 0rem;
   border: none;
   justify-content: flex-end;
   padding: 2rem;
   margin-left: 2rem;
-  margin-top: 2rem;
+  margin-bottom: 1rem;
   color: #9b9b9b;
 }
 
@@ -650,7 +651,7 @@ button {
   transform: scale(1.02);
   filter: brightness(0.95);
   margin-left: 0.5rem;
-  max-width: 96%;
+  max-width: 100%;
 }
 
 button:hover {
@@ -870,25 +871,31 @@ body[data-theme='dark'] .ql-toolbar .ql-picker-options {
   border: none;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
+
 .ant-btn.drawer-btn-save {
   background-color: #000;
   color: #fff;
 }
+
 .ant-btn.drawer-btn-save:hover {
   background-color: #333;
 }
+
 .ant-btn.drawer-btn-delete {
   background-color: #555;
   color: #fff;
 }
+
 .ant-btn.drawer-btn-delete:hover {
   background-color: #666;
 }
+
 .ant-btn.drawer-btn-archive,
 .ant-btn.drawer-btn-cancel {
   background-color: #e6e6e6;
   color: #000;
 }
+
 .ant-btn.drawer-btn-archive:hover,
 .ant-btn.drawer-btn-cancel:hover {
   background-color: #ccc;
@@ -898,21 +905,26 @@ body[data-theme='dark'] .ant-btn.drawer-btn-save {
   background-color: #fff;
   color: #000;
 }
+
 body[data-theme='dark'] .ant-btn.drawer-btn-save:hover {
   background-color: #e0e0e0;
 }
+
 body[data-theme='dark'] .ant-btn.drawer-btn-delete {
   background-color: #888;
   color: #000;
 }
+
 body[data-theme='dark'] .ant-btn.drawer-btn-delete:hover {
   background-color: #777;
 }
+
 body[data-theme='dark'] .ant-btn.drawer-btn-archive,
 body[data-theme='dark'] .ant-btn.drawer-btn-cancel {
   background-color: #333;
   color: #fff;
 }
+
 body[data-theme='dark'] .ant-btn.drawer-btn-archive:hover,
 body[data-theme='dark'] .ant-btn.drawer-btn-cancel:hover {
   background-color: #444;
@@ -922,21 +934,27 @@ body[data-theme='dark'] .ant-btn.drawer-btn-cancel:hover {
 .ant-switch {
   background-color: #bfbfbf;
 }
+
 .ant-switch:hover {
   background-color: #a6a6a6;
 }
+
 .ant-switch-checked {
   background-color: #595959;
 }
+
 .ant-switch-checked:hover {
   background-color: #434343;
 }
+
 .ant-switch .ant-switch-handle::before {
   background-color: #fff;
 }
+
 .ant-switch .ant-switch-inner .ant-switch-inner-unchecked {
   color: #000;
 }
+
 .ant-switch-checked .ant-switch-inner .ant-switch-inner-checked {
   color: #fff;
 }
@@ -944,24 +962,31 @@ body[data-theme='dark'] .ant-btn.drawer-btn-cancel:hover {
 body[data-theme='dark'] .ant-switch {
   background-color: #333;
 }
+
 body[data-theme='dark'] .ant-switch:hover {
   background-color: #404040;
 }
+
 body[data-theme='dark'] .ant-switch-checked {
   background-color: #d9d9d9;
 }
+
 body[data-theme='dark'] .ant-switch-checked:hover {
   background-color: #f0f0f0;
 }
+
 body[data-theme='dark'] .ant-switch .ant-switch-handle::before {
   background-color: #fff;
 }
+
 body[data-theme='dark'] .ant-switch-checked .ant-switch-handle::before {
   background-color: #000;
 }
+
 body[data-theme='dark'] .ant-switch .ant-switch-inner .ant-switch-inner-unchecked {
   color: #fff;
 }
+
 body[data-theme='dark'] .ant-switch-checked .ant-switch-inner .ant-switch-inner-checked {
   color: #000;
 }
