@@ -113,10 +113,6 @@ body[data-theme='dark'] .ant-drawer-close {
   justify-content: flex-end;
   padding: 2rem;
   margin-bottom: 0rem;
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  transition: transform 0.15s ease, opacity 0.15s ease;
   scroll-margin-top: 1rem;
 }
 
@@ -144,7 +140,6 @@ body[data-theme='dark'] .ant-drawer-close {
   position: sticky;
   top: 0;
   z-index: 30;
-  scroll-margin-top: 1rem;
 }
 
 .subgroup-title {
@@ -824,10 +819,6 @@ body[data-theme='light'] .navbar {
   background-color: #fff;
 }
 
-.fade-out {
-  transform: translateY(-100%);
-  opacity: 0;
-}
 
 /* smooth expand/collapse */
 .collapsible {

@@ -90,9 +90,8 @@ export default function Notebook() {
 
   const groupRefs = useRef({});
   const subgroupRefs = useRef({});
+  const subgroupChildrenRefs = useRef({});
   const entryRefs = useRef({});
-  const [activeGroup, setActiveGroup] = useState(null);
-  const [activeSubgroup, setActiveSubgroup] = useState(null);
 
   const handleFullFocusToggle = async (checked) => {
     setFullFocusEnabled(checked);
@@ -131,42 +130,6 @@ export default function Notebook() {
           })),
       })),
   });
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!notebook) return;
-      let newSub = null;
-      let newGroup = null;
-      for (const g of notebook.groups) {
-        const gRef = groupRefs.current[g.id];
-        if (gRef) {
-          const rect = gRef.getBoundingClientRect();
-          if (rect.top <= 0 && rect.bottom >= 0) {
-            newGroup = g.id;
-          }
-        }
-        if (expandedGroups.includes(g.id)) {
-          for (const s of g.subgroups) {
-            if (!expandedSubgroups.includes(s.id)) continue;
-            const sRef = subgroupRefs.current[s.id];
-            if (!sRef) continue;
-            const sRect = sRef.getBoundingClientRect();
-            if (sRect.top <= 0 && sRect.bottom >= 0) {
-              newSub = s.id;
-              newGroup = g.id;
-              break;
-            }
-          }
-        }
-        if (newSub) break;
-      }
-      setActiveSubgroup(newSub);
-      setActiveGroup(newGroup);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [notebook, expandedGroups, expandedSubgroups]);
 
   const loadNotebook = async (id) => {
     setLoading(true);
@@ -669,16 +632,26 @@ export default function Notebook() {
       setExpandedEntries((ents) =>
         ents.filter((id) => !subgroup.entries.some((e) => e.id === id))
       );
+      subgroupChildrenRefs.current[subgroup.id]?.style.removeProperty('max-height');
     } else {
+      expandedSubgroups.forEach((id) => {
+        if (id !== subgroup.id) {
+          subgroupChildrenRefs.current[id]?.style.removeProperty('max-height');
+        }
+      });
       setExpandedSubgroups([subgroup.id]);
       setExpandedEntries((ents) =>
         ents.filter((id) => subgroup.entries.some((e) => e.id === id))
       );
       setTimeout(() => {
-        subgroupRefs.current[subgroup.id]?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
+        const headerEl = subgroupRefs.current[subgroup.id];
+        const childrenEl = subgroupChildrenRefs.current[subgroup.id];
+        headerEl?.scrollIntoView({ block: 'start' });
+        if (childrenEl) {
+          childrenEl.scrollTop = 0;
+          const headerHeight = headerEl?.offsetHeight || 0;
+          childrenEl.style.maxHeight = `calc(100vh - ${headerHeight}px - 2rem)`;
+        }
       }, 0);
     }
   };
@@ -922,8 +895,7 @@ export default function Notebook() {
                             if (el) groupRefs.current[group.id] = el;
                           }}
                           data-group-id={group.id}
-                          className={`group-header interactive ${activeSubgroup && activeGroup === group.id ? 'fade-out' : ''
-                            }`}
+                          className="group-header interactive"
                           {...(groupsReorderable ? attributes : {})}
                           {...(groupsReorderable ? listeners : {})}
                           role="button"
@@ -1028,8 +1000,10 @@ export default function Notebook() {
                                         )}
                                       </div>
                                       <div
-                                        className={`subgroup-children collapsible ${expandedSubgroups.includes(sub.id) ? 'open' : ''
-                                          }`}
+                                        className={`subgroup-children collapsible ${expandedSubgroups.includes(sub.id) ? 'open' : ''}`}
+                                        ref={(el) => {
+                                          if (el) subgroupChildrenRefs.current[sub.id] = el;
+                                        }}
                                       >
                                         <SortableContext
                                           id={sub.id}
