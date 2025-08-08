@@ -105,6 +105,14 @@ export default function Account() {
         <p>Tags: {stats.tags}</p>
       </div>
 
+      <div style={{ marginBottom: '2rem' }}>
+        <h3>Subscription</h3>
+        <p>Current plan: Free</p>
+        <Button type="primary" href="/pricing">
+          Upgrade
+        </Button>
+      </div>
+
       <div
         style={{
           display: 'flex',
