@@ -28,7 +28,7 @@ export default function LandingPage() {
         <nav>
           <ul style={{ display: 'flex', listStyle: 'none', gap: '1.5rem', margin: 0, padding: 0 }}>
             <li><a href="#">Features</a></li>
-            <li><a href="#">Pricing</a></li>
+            <li><a href="/pricing">Pricing</a></li>
             <li><a href="#">About</a></li>
           </ul>
         </nav>
