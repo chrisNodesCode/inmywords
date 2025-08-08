@@ -690,7 +690,7 @@ export default function Notebook() {
         group.subgroups.forEach((s) => {
           const el = subgroupChildrenRefs.current[s.id];
           el?.style.removeProperty('max-height');
-          el?.style.removeProperty('min-height');
+          el?.style.removeProperty('height');
         });
         return prev.filter((id) => id !== group.id);
       }
@@ -715,13 +715,13 @@ export default function Notebook() {
       );
       const el = subgroupChildrenRefs.current[subgroup.id];
       el?.style.removeProperty('max-height');
-      el?.style.removeProperty('min-height');
+      el?.style.removeProperty('height');
     } else {
       expandedSubgroups.forEach((id) => {
         if (id !== subgroup.id) {
           const otherEl = subgroupChildrenRefs.current[id];
           otherEl?.style.removeProperty('max-height');
-          otherEl?.style.removeProperty('min-height');
+          otherEl?.style.removeProperty('height');
         }
       });
       setExpandedSubgroups([subgroup.id]);
@@ -737,7 +737,7 @@ export default function Notebook() {
           const headerHeight = headerEl?.offsetHeight || 0;
           const available = window.innerHeight - headerHeight;
           childrenEl.style.maxHeight = `${available}px`;
-          childrenEl.style.minHeight = `${available}px`;
+          childrenEl.style.height = `${available}px`;
         }
       }, 0);
     }

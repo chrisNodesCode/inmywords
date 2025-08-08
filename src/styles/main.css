@@ -295,6 +295,19 @@ body.dragging button {
   margin-bottom: 6rem;
 }
 
+/* Ensure open subgroup contents take full height and keep add-entry button visible */
+.subgroup-children.collapsible.open {
+  display: flex;
+  flex-direction: column;
+}
+
+.subgroup-children.collapsible.open .add-entry {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  z-index: 20;
+}
+
 
 
 .editor-modal-overlay {
