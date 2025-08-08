@@ -687,6 +687,11 @@ export default function Notebook() {
               !group.subgroups.some((s) => s.entries.some((e) => e.id === id))
           )
         );
+        group.subgroups.forEach((s) => {
+          const el = subgroupChildrenRefs.current[s.id];
+          el?.style.removeProperty('max-height');
+          el?.style.removeProperty('min-height');
+        });
         return prev.filter((id) => id !== group.id);
       }
       return [...prev, group.id];
@@ -708,11 +713,15 @@ export default function Notebook() {
       setExpandedEntries((ents) =>
         ents.filter((id) => !subgroup.entries.some((e) => e.id === id))
       );
-      subgroupChildrenRefs.current[subgroup.id]?.style.removeProperty('max-height');
+      const el = subgroupChildrenRefs.current[subgroup.id];
+      el?.style.removeProperty('max-height');
+      el?.style.removeProperty('min-height');
     } else {
       expandedSubgroups.forEach((id) => {
         if (id !== subgroup.id) {
-          subgroupChildrenRefs.current[id]?.style.removeProperty('max-height');
+          const otherEl = subgroupChildrenRefs.current[id];
+          otherEl?.style.removeProperty('max-height');
+          otherEl?.style.removeProperty('min-height');
         }
       });
       setExpandedSubgroups([subgroup.id]);
@@ -726,7 +735,9 @@ export default function Notebook() {
         if (childrenEl) {
           childrenEl.scrollTop = 0;
           const headerHeight = headerEl?.offsetHeight || 0;
-          childrenEl.style.maxHeight = `calc(100vh - ${headerHeight}px - 2rem)`;
+          const available = window.innerHeight - headerHeight;
+          childrenEl.style.maxHeight = `${available}px`;
+          childrenEl.style.minHeight = `${available}px`;
         }
       }, 0);
     }

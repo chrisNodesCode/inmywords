@@ -874,7 +874,8 @@ body[data-theme='light'] .navbar {
 
 .collapsible.open {
   max-height: 85vh;
-  overflow: scroll;
+  overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: none;
 }
 
