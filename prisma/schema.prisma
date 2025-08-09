@@ -15,6 +15,8 @@ model User {
   email        String       @unique
   passwordHash String?
   googleId     String?      @unique
+  stripeCustomerId String?
+  subscriptionPlan String?
   notebooks    Notebook[]   // User → Notebooks
   entries      Entry[]      // Quick access to user-owned entries
   preference   Preference?  // One-to-one user preference
