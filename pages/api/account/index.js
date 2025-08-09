@@ -1,10 +1,14 @@
+/* eslint-env node */
+/* global process */
 // pages/api/account/index.js
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import Stripe from 'stripe';
 
 const prisma = new PrismaClient();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -17,7 +21,13 @@ export default async function handler(req, res) {
       try {
         const user = await prisma.user.findUnique({
           where: { id: userId },
-          select: { username: true, email: true, createdAt: true },
+          select: {
+            username: true,
+            email: true,
+            createdAt: true,
+            stripeCustomerId: true,
+            subscriptionPlan: true,
+          },
         });
         const [notebooks, groups, subgroups, entries, tags] = await Promise.all([
           prisma.notebook.count({ where: { userId } }),
@@ -26,11 +36,43 @@ export default async function handler(req, res) {
           prisma.entry.count({ where: { userId } }),
           prisma.tag.count({ where: { notebook: { userId } } }),
         ]);
+        let renewalDate = null;
+        let manageUrl = null;
+        if (user.stripeCustomerId) {
+          try {
+            const subs = await stripe.subscriptions.list({
+              customer: user.stripeCustomerId,
+              limit: 1,
+            });
+            const sub = subs.data[0];
+            if (sub) {
+              renewalDate = sub.current_period_end
+                ? new Date(sub.current_period_end * 1000).toISOString()
+                : null;
+              const portal = await stripe.billingPortal.sessions.create({
+                customer: user.stripeCustomerId,
+                return_url:
+                  process.env.STRIPE_PORTAL_RETURN_URL ||
+                  process.env.STRIPE_SUCCESS_URL ||
+                  process.env.NEXTAUTH_URL ||
+                  'http://localhost:3000/account',
+              });
+              manageUrl = portal.url;
+            }
+          } catch (err) {
+            console.error('Failed to fetch Stripe subscription', err);
+          }
+        }
         return res.status(200).json({
           username: user.username,
           email: user.email,
           createdAt: user.createdAt,
           stats: { notebooks, groups, subgroups, entries, tags },
+          subscription: {
+            plan: user.subscriptionPlan || 'free',
+            renewalDate,
+            manageUrl,
+          },
         });
       } catch (error) {
         console.error('GET /api/account error', error);

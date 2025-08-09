@@ -17,9 +17,13 @@ export default function Account() {
     entries: 0,
     tags: 0,
   });
+  const [subscription, setSubscription] = useState(null);
+  const [subLoading, setSubLoading] = useState(true);
+  const [subError, setSubError] = useState(null);
 
   useEffect(() => {
     async function fetchAccount() {
+      setSubLoading(true);
       try {
         const res = await fetch('/api/account');
         if (!res.ok) throw new Error('Failed to load account');
@@ -34,8 +38,12 @@ export default function Account() {
           entries: data.stats.entries,
           tags: data.stats.tags,
         });
+        setSubscription(data.subscription);
       } catch (err) {
         console.error(err);
+        setSubError('Failed to load subscription');
+      } finally {
+        setSubLoading(false);
       }
     }
     fetchAccount();
@@ -107,10 +115,30 @@ export default function Account() {
 
       <div style={{ marginBottom: '2rem' }}>
         <h3>Subscription</h3>
-        <p>Current plan: Free</p>
-        <Button type="primary" href="/pricing">
-          Upgrade
-        </Button>
+        {subLoading ? (
+          <p>Loading subscription...</p>
+        ) : subError ? (
+          <p>{subError}</p>
+        ) : (
+          <>
+            <p>Current plan: {subscription?.plan ?? 'Free'}</p>
+            {subscription?.renewalDate && (
+              <p>
+                Renews on{' '}
+                {new Date(subscription.renewalDate).toLocaleDateString()}
+              </p>
+            )}
+            {subscription?.manageUrl ? (
+              <Button type="primary" href={subscription.manageUrl}>
+                Manage Subscription
+              </Button>
+            ) : (
+              <Button type="primary" href="/pricing">
+                Upgrade
+              </Button>
+            )}
+          </>
+        )}
       </div>
 
       <div
