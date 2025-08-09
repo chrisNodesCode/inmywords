@@ -6,6 +6,7 @@ const withTM = require('next-transpile-modules')([
   '@ant-design/colors',
   '@ant-design/cssinjs',
   'rc-util',
+  'rc-tree',
 ]);
 
 /** @type {import('next').NextConfig} */
