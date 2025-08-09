@@ -34,6 +34,7 @@
     "react-router-dom": "^7.6.3",
     "react-timer-hook": "^4.0.5",
     "react-transition-group": "^4.4.5",
+    "stripe": "^18.4.0",
     "swr": "^2.3.4",
     "turndown": "^7.2.0"
   },
