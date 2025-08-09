@@ -7,11 +7,6 @@ import { authOptions } from '../auth/[...nextauth]';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-const PRICES = {
-  standard: process.env.STRIPE_PRICE_STANDARD,
-  pro: process.env.STRIPE_PRICE_PRO,
-};
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -22,14 +17,14 @@ export default async function handler(req, res) {
     const session = await getServerSession(req, res, authOptions);
     if (!session) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { plan } = req.body;
-    if (!plan || !PRICES[plan]) {
-      return res.status(400).json({ error: 'Invalid plan selected' });
+    const { priceId } = req.body;
+    if (!priceId) {
+      return res.status(400).json({ error: 'Invalid price ID' });
     }
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      line_items: [{ price: PRICES[plan], quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: process.env.STRIPE_SUCCESS_URL,
       cancel_url: process.env.STRIPE_CANCEL_URL,
       customer: session.user.stripeCustomerId,
