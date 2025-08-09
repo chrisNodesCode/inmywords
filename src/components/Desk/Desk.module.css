@@ -1,0 +1,67 @@
+.root {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  min-height: 100vh;
+  background: var(--ant-colorBgBase);
+  color: var(--ant-colorText);
+}
+
+/* Top bar (Menu) */
+.menuBar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: saturate(120%) blur(6px);
+  background: color-mix(in oklab, var(--ant-colorBgContainer) 86%, transparent);
+  border-bottom: 1px solid var(--ant-colorBorder);
+}
+
+.menuInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+/* Content area: Tree | Editor */
+.content {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
+  padding: 12px;
+}
+
+.treePane {
+  overflow: hidden;
+}
+
+.editorPane {
+  min-width: 0;
+  /* allow editor to shrink without overflow */
+}
+
+/* Responsive: collapse tree on narrow screens */
+@media (max-width: 900px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .treePane {
+    order: 2;
+  }
+
+  .editorPane {
+    order: 1;
+  }
+}
+
+/* Optional utility to hide the tree (can be toggled via prop) */
+.hideTree .content {
+  grid-template-columns: 1fr;
+}
+
+.hideTree .treePane {
+  display: none;
+}

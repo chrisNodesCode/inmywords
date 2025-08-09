@@ -54,19 +54,20 @@ export default function ThemeProvider({ children }) {
 
   const switchTokens = darkMode
     ? {
-        handleBg: '#fff',
-        colorPrimary: '#d9d9d9',
-        colorPrimaryHover: '#f0f0f0',
-      }
+      handleBg: '#fff',
+      colorPrimary: '#d9d9d9',
+      colorPrimaryHover: '#f0f0f0',
+    }
     : {
-        handleBg: '#fff',
-        colorPrimary: '#595959',
-        colorPrimaryHover: '#434343',
-      };
+      handleBg: '#fff',
+      colorPrimary: '#595959',
+      colorPrimaryHover: '#434343',
+    };
 
   return (
     <ConfigProvider
       theme={{
+        cssVar: true,
         token: {
           fontFamily: "'IBM Plex Mono', 'Cutive Mono', monospace",
           ...tokens,
@@ -76,6 +77,15 @@ export default function ThemeProvider({ children }) {
           Drawer: {
             colorBgElevated: tokens.colorBgContainer,
             colorText: tokens.colorText,
+          },
+          Tree: {
+            // Centralized Tree tokens (baseline light/dark via `tokens` above)
+            indentSize: 20,
+            titleHeight: 36,
+            nodeHoverBg: darkMode ? '#262626' : 'rgba(0,0,0,0.04)',
+            nodeSelectedBg: darkMode ? '#333333' : '#e6e6e6',
+            directoryNodeSelectedBg: darkMode ? '#333333' : '#e6e6e6',
+            fontSize: 16,
           },
         },
       }}

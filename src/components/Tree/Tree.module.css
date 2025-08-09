@@ -1,0 +1,38 @@
+.root {
+  padding: 1rem;
+  background: var(--ant-colorBgContainer);
+  border: 1px solid var(--ant-colorBorder);
+  border-radius: 12px;
+}
+
+/* Low-specificity overrides that play nice with AntD v5 */
+.root :where(.ant-tree) .ant-tree-node-content-wrapper {
+  border-radius: 12px;
+  transition: background var(--ant-motion-duration-mid) ease;
+}
+
+.root :where(.ant-tree) .ant-tree-title {
+  font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
+}
+
+/* Hover + selected states mapped to theme vars */
+.root :where(.ant-tree) .ant-tree-node-content-wrapper:hover {
+  background: var(--ant-controlItemBgHover);
+}
+
+.root :where(.ant-tree) .ant-tree-node-selected .ant-tree-node-content-wrapper {
+  background: var(--ant-controlItemBgActive);
+}
+
+/* Optional: pill-style selection (apply via wrapper class .pillSelected) */
+.pillSelected :where(.ant-tree) .ant-tree-node-selected .ant-tree-node-content-wrapper {
+  border-radius: 999px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Optional: dashed accent for open nodes (apply via wrapper class .dashedOpen) */
+.dashedOpen :where(.ant-tree) .ant-tree-switcher_open+.ant-tree-node-content-wrapper {
+  outline: 1px dashed color-mix(in oklab, var(--ant-colorText) 25%, transparent);
+  outline-offset: 3px;
+}

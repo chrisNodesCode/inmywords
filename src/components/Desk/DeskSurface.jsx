@@ -1,22 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { Tree, ConfigProvider } from 'antd';
-import NotebookController from './NotebookController';
-import EntryEditor from './EntryEditor';
-import Link from 'next/link';
+
+
+import React, { useEffect, useState } from 'react';
+import classNames from 'classnames';
+import styles from './Desk.module.css';
+
+// Core children, centralized
+import NotebookTree from '@/components/Tree/NotebookTree';
+import NotebookMenu from '@/components/Menu/Menu';
+import NotebookEditor from '@/components/Editor/NotebookEditor';
+
+// Temporary: use existing editor until we refactor Editor later
+import EntryEditor from '@/components/EntryEditor';
 
 function updateTreeData(list, key, children) {
   return list.map((node) => {
-    if (node.key === key) {
-      return { ...node, children };
-    }
-    if (node.children) {
-      return { ...node, children: updateTreeData(node.children, key, children) };
-    }
+    if (node.key === key) return { ...node, children };
+    if (node.children) return { ...node, children: updateTreeData(node.children, key, children) };
     return node;
   });
 }
 
-export default function NotebookDev() {
+/**
+ * DeskSurface
+ * Pure layout + lifted state. Holds top-level state/handlers formerly in NotebookDev.jsx
+ * and passes them down to Menu, Tree, and Editor. Drawer extraction will come later.
+ */
+export default function DeskSurface({
+  className = '',
+  style,
+  hideTree = false,
+  menuProps = {},
+  treeProps: treePropOverrides = {},
+  editorProps: editorPropOverrides = {},
+  children,
+}) {
+  // === Lifted state from NotebookDev.jsx ===
   const [notebookId, setNotebookId] = useState(null);
   const [treeData, setTreeData] = useState([]);
   const [editorState, setEditorState] = useState({
@@ -33,9 +51,7 @@ export default function NotebookDev() {
       const res = await fetch(`/api/groups?notebookId=${notebookId}`);
       if (res.ok) {
         const groups = await res.json();
-        setTreeData(
-          groups.map((g) => ({ title: g.name, key: g.id, type: 'group' }))
-        );
+        setTreeData(groups.map((g) => ({ title: g.name, key: g.id, type: 'group' })));
       }
     } catch (err) {
       console.error('Failed to load groups', err);
@@ -44,12 +60,12 @@ export default function NotebookDev() {
 
   useEffect(() => {
     fetchGroups();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notebookId]);
 
   const loadData = (node) => {
-    if (node.children) {
-      return Promise.resolve();
-    }
+    if (node.children) return Promise.resolve();
+
     if (node.type === 'group') {
       return fetch(`/api/subgroups?groupId=${node.key}`)
         .then((res) => (res.ok ? res.json() : []))
@@ -69,6 +85,7 @@ export default function NotebookDev() {
         })
         .catch((err) => console.error('Failed to load subgroups', err));
     }
+
     if (node.type === 'subgroup') {
       return fetch(`/api/entries?subgroupId=${node.key}`)
         .then((res) => (res.ok ? res.json() : []))
@@ -90,6 +107,7 @@ export default function NotebookDev() {
         })
         .catch((err) => console.error('Failed to load entries', err));
     }
+
     return Promise.resolve();
   };
 
@@ -105,12 +123,7 @@ export default function NotebookDev() {
           updateTreeData(
             origin,
             groupId,
-            subgroups.map((sg) => ({
-              title: sg.name,
-              key: sg.id,
-              type: 'subgroup',
-              groupId,
-            }))
+            subgroups.map((sg) => ({ title: sg.name, key: sg.id, type: 'subgroup', groupId }))
           )
         );
       })
@@ -140,13 +153,7 @@ export default function NotebookDev() {
   };
 
   const handleCancel = () => {
-    setEditorState({
-      isOpen: false,
-      type: null,
-      parent: null,
-      item: null,
-      mode: 'create',
-    });
+    setEditorState({ isOpen: false, type: null, parent: null, item: null, mode: 'create' });
   };
 
   const handleSave = async (data) => {
@@ -154,38 +161,26 @@ export default function NotebookDev() {
       if (editorState.type === 'group') {
         if (editorState.mode === 'edit') {
           await fetch(`/api/groups/${editorState.item.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: data.name, description: data.description }),
           });
         } else {
           await fetch('/api/groups', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: data.name,
-              description: data.description,
-              notebookId,
-            }),
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: data.name, description: data.description, notebookId }),
           });
         }
         fetchGroups();
       } else if (editorState.type === 'subgroup') {
         if (editorState.mode === 'edit') {
           await fetch(`/api/subgroups/${editorState.item.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: data.name, description: data.description }),
           });
         } else {
           await fetch('/api/subgroups', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: data.name,
-              description: data.description,
-              groupId: editorState.parent.groupId,
-            }),
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: data.name, description: data.description, groupId: editorState.parent.groupId }),
           });
         }
         reloadSubgroups(editorState.parent.groupId);
@@ -193,30 +188,17 @@ export default function NotebookDev() {
         const subgroupId = data.subgroupId || editorState.parent.subgroupId;
         if (editorState.mode === 'edit') {
           await fetch(`/api/entries/${editorState.item.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: data.title,
-              content: data.content,
-              subgroupId,
-            }),
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: data.title, content: data.content, subgroupId }),
           });
         } else {
           await fetch('/api/entries', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: data.title,
-              content: data.content,
-              subgroupId,
-            }),
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: data.title, content: data.content, subgroupId }),
           });
         }
         reloadEntries(subgroupId, editorState.parent.groupId);
-        if (
-          editorState.mode === 'edit' &&
-          subgroupId !== editorState.parent.subgroupId
-        ) {
+        if (editorState.mode === 'edit' && subgroupId !== editorState.parent.subgroupId) {
           reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
         }
       }
@@ -248,8 +230,7 @@ export default function NotebookDev() {
     if (editorState.type !== 'entry') return;
     try {
       await fetch(`/api/entries/${editorState.item.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ archived: !editorState.item.archived }),
       });
       reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
@@ -263,35 +244,15 @@ export default function NotebookDev() {
     if (node.type === 'group') {
       const res = await fetch(`/api/groups/${node.key}`);
       const item = res.ok ? await res.json() : { id: node.key, name: node.title };
-      setEditorState({
-        isOpen: true,
-        type: 'group',
-        parent: { notebookId },
-        item,
-        mode: 'edit',
-      });
+      setEditorState({ isOpen: true, type: 'group', parent: { notebookId }, item, mode: 'edit' });
     } else if (node.type === 'subgroup') {
       const res = await fetch(`/api/subgroups/${node.key}`);
       const item = res.ok ? await res.json() : { id: node.key, name: node.title };
-      setEditorState({
-        isOpen: true,
-        type: 'subgroup',
-        parent: { groupId: node.groupId },
-        item,
-        mode: 'edit',
-      });
+      setEditorState({ isOpen: true, type: 'subgroup', parent: { groupId: node.groupId }, item, mode: 'edit' });
     } else if (node.type === 'entry') {
       const res = await fetch(`/api/entries/${node.key}`);
-      const item = res.ok
-        ? await res.json()
-        : { id: node.key, title: node.title, content: '' };
-      setEditorState({
-        isOpen: true,
-        type: 'entry',
-        parent: { subgroupId: node.subgroupId, groupId: node.groupId },
-        item,
-        mode: 'edit',
-      });
+      const item = res.ok ? await res.json() : { id: node.key, title: node.title, content: '' };
+      setEditorState({ isOpen: true, type: 'entry', parent: { subgroupId: node.subgroupId, groupId: node.groupId }, item, mode: 'edit' });
     }
   };
 
@@ -301,82 +262,67 @@ export default function NotebookDev() {
     subgroups: (g.children || []).map((s) => ({ id: s.key, name: s.title })),
   }));
 
-  const treeTokens = {
-    // Tree-specific tokens to match Notebook vibe (light mode baseline)
-    indentSize: 20,
-    titleHeight: 36,
-    nodeHoverBg: 'rgba(0,0,0,0.04)',
-    nodeSelectedBg: '#e6e6e6',
-    directoryNodeSelectedBg: '#e6e6e6',
 
-    // Keep defaults for contrast; minimal primary usage in this dev view
-    fontSize: 16
+  // Tree props to pass to wrapper component
+  const treeProps = {
+    showLine: true,
+    draggable: true,
+    loadData,
+    treeData,
+    onDrop,
+    onDoubleClick: handleNodeDoubleClick,
+    ...treePropOverrides,
   };
 
-  // const treePropOptions = {
-  //   checkable: [true, false],
-  //   draggable: [true, false, { icon: <span /> }],
-  //   showLine: [true, false, { showLeafIcon: true }],
-  //   blockNode: [true, false],
-  //   selectable: [true, false],
-  //   multiple: [true, false],
-  //   defaultExpandAll: [true, false],
-  // };
+  // Editor props placeholder (until Editor refactor)
+  const editorProps = {
+    ...editorPropOverrides,
+  };
 
   return (
-    <div className="notebook-container">
-      <div className="notebook-header">
-        <NotebookController
-          onSelect={setNotebookId}
-          showEdits={false}
-          onToggleEdits={() => { }}
-          showArchived={false}
-          onToggleArchived={() => { }}
-        />
-        <Link href="/" style={{ marginLeft: '1rem' }}>
-          Back to Notebook
-        </Link>
+    <div className={classNames(styles.root, { [styles.hideTree]: hideTree }, className)} style={style}>
+      {/* Top Menu */}
+      <div className={styles.menuBar}>
+        <div className={styles.menuInner}>
+          <NotebookMenu
+            onSelect={setNotebookId}
+            showEdits={false}
+            onToggleEdits={() => { }}
+            showArchived={false}
+            onToggleArchived={() => { }}
+            {...menuProps}
+          />
+        </div>
       </div>
-      <ConfigProvider theme={{ cssVar: true, components: { Tree: treeTokens } }}>
-        <Tree
-          className="dev-tree myTree"
-          showLine
-          draggable
-          loadData={loadData}
-          treeData={treeData}
-          onDrop={onDrop}
-          onDoubleClick={handleNodeDoubleClick}
-        />
-      </ConfigProvider>
-      {editorState.isOpen && (
-        <EntryEditor
-          type={editorState.type}
-          parent={editorState.parent}
-          onSave={handleSave}
-          onCancel={handleCancel}
-          onDelete={editorState.mode === 'edit' ? handleDelete : null}
-          onArchive={editorState.mode === 'edit' ? handleArchive : null}
-          initialData={editorState.item}
-          mode={editorState.mode}
-          groups={editorGroups}
-        />
-      )}
-      <style jsx>{`
-        .dev-tree {
-          padding: 1rem;
-          background: #fff;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-        }
-        .myTree :where(.ant-tree) .ant-tree-node-content-wrapper {
-          border-radius: 12px;
-          transition: background 0.2s ease;
-        }
-        .myTree :where(.ant-tree) .ant-tree-title {
-          font-family: 'IBM Plex Mono','Cutive Mono',monospace;
-        }
-      `}</style>
+
+      {/* Main Content: Tree | Editor */}
+      <div className={styles.content}>
+        <aside className={styles.treePane}>
+          <NotebookTree {...treeProps} />
+        </aside>
+
+        <section className={styles.editorPane}>
+          <NotebookEditor {...editorProps} />
+          {editorState.isOpen && (
+            <EntryEditor
+              type={editorState.type}
+              parent={editorState.parent}
+              onSave={handleSave}
+              onCancel={handleCancel}
+              onDelete={editorState.mode === 'edit' ? handleDelete : null}
+              onArchive={editorState.mode === 'edit' ? handleArchive : null}
+              initialData={editorState.item}
+              mode={editorState.mode}
+              groups={editorGroups}
+            />
+          )}
+        </section>
+      </div>
+
+      {/* Placeholder: will render Drawer here when extracted from Editor */}
+      {/* <NotebookDrawer {...drawerProps} /> */}
+
+      {children}
     </div>
   );
 }
-
