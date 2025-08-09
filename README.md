@@ -144,3 +144,6 @@ Authentication requires the following environment variables to be set:
 - `GOOGLE_SECRET`
 
 
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret used by `/api/stripe/webhook`
+
+Configure a Stripe webhook to send events to `/api/stripe/webhook` and set the `STRIPE_WEBHOOK_SECRET` environment variable accordingly.
