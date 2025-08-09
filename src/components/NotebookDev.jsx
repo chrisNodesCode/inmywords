@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tree } from 'antd';
+import { Tree, ConfigProvider } from 'antd';
 import NotebookController from './NotebookController';
 import EntryEditor from './EntryEditor';
 import Link from 'next/link';
@@ -301,6 +301,27 @@ export default function NotebookDev() {
     subgroups: (g.children || []).map((s) => ({ id: s.key, name: s.title })),
   }));
 
+  const treeTokens = {
+    colorBgContainer: '#ffffff',
+    colorPrimary: '#1677ff',
+    colorTextLightSolid: '#ffffff',
+    nodeHoverBg: 'rgba(0, 0, 0, 0.04)',
+    nodeSelectedBg: '#e6f4ff',
+    directoryNodeSelectedBg: '#1677ff',
+    directoryNodeSelectedColor: '#ffffff',
+    titleHeight: 24,
+  };
+
+  // const treePropOptions = {
+  //   checkable: [true, false],
+  //   draggable: [true, false, { icon: <span /> }],
+  //   showLine: [true, false, { showLeafIcon: true }],
+  //   blockNode: [true, false],
+  //   selectable: [true, false],
+  //   multiple: [true, false],
+  //   defaultExpandAll: [true, false],
+  // };
+
   return (
     <div className="notebook-container">
       <div className="notebook-header">
@@ -315,14 +336,17 @@ export default function NotebookDev() {
           Back to Notebook
         </Link>
       </div>
-      <Tree
-        showLine
-        draggable
-        loadData={loadData}
-        treeData={treeData}
-        onDrop={onDrop}
-        onDoubleClick={handleNodeDoubleClick}
-      />
+      <ConfigProvider theme={{ components: { Tree: treeTokens } }}>
+        <Tree
+          className="dev-tree"
+          showLine
+          draggable
+          loadData={loadData}
+          treeData={treeData}
+          onDrop={onDrop}
+          onDoubleClick={handleNodeDoubleClick}
+        />
+      </ConfigProvider>
       {editorState.isOpen && (
         <EntryEditor
           type={editorState.type}
@@ -336,6 +360,14 @@ export default function NotebookDev() {
           groups={editorGroups}
         />
       )}
+      <style jsx>{`
+        .dev-tree {
+          padding: 1rem;
+          background: #fff;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+        }
+      `}</style>
     </div>
   );
 }
