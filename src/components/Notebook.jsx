@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 import EntryEditor from './EntryEditor';
 import NotebookController from './NotebookController';
+import Link from 'next/link';
 import {
   DndContext,
   PointerSensor,
@@ -901,6 +902,9 @@ export default function Notebook() {
           showArchived={showArchived}
           onToggleArchived={setShowArchived}
         />
+        <Link href="/notebook-dev" style={{ marginLeft: '1rem' }}>
+          NotebookDev
+        </Link>
         <div className="full-focus-toggle">
           <span style={{ marginRight: '0.25rem' }}>Full Focus</span>
           <Switch
