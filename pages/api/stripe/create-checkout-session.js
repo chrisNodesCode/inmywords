@@ -1,5 +1,16 @@
-// Placeholder API route for creating a Stripe Checkout session
-// TODO: Implement actual checkout session creation
+/* eslint-env node */
+/* global process */
+
+import Stripe from 'stripe';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+const PRICES = {
+  standard: process.env.STRIPE_PRICE_STANDARD,
+  pro: process.env.STRIPE_PRICE_PRO,
+};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -7,12 +18,29 @@ export default async function handler(req, res) {
     return res.status(405).end('Method Not Allowed');
   }
 
-  // In the future, use Stripe SDK to create a session with the selected price ID
-  // const { priceId } = req.body;
-  // const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  // const session = await stripe.checkout.sessions.create({ ... });
-  // return res.status(200).json({ url: session.url });
+  try {
+    const session = await getServerSession(req, res, authOptions);
+    if (!session) return res.status(401).json({ error: 'Unauthorized' });
 
-  return res.status(501).json({ error: 'Not implemented' });
+    const { plan } = req.body;
+    if (!plan || !PRICES[plan]) {
+      return res.status(400).json({ error: 'Invalid plan selected' });
+    }
+
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [{ price: PRICES[plan], quantity: 1 }],
+      success_url: process.env.STRIPE_SUCCESS_URL,
+      cancel_url: process.env.STRIPE_CANCEL_URL,
+      customer: session.user.stripeCustomerId,
+    });
+
+    return res.status(200).json({ url: checkoutSession.url });
+  } catch (error) {
+    console.error('POST /api/stripe/create-checkout-session error', error);
+    return res
+      .status(500)
+      .json({ error: 'Failed to create checkout session' });
+  }
 }
 
