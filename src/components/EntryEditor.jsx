@@ -7,6 +7,7 @@ import { Switch, InputNumber, Drawer, Button, Select } from 'antd';
 import { MenuOutlined } from '@ant-design/icons';
 import PomodoroWidget from './PomodoroWidget';
 import ExportMenu from './ExportMenu';
+import FullScreenCanvas from './Editor/FullScreenCanvas';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -200,12 +201,6 @@ export default function EntryEditor({
     setLastSaved(new Date());
   };
 
-  // Close on background click
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onCancel();
-    }
-  };
 
   const handleDelete = () => {
     if (onDelete) {
@@ -424,12 +419,11 @@ export default function EntryEditor({
     );
   }
 
-  const overlayClass = `editor-modal-overlay ${type === 'entry' ? 'fullscreen' : ''}`;
-  const contentClass = `editor-modal-content ${type === 'entry' ? 'fullscreen' : ''} slide-up`;
+  const contentClass = 'editor-modal-content fullscreen slide-up';
 
   return (
     <>
-      <div className={overlayClass} onClick={handleOverlayClick}>
+      <FullScreenCanvas open onClose={onCancel}>
         <div className={contentClass}>
           <div className="editor-modal-body">
             <>
@@ -589,7 +583,7 @@ export default function EntryEditor({
             </div>
           </Drawer>
         </div>
-      </div>
+      </FullScreenCanvas>
       {pomodoroEnabled && <PomodoroWidget />}
     </>
   );
