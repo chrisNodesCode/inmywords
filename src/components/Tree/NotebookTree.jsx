@@ -25,6 +25,7 @@ export default function NotebookTree({
   manageMode = false,
   showDrawer = true,
   notebookId,
+  previewEntry,
   ...treeProps
 }) {
   const wrapperClasses = [
@@ -238,6 +239,20 @@ export default function NotebookTree({
     </div>
   );
 
+  const [treeDataState, setTreeDataState] = useState(rawTreeData);
+
+  useEffect(() => {
+    setTreeDataState(rawTreeData);
+  }, [rawTreeData]);
+
+  const {
+    onDrop: onDropProp,
+    onDragStart: onDragStartProp,
+    onDragOver: onDragOverProp,
+    onDragEnd: onDragEndProp,
+    ...restTreeProps
+  } = treeProps;
+
   const treeData = useMemo(() => {
     const addNode = (key, title, extra = {}) => ({
       key,
@@ -283,7 +298,7 @@ export default function NotebookTree({
     };
 
     const groupNodes = [
-      ...(rawTreeData || []).map((g) => ({
+      ...(treeDataState || []).map((g) => ({
         ...g,
         children: subgroupNodes(g),
       })),
@@ -291,15 +306,166 @@ export default function NotebookTree({
     ];
 
     return groupNodes;
-  }, [rawTreeData]);
+  }, [treeDataState]);
+
+  const dragOriginRef = useRef(null);
+
+  const restoreOriginal = () => {
+    const origin = dragOriginRef.current;
+    if (!origin) return;
+    const { groupIndex, subgroupIndex, entries } = origin;
+    const group = treeDataState[groupIndex];
+    if (!group) return;
+    const subgroup = group.children?.[subgroupIndex];
+    if (!subgroup) return;
+    const updatedSubgroup = { ...subgroup, children: entries };
+    const updatedGroup = {
+      ...group,
+      children: [
+        ...group.children.slice(0, subgroupIndex),
+        updatedSubgroup,
+        ...group.children.slice(subgroupIndex + 1),
+      ],
+    };
+    const newTree = [
+      ...treeDataState.slice(0, groupIndex),
+      updatedGroup,
+      ...treeDataState.slice(groupIndex + 1),
+    ];
+    setTreeDataState(newTree);
+  };
+
+  const handleDragStart = (info) => {
+    const node = info.node;
+    if (node.type !== 'entry') {
+      onDragStartProp && onDragStartProp(info);
+      return;
+    }
+    const groupIndex = treeDataState.findIndex((g) => g.key === node.groupId);
+    if (groupIndex === -1) {
+      onDragStartProp && onDragStartProp(info);
+      return;
+    }
+    const group = treeDataState[groupIndex];
+    const subgroupIndex = group.children?.findIndex((s) => s.key === node.subgroupId);
+    if (subgroupIndex === -1) {
+      onDragStartProp && onDragStartProp(info);
+      return;
+    }
+    const subgroup = group.children[subgroupIndex];
+    dragOriginRef.current = {
+      groupIndex,
+      subgroupIndex,
+      entries: [...(subgroup.children || [])],
+    };
+    onDragStartProp && onDragStartProp(info);
+  };
+
+  const handleDragOver = (info) => {
+    const dragNode = info.dragNode;
+    const dropNode = info.node;
+    if (dragNode.key === dropNode.key) {
+      onDragOverProp && onDragOverProp(info);
+      return;
+    }
+    if (dragNode.type !== 'entry' || dropNode.type !== 'entry') {
+      onDragOverProp && onDragOverProp(info);
+      return;
+    }
+    if (dragNode.subgroupId !== dropNode.subgroupId) {
+      onDragOverProp && onDragOverProp(info);
+      return;
+    }
+
+    const groupIndex = treeDataState.findIndex((g) => g.key === dragNode.groupId);
+    const group = treeDataState[groupIndex];
+    const subgroupIndex = group.children?.findIndex((s) => s.key === dragNode.subgroupId);
+    const subgroup = group.children[subgroupIndex];
+    const entries = [...(subgroup.children || [])];
+
+    const dragIndex = entries.findIndex((e) => e.key === dragNode.key);
+    const dropIndex = entries.findIndex((e) => e.key === dropNode.key);
+    let insertIndex = dropIndex;
+    const relativePos = info.dropPosition - Number(info.node.pos.split('-').pop());
+    if (relativePos === 1) insertIndex = dropIndex + 1;
+    if (insertIndex === dragIndex || insertIndex === dragIndex + 1) {
+      onDragOverProp && onDragOverProp(info);
+      return;
+    }
+
+    const newEntries = [...entries];
+    const [moved] = newEntries.splice(dragIndex, 1);
+    if (dragIndex < insertIndex) insertIndex--;
+    newEntries.splice(insertIndex, 0, moved);
+
+    const updatedSubgroup = { ...subgroup, children: newEntries };
+    const updatedGroup = {
+      ...group,
+      children: [
+        ...group.children.slice(0, subgroupIndex),
+        updatedSubgroup,
+        ...group.children.slice(subgroupIndex + 1),
+      ],
+    };
+    const newTree = [
+      ...treeDataState.slice(0, groupIndex),
+      updatedGroup,
+      ...treeDataState.slice(groupIndex + 1),
+    ];
+    setTreeDataState(newTree);
+    onDragOverProp && onDragOverProp(info);
+  };
+
+  const handleDrop = async (info) => {
+    const dragNode = info.dragNode;
+    const dropNode = info.node;
+
+    if (dragNode.type !== 'entry' || dropNode.type !== 'entry' || dragNode.subgroupId !== dropNode.subgroupId) {
+      restoreOriginal();
+      dragOriginRef.current = null;
+      onDropProp && onDropProp(info);
+      return;
+    }
+
+    try {
+      const groupIndex = treeDataState.findIndex((g) => g.key === dragNode.groupId);
+      const subgroupIndex = treeDataState[groupIndex].children?.findIndex(
+        (s) => s.key === dragNode.subgroupId
+      );
+      const entries = treeDataState[groupIndex].children?.[subgroupIndex]?.children || [];
+      const orders = entries.map((e, idx) => ({ id: e.key, user_sort: idx }));
+      await fetch('/api/entries/reorder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orders }),
+      });
+    } catch (err) {
+      console.error('Failed to reorder entries', err);
+    }
+
+    dragOriginRef.current = null;
+    onDropProp && onDropProp(info);
+  };
+
+  const handleDragEnd = (info) => {
+    if (dragOriginRef.current) {
+      restoreOriginal();
+      dragOriginRef.current = null;
+    }
+    onDragEndProp && onDragEndProp(info);
+  };
 
   return (
     <div className={wrapperClasses} style={style}>
       <Tree
-        {...treeProps}
+        {...restTreeProps}
         blockNode
         expandAction="click"
         treeData={treeData}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        onDragEnd={handleDragEnd}
         titleRender={(node) => {
           if (node.kind === 'add') {
             const handleClick = (e) => {
@@ -343,7 +509,20 @@ export default function NotebookTree({
               : node.type === 'entry'
               ? styles.entryTitle
               : '';
-          return <span className={typeClass}>{node.title}</span>;
+
+          const isPreview = previewEntry && previewEntry.id === node.key;
+          const snippet =
+            isPreview && previewEntry.content
+              ? previewEntry.content.slice(0, 200) +
+                (previewEntry.content.length > 200 ? '...' : '')
+              : null;
+
+          return (
+            <span className={styles.nodeContainer}>
+              <span className={typeClass}>{node.title}</span>
+              {snippet && <span className={styles.entrySnippet}>{snippet}</span>}
+            </span>
+          );
         }}
         onSelect={(keys, info) => {
           const node = info.node;
