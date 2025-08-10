@@ -9,7 +9,7 @@ import NotebookTree from '@/components/Tree/NotebookTree';
 import NotebookMenu from '@/components/Menu/Menu';
 import NotebookEditor from '@/components/Editor/NotebookEditor';
 import FullScreenCanvas from '@/components/Editor/FullScreenCanvas';
-import Drawer from '@/components/Drawer/Drawer';
+import EditorDrawer from '@/components/Drawer/EditorDrawer';
 
 function updateTreeData(list, key, children) {
   return list.map((node) => {
@@ -58,6 +58,8 @@ export default function DeskSurface({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerPinned, setDrawerPinned] = useState(false);
   const drawerCloseTimeoutRef = useRef(null);
+  const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
+  const [showShortcutList, setShowShortcutList] = useState(false);
 
   const fetchGroups = async () => {
     if (!notebookId) return;
@@ -220,6 +222,51 @@ export default function DeskSurface({
     setMaxWidth(val);
   };
 
+  const handlePomodoroToggle = (checked) => {
+    setPomodoroEnabled(checked);
+    const eventName = checked ? 'pomodoro-start' : 'pomodoro-stop';
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(eventName));
+    }
+  };
+
+  const handleToggleShortcutList = () => {
+    setShowShortcutList((prev) => !prev);
+  };
+
+  const handleChangeSubgroup = (subgroupId) => {
+    setEditorState((prev) => ({
+      ...prev,
+      parent: { ...prev.parent, subgroupId },
+    }));
+  };
+
+  const handleDelete = async () => {
+    if (!editorState.item?.id) return;
+    try {
+      await fetch(`/api/entries/${editorState.item.id}`, { method: 'DELETE' });
+      reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
+    } catch (err) {
+      console.error('Delete failed', err);
+    }
+    handleCancel();
+  };
+
+  const handleArchive = async () => {
+    if (!editorState.item?.id) return;
+    try {
+      await fetch(`/api/entries/${editorState.item.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archived: !editorState.item.archived }),
+      });
+      reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
+    } catch (err) {
+      console.error('Archive failed', err);
+    }
+    handleCancel();
+  };
+
   const handleNotebookSave = async () => {
     await handleSave({ title, content, subgroupId: editorState.parent?.subgroupId });
   };
@@ -277,14 +324,46 @@ export default function DeskSurface({
     ...editorPropOverrides,
   };
 
+  const groups = treeData
+    .filter((g) => g.type === 'group')
+    .map((g) => ({
+      id: g.key,
+      name: g.title,
+      subgroups: (g.children || [])
+        .filter((sg) => sg.type === 'subgroup')
+        .map((sg) => ({ id: sg.key, name: sg.title })),
+    }));
+
+  const entryShortcuts = [
+    { action: 'Save', keys: 'Ctrl+S' },
+    { action: 'Save & Close', keys: 'Ctrl+Shift+S' },
+    { action: 'Focus Editor', keys: 'Ctrl+Enter' },
+    { action: 'Cancel', keys: 'Esc' },
+  ];
+
   const drawerProps = {
-    open: drawerOpen,
-    width: drawerWidth,
+    drawerOpen,
+    drawerWidth,
     onHamburgerClick: handleHamburgerClick,
     onMouseEnter: handleDrawerMouseEnter,
     onMouseLeave: handleDrawerMouseLeave,
+    pomodoroEnabled,
+    onPomodoroToggle: handlePomodoroToggle,
     maxWidth,
     onMaxWidthChange: handleMaxWidthChange,
+    type: editorState.type,
+    mode: editorState.mode,
+    aliases: { entry: 'Entry' },
+    groups,
+    selectedSubgroupId: editorState.parent?.subgroupId,
+    onChangeSubgroup: handleChangeSubgroup,
+    onSave: handleNotebookSave,
+    onDelete: handleDelete,
+    onArchive: handleArchive,
+    onCancel: handleCancel,
+    showShortcutList,
+    onToggleShortcutList: handleToggleShortcutList,
+    entryShortcuts,
     ...drawerPropOverrides,
   };
 
@@ -318,7 +397,7 @@ export default function DeskSurface({
         onClose={handleCancel}
       >
         <NotebookEditor {...editorProps} />
-        <Drawer {...drawerProps} />
+        <EditorDrawer {...drawerProps} />
       </FullScreenCanvas>
 
       {children}
