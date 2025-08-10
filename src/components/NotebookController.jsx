@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { signOut } from 'next-auth/react';
-import { Switch, Avatar, Modal, Input } from 'antd';
+import { Switch, Avatar, Drawer, Input, Button } from 'antd';
 import { EditOutlined, UserOutlined } from '@ant-design/icons';
 import { ThemeContext } from './ThemeProvider';
 import Link from 'next/link';
@@ -9,7 +9,7 @@ import Link from 'next/link';
 export default function NotebookController({ onSelect, showEdits, onToggleEdits, showArchived, onToggleArchived }) {
   const [notebooks, setNotebooks] = useState([]);
   const [selected, setSelected] = useState('');
-  const [showModal, setShowModal] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const { darkMode, toggleTheme } = useContext(ThemeContext);
@@ -66,7 +66,7 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
       const newNb = await res.json();
       setNotebooks((prev) => [...prev, newNb]);
       setSelected(newNb.id);
-      setShowModal(false);
+      setDrawerOpen(false);
       onSelect(newNb.id);
       if (typeof window !== 'undefined') {
         localStorage.setItem('lastNotebookId', newNb.id);
@@ -76,7 +76,7 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
     }
   };
 
-  const handleCreateModal = async () => {
+  const handleCreateDrawer = async () => {
     await handleCreate({ name: newTitle, description: newDescription });
     setNewTitle('');
     setNewDescription('');
@@ -92,7 +92,7 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
             </option>
           ))}
         </select>
-        <button onClick={() => setShowModal(true)} style={{ marginLeft: '0.5rem' }}>
+        <button onClick={() => setDrawerOpen(true)} style={{ marginLeft: '0.5rem' }}>
           Add New
         </button>
         <Switch
@@ -124,12 +124,10 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
           <button onClick={() => signOut({ redirect: false })}>Logout</button>
         </div>
       </div>
-      <Modal
+      <Drawer
         title="New Notebook"
-        open={showModal}
-        onOk={handleCreateModal}
-        onCancel={() => setShowModal(false)}
-        okText="Create"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
       >
         <Input
           placeholder="Name"
@@ -141,8 +139,15 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
           placeholder="Description (optional)"
           value={newDescription}
           onChange={(e) => setNewDescription(e.target.value)}
+          style={{ marginBottom: '0.5rem' }}
         />
-      </Modal>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+          <Button onClick={() => setDrawerOpen(false)}>Cancel</Button>
+          <Button type="primary" onClick={handleCreateDrawer}>
+            Create
+          </Button>
+        </div>
+      </Drawer>
     </div>
   );
 }

@@ -38,6 +38,7 @@ export default function DeskSurface({
   const [notebookId, setNotebookId] = useState(null);
   const [treeData, setTreeData] = useState([]);
   const [showEdits, setShowEdits] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [editorState, setEditorState] = useState({
     isOpen: false,
     type: null,
@@ -110,11 +111,14 @@ export default function DeskSurface({
       return fetch(`/api/entries?subgroupId=${node.key}`)
         .then((res) => (res.ok ? res.json() : []))
         .then((entries) => {
+          const filtered = showArchived
+            ? entries
+            : entries.filter((e) => !e.archived);
           setTreeData((origin) =>
             updateTreeData(
               origin,
               node.key,
-              entries.map((e) => ({
+              filtered.map((e) => ({
                 title: e.title,
                 key: e.id,
                 isLeaf: true,
@@ -135,15 +139,16 @@ export default function DeskSurface({
     console.log('Dropped node', info);
   };
 
-  const reloadEntries = (subgroupId, groupId) => {
+  const reloadEntries = (subgroupId, groupId, showArch = showArchived) => {
     fetch(`/api/entries?subgroupId=${subgroupId}`)
       .then((res) => (res.ok ? res.json() : []))
       .then((entries) => {
+        const filtered = showArch ? entries : entries.filter((e) => !e.archived);
         setTreeData((origin) =>
           updateTreeData(
             origin,
             subgroupId,
-            entries.map((e) => ({
+            filtered.map((e) => ({
               title: e.title,
               key: e.id,
               isLeaf: true,
@@ -155,6 +160,20 @@ export default function DeskSurface({
         );
       })
       .catch((err) => console.error('Failed to reload entries', err));
+  };
+
+  const handleToggleArchived = () => {
+    setShowArchived((prev) => {
+      const next = !prev;
+      treeData.forEach((g) => {
+        (g.children || []).forEach((sg) => {
+          if (sg.children !== undefined) {
+            reloadEntries(sg.key, g.key, next);
+          }
+        });
+      });
+      return next;
+    });
   };
 
   const handleCancel = () => {
@@ -392,8 +411,8 @@ export default function DeskSurface({
             onSelect={setNotebookId}
             showEdits={showEdits}
             onToggleEdits={() => setShowEdits((prev) => !prev)}
-            showArchived={false}
-            onToggleArchived={() => { }}
+            showArchived={showArchived}
+            onToggleArchived={handleToggleArchived}
             {...menuProps}
           />
         </div>
