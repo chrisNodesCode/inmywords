@@ -9,7 +9,7 @@ import NotebookTree from '@/components/Tree/NotebookTree';
 import NotebookMenu from '@/components/Menu/Menu';
 import NotebookEditor from '@/components/Editor/NotebookEditor';
 import FullScreenCanvas from '@/components/Editor/FullScreenCanvas';
-import EditorDrawer from '@/components/Drawer/EditorDrawer';
+import Drawer from '@/components/Drawer/Drawer';
 import { Drawer as AntDrawer, Input, Button } from 'antd';
 
 function updateTreeData(list, key, children) {
@@ -495,8 +495,8 @@ export default function DeskSurface({
   ];
 
   const drawerProps = {
-    drawerOpen,
-    drawerWidth,
+    open: drawerOpen,
+    width: drawerWidth,
     onHamburgerClick: handleHamburgerClick,
     onMouseEnter: handleDrawerMouseEnter,
     onMouseLeave: handleDrawerMouseLeave,
@@ -555,7 +555,7 @@ export default function DeskSurface({
         onClose={handleCancel}
       >
         <NotebookEditor {...editorProps} />
-        <EditorDrawer {...drawerProps} />
+        <Drawer template="editor" {...drawerProps} />
       </FullScreenCanvas>
 
       <AntDrawer
