@@ -73,6 +73,27 @@ export default function DeskSurface({
     description: '',
   });
   const [notebookAddOpen, setNotebookAddOpen] = useState(false);
+  const [manageHoverDisabled, setManageHoverDisabled] = useState(false);
+  const manageHoverTimeoutRef = useRef(null);
+
+  const throttleManageHover = () => {
+    setManageHoverDisabled(true);
+    if (manageHoverTimeoutRef.current) {
+      clearTimeout(manageHoverTimeoutRef.current);
+    }
+    manageHoverTimeoutRef.current = setTimeout(() => {
+      setManageHoverDisabled(false);
+    }, 2000);
+  };
+
+  useEffect(
+    () => () => {
+      if (manageHoverTimeoutRef.current) {
+        clearTimeout(manageHoverTimeoutRef.current);
+      }
+    },
+    []
+  );
 
   const fetchGroups = async () => {
     if (!notebookId) return;
@@ -198,6 +219,7 @@ export default function DeskSurface({
 
   const handleAddDrawerClose = () => {
     setAddDrawer({ open: false, type: null, parentId: null, name: '', description: '' });
+    throttleManageHover();
   };
 
   const handleAddDrawerCreate = async () => {
@@ -269,6 +291,7 @@ export default function DeskSurface({
     setTitleInput('');
     setContent('');
     setLastSaved(null);
+    throttleManageHover();
   };
 
   const handleSave = async (data) => {
@@ -426,6 +449,7 @@ export default function DeskSurface({
     notebookId,
     ...treePropOverrides,
     showDrawer:
+      !manageHoverDisabled &&
       !(editorState.isOpen && editorState.type === 'entry') &&
       !addDrawer.open &&
       !notebookAddOpen,
@@ -507,6 +531,7 @@ export default function DeskSurface({
             onAddNotebookDrawerChange={(open) => {
               setNotebookAddOpen(open);
               menuDrawerChange?.(open);
+              if (!open) throttleManageHover();
             }}
             {...menuRest}
           />
