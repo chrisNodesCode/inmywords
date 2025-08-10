@@ -16,6 +16,7 @@ export default function NotebookMenu({
   onToggleEdits = () => { },
   showArchived = false,
   onToggleArchived = () => { },
+  onAddNotebookDrawerChange = () => { },
 
   // Optional additional slots
   centerContent = null,
@@ -35,6 +36,7 @@ export default function NotebookMenu({
           onToggleEdits={onToggleEdits}
           showArchived={showArchived}
           onToggleArchived={onToggleArchived}
+          onAddNotebookDrawerChange={onAddNotebookDrawerChange}
         />
       </div>
 

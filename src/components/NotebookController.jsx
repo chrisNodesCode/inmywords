@@ -6,7 +6,7 @@ import { ThemeContext } from './ThemeProvider';
 import Link from 'next/link';
 
 
-export default function NotebookController({ onSelect, showEdits, onToggleEdits, showArchived, onToggleArchived }) {
+export default function NotebookController({ onSelect, showEdits, onToggleEdits, showArchived, onToggleArchived, onAddNotebookDrawerChange }) {
   const [notebooks, setNotebooks] = useState([]);
   const [selected, setSelected] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -81,6 +81,10 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
     setNewTitle('');
     setNewDescription('');
   };
+
+  useEffect(() => {
+    onAddNotebookDrawerChange?.(drawerOpen);
+  }, [drawerOpen, onAddNotebookDrawerChange]);
 
   return (
     <div className="notebook-controller">
