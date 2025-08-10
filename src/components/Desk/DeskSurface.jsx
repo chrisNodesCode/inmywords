@@ -10,6 +10,7 @@ import NotebookMenu from '@/components/Menu/Menu';
 import NotebookEditor from '@/components/Editor/NotebookEditor';
 import FullScreenCanvas from '@/components/Editor/FullScreenCanvas';
 import EditorDrawer from '@/components/Drawer/EditorDrawer';
+import { Drawer as AntDrawer, Input, Button } from 'antd';
 
 function updateTreeData(list, key, children) {
   return list.map((node) => {
@@ -34,6 +35,7 @@ export default function DeskSurface({
   drawerProps: drawerPropOverrides = {},
   children,
 }) {
+  const { onAddNotebookDrawerChange: menuDrawerChange, ...menuRest } = menuProps;
   // === Lifted state from NotebookDev.jsx ===
   const [notebookId, setNotebookId] = useState(null);
   const [treeData, setTreeData] = useState([]);
@@ -63,6 +65,14 @@ export default function DeskSurface({
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
   const [showShortcutList, setShowShortcutList] = useState(false);
   const [previewEntry, setPreviewEntry] = useState(null);
+  const [addDrawer, setAddDrawer] = useState({
+    open: false,
+    type: null,
+    parentId: null,
+    name: '',
+    description: '',
+  });
+  const [notebookAddOpen, setNotebookAddOpen] = useState(false);
 
   const fetchGroups = async () => {
     if (!notebookId) return;
@@ -160,6 +170,80 @@ export default function DeskSurface({
         );
       })
       .catch((err) => console.error('Failed to reload entries', err));
+  };
+
+  const handleAddGroup = () => {
+    if (!notebookId) return;
+    setAddDrawer({ open: true, type: 'group', parentId: notebookId, name: '', description: '' });
+  };
+
+  const handleAddSubgroup = (groupId) => {
+    setAddDrawer({ open: true, type: 'subgroup', parentId: groupId, name: '', description: '' });
+  };
+
+  const handleAddEntry = (groupId, subgroupId) => {
+    setTitle('');
+    setContent('');
+    setIsEditingTitle(true);
+    setTitleInput('');
+    setLastSaved(null);
+    setEditorState({
+      isOpen: true,
+      type: 'entry',
+      parent: { groupId, subgroupId },
+      item: null,
+      mode: 'create',
+    });
+  };
+
+  const handleAddDrawerClose = () => {
+    setAddDrawer({ open: false, type: null, parentId: null, name: '', description: '' });
+  };
+
+  const handleAddDrawerCreate = async () => {
+    try {
+      const { type, parentId, name, description } = addDrawer;
+      let url = '';
+      const body = { name, description };
+      if (type === 'group') {
+        url = '/api/groups';
+        body.notebookId = notebookId;
+      } else if (type === 'subgroup') {
+        url = '/api/subgroups';
+        body.groupId = parentId;
+      }
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        if (type === 'group') {
+          fetchGroups();
+        } else if (type === 'subgroup') {
+          fetch(`/api/subgroups?groupId=${parentId}`)
+            .then((r) => (r.ok ? r.json() : []))
+            .then((subgroups) => {
+              setTreeData((origin) =>
+                updateTreeData(
+                  origin,
+                  parentId,
+                  subgroups.map((sg) => ({
+                    title: sg.name,
+                    key: sg.id,
+                    type: 'subgroup',
+                    groupId: parentId,
+                  }))
+                )
+              );
+            })
+            .catch((err) => console.error('Failed to load subgroups', err));
+        }
+      }
+    } catch (err) {
+      console.error('Create failed', err);
+    }
+    handleAddDrawerClose();
   };
 
   const handleToggleArchived = () => {
@@ -336,8 +420,14 @@ export default function DeskSurface({
     onDrop,
     onSelect: handleNodeSelect,
     manageMode: showEdits,
+    onAddGroup: handleAddGroup,
+    onAddSubgroup: handleAddSubgroup,
+    onAddEntry: handleAddEntry,
     ...treePropOverrides,
-    showDrawer: !(editorState.isOpen && editorState.type === 'entry'),
+    showDrawer:
+      !(editorState.isOpen && editorState.type === 'entry') &&
+      !addDrawer.open &&
+      !notebookAddOpen,
   };
 
   // Editor props for NotebookEditor
@@ -413,7 +503,11 @@ export default function DeskSurface({
             onToggleEdits={() => setShowEdits((prev) => !prev)}
             showArchived={showArchived}
             onToggleArchived={handleToggleArchived}
-            {...menuProps}
+            onAddNotebookDrawerChange={(open) => {
+              setNotebookAddOpen(open);
+              menuDrawerChange?.(open);
+            }}
+            {...menuRest}
           />
         </div>
       </div>
@@ -454,6 +548,35 @@ export default function DeskSurface({
         <NotebookEditor {...editorProps} />
         <EditorDrawer {...drawerProps} />
       </FullScreenCanvas>
+
+      <AntDrawer
+        title={`New ${addDrawer.type === 'group' ? 'Group' : 'Subgroup'}`}
+        open={addDrawer.open}
+        onClose={handleAddDrawerClose}
+      >
+        <Input
+          placeholder="Name"
+          value={addDrawer.name}
+          onChange={(e) =>
+            setAddDrawer((prev) => ({ ...prev, name: e.target.value }))
+          }
+          style={{ marginBottom: '0.5rem' }}
+        />
+        <Input.TextArea
+          placeholder="Description (optional)"
+          value={addDrawer.description}
+          onChange={(e) =>
+            setAddDrawer((prev) => ({ ...prev, description: e.target.value }))
+          }
+          style={{ marginBottom: '0.5rem' }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+          <Button onClick={handleAddDrawerClose}>Cancel</Button>
+          <Button type="primary" onClick={handleAddDrawerCreate}>
+            Create
+          </Button>
+        </div>
+      </AntDrawer>
 
       {children}
     </div>
