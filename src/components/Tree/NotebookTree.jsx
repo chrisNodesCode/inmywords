@@ -256,6 +256,7 @@ export default function NotebookTree({
       <Tree
         {...treeProps}
         blockNode
+        expandAction="click"
         treeData={treeData}
         titleRender={(node) => {
           if (node.kind === 'add') {
@@ -290,7 +291,15 @@ export default function NotebookTree({
             );
           }
 
-          return <span>{node.title}</span>;
+          const typeClass =
+            node.type === 'group'
+              ? styles.groupTitle
+              : node.type === 'subgroup'
+              ? styles.subgroupTitle
+              : node.type === 'entry'
+              ? styles.entryTitle
+              : '';
+          return <span className={typeClass}>{node.title}</span>;
         }}
         onSelect={(keys, info) => {
           const node = info.node;

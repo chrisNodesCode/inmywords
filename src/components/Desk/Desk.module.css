@@ -1,6 +1,7 @@
 .root {
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   height: 100%;
   min-height: 100vh;
   background: var(--ant-colorBgBase);
@@ -20,34 +21,44 @@
 .menuInner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 12px;
   padding: 10px 12px;
+  width: 65vw;
+  margin: 0 auto;
 }
 
 /* Content area: Tree | Editor */
 .content {
-  display: grid;
-  grid-template-columns: 280px 1fr;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 12px;
   padding: 12px;
+  width: 100%;
 }
 
 .treePane {
   overflow: hidden;
+  width: 65vw;
 }
 
 .editorPane {
   min-width: 0;
+  width: 65vw;
   /* allow editor to shrink without overflow */
+}
+
+.preview {
+  padding: 1rem;
+  background: var(--ant-colorBgContainer);
+  border: 1px solid var(--ant-colorBorder);
+  border-radius: 12px;
+  cursor: pointer;
 }
 
 /* Responsive: collapse tree on narrow screens */
 @media (max-width: 900px) {
-  .content {
-    grid-template-columns: 1fr;
-  }
-
   .treePane {
     order: 2;
   }
@@ -58,10 +69,6 @@
 }
 
 /* Optional utility to hide the tree (can be toggled via prop) */
-.hideTree .content {
-  grid-template-columns: 1fr;
-}
-
 .hideTree .treePane {
   display: none;
 }
