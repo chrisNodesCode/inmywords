@@ -11,9 +11,6 @@ import NotebookEditor from '@/components/Editor/NotebookEditor';
 import FullScreenCanvas from '@/components/Editor/FullScreenCanvas';
 import Drawer from '@/components/Drawer/Drawer';
 
-// Temporary: use existing editor until we refactor Editor later
-import EntryEditor from '@/components/EntryEditor';
-
 function updateTreeData(list, key, children) {
   return list.map((node) => {
     if (node.key === key) return { ...node, children };
@@ -132,21 +129,6 @@ export default function DeskSurface({
     console.log('Dropped node', info);
   };
 
-  const reloadSubgroups = (groupId) => {
-    fetch(`/api/subgroups?groupId=${groupId}`)
-      .then((res) => (res.ok ? res.json() : []))
-      .then((subgroups) => {
-        setTreeData((origin) =>
-          updateTreeData(
-            origin,
-            groupId,
-            subgroups.map((sg) => ({ title: sg.name, key: sg.id, type: 'subgroup', groupId }))
-          )
-        );
-      })
-      .catch((err) => console.error('Failed to reload subgroups', err));
-  };
-
   const reloadEntries = (subgroupId, groupId) => {
     fetch(`/api/entries?subgroupId=${subgroupId}`)
       .then((res) => (res.ok ? res.json() : []))
@@ -182,49 +164,23 @@ export default function DeskSurface({
 
   const handleSave = async (data) => {
     try {
-      if (editorState.type === 'group') {
-        if (editorState.mode === 'edit') {
-          await fetch(`/api/groups/${editorState.item.id}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: data.name, description: data.description }),
-          });
-        } else {
-          await fetch('/api/groups', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: data.name, description: data.description, notebookId }),
-          });
-        }
-        fetchGroups();
-      } else if (editorState.type === 'subgroup') {
-        if (editorState.mode === 'edit') {
-          await fetch(`/api/subgroups/${editorState.item.id}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: data.name, description: data.description }),
-          });
-        } else {
-          await fetch('/api/subgroups', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: data.name, description: data.description, groupId: editorState.parent.groupId }),
-          });
-        }
-        reloadSubgroups(editorState.parent.groupId);
-      } else if (editorState.type === 'entry') {
-        const subgroupId = data.subgroupId || editorState.parent.subgroupId;
-        if (editorState.mode === 'edit') {
-          await fetch(`/api/entries/${editorState.item.id}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: data.title, content: data.content, subgroupId }),
-          });
-        } else {
-          await fetch('/api/entries', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: data.title, content: data.content, subgroupId }),
-          });
-        }
-        reloadEntries(subgroupId, editorState.parent.groupId);
-        if (editorState.mode === 'edit' && subgroupId !== editorState.parent.subgroupId) {
-          reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
-        }
+      const subgroupId = data.subgroupId || editorState.parent?.subgroupId;
+      if (editorState.mode === 'edit') {
+        await fetch(`/api/entries/${editorState.item.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: data.title, content: data.content, subgroupId }),
+        });
+      } else {
+        await fetch('/api/entries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: data.title, content: data.content, subgroupId }),
+        });
+      }
+      reloadEntries(subgroupId, editorState.parent.groupId);
+      if (editorState.mode === 'edit' && subgroupId !== editorState.parent.subgroupId) {
+        reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
       }
     } catch (err) {
       console.error('Save failed', err);
@@ -232,37 +188,6 @@ export default function DeskSurface({
     handleCancel();
   };
 
-  const handleDelete = async () => {
-    try {
-      if (editorState.type === 'group') {
-        await fetch(`/api/groups/${editorState.item.id}`, { method: 'DELETE' });
-        fetchGroups();
-      } else if (editorState.type === 'subgroup') {
-        await fetch(`/api/subgroups/${editorState.item.id}`, { method: 'DELETE' });
-        reloadSubgroups(editorState.parent.groupId);
-      } else if (editorState.type === 'entry') {
-        await fetch(`/api/entries/${editorState.item.id}`, { method: 'DELETE' });
-        reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
-      }
-    } catch (err) {
-      console.error('Delete failed', err);
-    }
-    handleCancel();
-  };
-
-  const handleArchive = async () => {
-    if (editorState.type !== 'entry') return;
-    try {
-      await fetch(`/api/entries/${editorState.item.id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ archived: !editorState.item.archived }),
-      });
-      reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
-    } catch (err) {
-      console.error('Archive failed', err);
-    }
-    handleCancel();
-  };
 
   const handleHamburgerClick = () => {
     setDrawerPinned((prev) => {
@@ -304,31 +229,22 @@ export default function DeskSurface({
   };
 
   const handleNodeDoubleClick = async (event, node) => {
-    if (node.type === 'group') {
-      const res = await fetch(`/api/groups/${node.key}`);
-      const item = res.ok ? await res.json() : { id: node.key, name: node.title };
-      setEditorState({ isOpen: true, type: 'group', parent: { notebookId }, item, mode: 'edit' });
-    } else if (node.type === 'subgroup') {
-      const res = await fetch(`/api/subgroups/${node.key}`);
-      const item = res.ok ? await res.json() : { id: node.key, name: node.title };
-      setEditorState({ isOpen: true, type: 'subgroup', parent: { groupId: node.groupId }, item, mode: 'edit' });
-    } else if (node.type === 'entry') {
-      const res = await fetch(`/api/entries/${node.key}`);
-      const item = res.ok ? await res.json() : { id: node.key, title: node.title, content: '' };
-      setTitle(item.title || '');
-      setContent(item.content || '');
-      setIsEditingTitle(false);
-      setTitleInput('');
-      setLastSaved(null);
-      setEditorState({ isOpen: true, type: 'entry', parent: { subgroupId: node.subgroupId, groupId: node.groupId }, item, mode: 'edit' });
-    }
+    if (node.type !== 'entry') return;
+    const res = await fetch(`/api/entries/${node.key}`);
+    const item = res.ok ? await res.json() : { id: node.key, title: node.title, content: '' };
+    setTitle(item.title || '');
+    setContent(item.content || '');
+    setIsEditingTitle(false);
+    setTitleInput('');
+    setLastSaved(null);
+    setEditorState({
+      isOpen: true,
+      type: 'entry',
+      parent: { subgroupId: node.subgroupId, groupId: node.groupId },
+      item,
+      mode: 'edit',
+    });
   };
-
-  const editorGroups = treeData.map((g) => ({
-    id: g.key,
-    name: g.title,
-    subgroups: (g.children || []).map((s) => ({ id: s.key, name: s.title })),
-  }));
 
 
   // Tree props to pass to wrapper component
@@ -404,20 +320,6 @@ export default function DeskSurface({
         <NotebookEditor {...editorProps} />
         <Drawer {...drawerProps} />
       </FullScreenCanvas>
-
-      {editorState.isOpen && editorState.type !== 'entry' && (
-        <EntryEditor
-          type={editorState.type}
-          parent={editorState.parent}
-          onSave={handleSave}
-          onCancel={handleCancel}
-          onDelete={editorState.mode === 'edit' ? handleDelete : null}
-          onArchive={editorState.mode === 'edit' ? handleArchive : null}
-          initialData={editorState.item}
-          mode={editorState.mode}
-          groups={editorGroups}
-        />
-      )}
 
       {children}
     </div>

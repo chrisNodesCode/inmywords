@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { signOut } from 'next-auth/react';
-import { Switch, Avatar } from 'antd';
-import EntryEditor from './EntryEditor';
+import { Switch, Avatar, Modal, Input } from 'antd';
 import { EditOutlined, UserOutlined } from '@ant-design/icons';
 import { ThemeContext } from './ThemeProvider';
 import Link from 'next/link';
@@ -11,6 +10,8 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
   const [notebooks, setNotebooks] = useState([]);
   const [selected, setSelected] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
   const { darkMode, toggleTheme } = useContext(ThemeContext);
 
   useEffect(() => {
@@ -75,6 +76,12 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
     }
   };
 
+  const handleCreateModal = async () => {
+    await handleCreate({ name: newTitle, description: newDescription });
+    setNewTitle('');
+    setNewDescription('');
+  };
+
   return (
     <div className="notebook-controller">
       <div className="controller-left">
@@ -117,13 +124,25 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
           <button onClick={() => signOut({ redirect: false })}>Logout</button>
         </div>
       </div>
-      {showModal && (
-        <EntryEditor
-          type="notebook"
-          onSave={handleCreate}
-          onCancel={() => setShowModal(false)}
+      <Modal
+        title="New Notebook"
+        open={showModal}
+        onOk={handleCreateModal}
+        onCancel={() => setShowModal(false)}
+        okText="Create"
+      >
+        <Input
+          placeholder="Name"
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          style={{ marginBottom: '0.5rem' }}
         />
-      )}
+        <Input.TextArea
+          placeholder="Description (optional)"
+          value={newDescription}
+          onChange={(e) => setNewDescription(e.target.value)}
+        />
+      </Modal>
     </div>
   );
 }

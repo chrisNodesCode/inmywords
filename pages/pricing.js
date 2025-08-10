@@ -10,7 +10,7 @@ const tiers = [
     features: [
       'Clone 1 Precursor',
       'Create 2 Custom Aliased Notebooks',
-      'Full EntryEditor UI Features',
+      'Full NotebookEditor UI Features',
     ],
   },
   {
@@ -21,7 +21,7 @@ const tiers = [
     features: [
       'Clone up to 100 Precursors',
       'Create up to 100 Custom Aliased Notebooks',
-      'Full EntryEditor UI Features',
+      'Full NotebookEditor UI Features',
       'Access to Whisker Ai Writing Companion Feature (coming soon)',
     ],
   },
@@ -33,7 +33,7 @@ const tiers = [
     features: [
       'Clone unlimited Precursors to your account',
       'Create unlimited Custom Aliased Notebooks',
-      'Full EntryEditor UI Features',
+      'Full NotebookEditor UI Features',
       'Access to Whisker Ai Writing Companion Feature (coming soon)',
       'Access to Integration Modules',
     ],
