@@ -1,6 +1,6 @@
 
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import classNames from 'classnames';
 import styles from './Desk.module.css';
 
@@ -8,6 +8,8 @@ import styles from './Desk.module.css';
 import NotebookTree from '@/components/Tree/NotebookTree';
 import NotebookMenu from '@/components/Menu/Menu';
 import NotebookEditor from '@/components/Editor/NotebookEditor';
+import FullScreenCanvas from '@/components/Editor/FullScreenCanvas';
+import Drawer from '@/components/Drawer/Drawer';
 
 // Temporary: use existing editor until we refactor Editor later
 import EntryEditor from '@/components/EntryEditor';
@@ -32,6 +34,7 @@ export default function DeskSurface({
   menuProps = {},
   treeProps: treePropOverrides = {},
   editorProps: editorPropOverrides = {},
+  drawerProps: drawerPropOverrides = {},
   children,
 }) {
   // === Lifted state from NotebookDev.jsx ===
@@ -44,6 +47,20 @@ export default function DeskSurface({
     item: null,
     mode: 'create',
   });
+
+  // NotebookEditor state
+  const [title, setTitle] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+  const [content, setContent] = useState('');
+  const [lastSaved, setLastSaved] = useState(null);
+  const [maxWidth, setMaxWidth] = useState(50);
+
+  // Drawer state
+  const drawerWidth = drawerPropOverrides.width || 300;
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerPinned, setDrawerPinned] = useState(false);
+  const drawerCloseTimeoutRef = useRef(null);
 
   const fetchGroups = async () => {
     if (!notebookId) return;
@@ -154,6 +171,13 @@ export default function DeskSurface({
 
   const handleCancel = () => {
     setEditorState({ isOpen: false, type: null, parent: null, item: null, mode: 'create' });
+    setDrawerPinned(false);
+    setDrawerOpen(false);
+    setIsEditingTitle(false);
+    setTitle('');
+    setTitleInput('');
+    setContent('');
+    setLastSaved(null);
   };
 
   const handleSave = async (data) => {
@@ -240,6 +264,45 @@ export default function DeskSurface({
     handleCancel();
   };
 
+  const handleHamburgerClick = () => {
+    setDrawerPinned((prev) => {
+      const next = !prev;
+      setDrawerOpen(next);
+      return next;
+    });
+  };
+
+  const handleDrawerMouseEnter = () => {
+    if (drawerCloseTimeoutRef.current) {
+      clearTimeout(drawerCloseTimeoutRef.current);
+    }
+    setDrawerOpen(true);
+  };
+
+  const handleDrawerMouseLeave = () => {
+    if (drawerCloseTimeoutRef.current) {
+      clearTimeout(drawerCloseTimeoutRef.current);
+    }
+    drawerCloseTimeoutRef.current = setTimeout(() => {
+      if (!drawerPinned) {
+        setDrawerOpen(false);
+      }
+    }, 200);
+  };
+
+  const handleMaxWidthChange = (value) => {
+    const val = value || 50;
+    setMaxWidth(val);
+  };
+
+  const handleNotebookSave = async () => {
+    await handleSave({ title, content, subgroupId: editorState.parent?.subgroupId });
+  };
+
+  const handleNotebookSaveAndClose = async () => {
+    await handleSave({ title, content, subgroupId: editorState.parent?.subgroupId });
+  };
+
   const handleNodeDoubleClick = async (event, node) => {
     if (node.type === 'group') {
       const res = await fetch(`/api/groups/${node.key}`);
@@ -252,6 +315,11 @@ export default function DeskSurface({
     } else if (node.type === 'entry') {
       const res = await fetch(`/api/entries/${node.key}`);
       const item = res.ok ? await res.json() : { id: node.key, title: node.title, content: '' };
+      setTitle(item.title || '');
+      setContent(item.content || '');
+      setIsEditingTitle(false);
+      setTitleInput('');
+      setLastSaved(null);
       setEditorState({ isOpen: true, type: 'entry', parent: { subgroupId: node.subgroupId, groupId: node.groupId }, item, mode: 'edit' });
     }
   };
@@ -274,9 +342,34 @@ export default function DeskSurface({
     ...treePropOverrides,
   };
 
-  // Editor props placeholder (until Editor refactor)
+  // Editor props for NotebookEditor
   const editorProps = {
+    title,
+    setTitle,
+    isEditingTitle,
+    setIsEditingTitle,
+    titleInput,
+    setTitleInput,
+    content,
+    setContent,
+    lastSaved,
+    setLastSaved,
+    onSaveEntry: handleNotebookSave,
+    onSaveAndClose: handleNotebookSaveAndClose,
+    onCancel: handleCancel,
+    maxWidth,
     ...editorPropOverrides,
+  };
+
+  const drawerProps = {
+    open: drawerOpen,
+    width: drawerWidth,
+    onHamburgerClick: handleHamburgerClick,
+    onMouseEnter: handleDrawerMouseEnter,
+    onMouseLeave: handleDrawerMouseLeave,
+    maxWidth,
+    onMaxWidthChange: handleMaxWidthChange,
+    ...drawerPropOverrides,
   };
 
   return (
@@ -301,26 +394,30 @@ export default function DeskSurface({
           <NotebookTree {...treeProps} />
         </aside>
 
-        <section className={styles.editorPane}>
-          <NotebookEditor {...editorProps} />
-          {editorState.isOpen && (
-            <EntryEditor
-              type={editorState.type}
-              parent={editorState.parent}
-              onSave={handleSave}
-              onCancel={handleCancel}
-              onDelete={editorState.mode === 'edit' ? handleDelete : null}
-              onArchive={editorState.mode === 'edit' ? handleArchive : null}
-              initialData={editorState.item}
-              mode={editorState.mode}
-              groups={editorGroups}
-            />
-          )}
-        </section>
+        <section className={styles.editorPane}></section>
       </div>
 
-      {/* Placeholder: will render Drawer here when extracted from Editor */}
-      {/* <NotebookDrawer {...drawerProps} /> */}
+      <FullScreenCanvas
+        open={editorState.isOpen && editorState.type === 'entry'}
+        onClose={handleCancel}
+      >
+        <NotebookEditor {...editorProps} />
+        <Drawer {...drawerProps} />
+      </FullScreenCanvas>
+
+      {editorState.isOpen && editorState.type !== 'entry' && (
+        <EntryEditor
+          type={editorState.type}
+          parent={editorState.parent}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          onDelete={editorState.mode === 'edit' ? handleDelete : null}
+          onArchive={editorState.mode === 'edit' ? handleArchive : null}
+          initialData={editorState.item}
+          mode={editorState.mode}
+          groups={editorGroups}
+        />
+      )}
 
       {children}
     </div>
