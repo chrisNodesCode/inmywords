@@ -1,18 +1,16 @@
-// src/components/Editor/Editor.jsx
+// src/components/Editor/NotebookEditor.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import ExportMenu from '../ExportMenu';
 import 'react-quill/dist/quill.snow.css';
-import EditorDrawer from '../Drawer/Drawer';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 /**
- * Editor (entry-only UI)
+ * NotebookEditor (entry-only UI)
  * Pure editor overlay + body. Controlled by parent for title/content/state.
- * Drawer and pomodoro are intentionally excluded and will be composed by parent.
  */
-export default function Editor({
+export default function NotebookEditor({
   // controlled data
   title,
   setTitle,
@@ -32,27 +30,6 @@ export default function Editor({
 
   // presentation
   maxWidth = 50,
-
-  // drawer props (passed from parent)
-  drawerOpen,
-  drawerWidth = 300,
-  onHamburgerClick,
-  onDrawerMouseEnter,
-  onDrawerMouseLeave,
-  pomodoroEnabled,
-  onPomodoroToggle,
-  onMaxWidthChange,
-  type,
-  mode,
-  aliases,
-  groups,
-  selectedSubgroupId,
-  onChangeSubgroup,
-  onDelete,
-  onArchive,
-  showShortcutList,
-  onToggleShortcutList,
-  entryShortcuts,
 }) {
   const quillRef = useRef(null);
   const [toolbarVisible, setToolbarVisible] = useState(false);
@@ -170,30 +147,6 @@ export default function Editor({
           />
         </div>
         <div className="editor-modal-footer"></div>
-        <EditorDrawer
-          drawerOpen={drawerOpen}
-          drawerWidth={drawerWidth}
-          onHamburgerClick={onHamburgerClick}
-          onMouseEnter={onDrawerMouseEnter}
-          onMouseLeave={onDrawerMouseLeave}
-          pomodoroEnabled={pomodoroEnabled}
-          onPomodoroToggle={onPomodoroToggle}
-          maxWidth={maxWidth}
-          onMaxWidthChange={onMaxWidthChange}
-          type={type}
-          mode={mode}
-          aliases={aliases}
-          groups={groups}
-          selectedSubgroupId={selectedSubgroupId}
-          onChangeSubgroup={onChangeSubgroup}
-          onSave={onSaveEntry}
-          onDelete={onDelete}
-          onArchive={onArchive}
-          onCancel={onCancel}
-          showShortcutList={showShortcutList}
-          onToggleShortcutList={onToggleShortcutList}
-          entryShortcuts={entryShortcuts}
-        />
       </div>
     </div>
   );
