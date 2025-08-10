@@ -166,10 +166,6 @@ export default function DeskSurface({
     return Promise.resolve();
   };
 
-  const onDrop = (info) => {
-    console.log('Dropped node', info);
-  };
-
   const reloadEntries = (subgroupId, groupId, showArch = showArchived) => {
     fetch(`/api/entries?subgroupId=${subgroupId}`)
       .then((res) => (res.ok ? res.json() : []))
@@ -440,13 +436,13 @@ export default function DeskSurface({
     draggable: true,
     loadData,
     treeData,
-    onDrop,
     onSelect: handleNodeSelect,
     manageMode: showEdits,
     onAddGroup: showEdits ? undefined : handleAddGroup,
     onAddSubgroup: showEdits ? undefined : handleAddSubgroup,
     onAddEntry: showEdits ? undefined : handleAddEntry,
     notebookId,
+    previewEntry,
     ...treePropOverrides,
     showDrawer:
       !manageHoverDisabled &&
@@ -544,27 +540,7 @@ export default function DeskSurface({
           <NotebookTree {...treeProps} />
         </aside>
 
-        <section className={styles.editorPane}>
-          {previewEntry && !editorState.isOpen && (
-            <div
-              className={styles.preview}
-              onClick={() => {
-                openEntry(
-                  {
-                    key: previewEntry.id,
-                    subgroupId: previewEntry.subgroupId,
-                    groupId: previewEntry.groupId,
-                  },
-                  previewEntry
-                );
-                setPreviewEntry(null);
-              }}
-            >
-              {previewEntry.content?.slice(0, 200)}
-              {previewEntry.content && previewEntry.content.length > 200 ? '...' : ''}
-            </div>
-          )}
-        </section>
+        <section className={styles.editorPane}></section>
       </div>
 
       <FullScreenCanvas

@@ -25,6 +25,7 @@ export default function NotebookTree({
   manageMode = false,
   showDrawer = true,
   notebookId,
+  previewEntry,
   ...treeProps
 }) {
   const wrapperClasses = [
@@ -238,6 +239,14 @@ export default function NotebookTree({
     </div>
   );
 
+  const [treeDataState, setTreeDataState] = useState(rawTreeData);
+
+  useEffect(() => {
+    setTreeDataState(rawTreeData);
+  }, [rawTreeData]);
+
+  const { onDrop: onDropProp, ...restTreeProps } = treeProps;
+
   const treeData = useMemo(() => {
     const addNode = (key, title, extra = {}) => ({
       key,
@@ -283,7 +292,7 @@ export default function NotebookTree({
     };
 
     const groupNodes = [
-      ...(rawTreeData || []).map((g) => ({
+      ...(treeDataState || []).map((g) => ({
         ...g,
         children: subgroupNodes(g),
       })),
@@ -291,15 +300,78 @@ export default function NotebookTree({
     ];
 
     return groupNodes;
-  }, [rawTreeData]);
+  }, [treeDataState]);
+
+  const handleDrop = async (info) => {
+    const dragNode = info.dragNode;
+    const dropNode = info.node;
+
+    if (dragNode.type !== 'entry' || dropNode.type !== 'entry') {
+      onDropProp && onDropProp(info);
+      return;
+    }
+    if (dragNode.subgroupId !== dropNode.subgroupId) {
+      onDropProp && onDropProp(info);
+      return;
+    }
+
+    const groupIndex = treeDataState.findIndex((g) => g.key === dragNode.groupId);
+    if (groupIndex === -1) return;
+    const group = treeDataState[groupIndex];
+    const subgroupIndex = group.children?.findIndex((s) => s.key === dragNode.subgroupId);
+    if (subgroupIndex === -1) return;
+    const subgroup = group.children[subgroupIndex];
+    const entries = [...(subgroup.children || [])];
+
+    const dragIndex = entries.findIndex((e) => e.key === dragNode.key);
+    if (dragIndex === -1) return;
+    const dragged = entries.splice(dragIndex, 1)[0];
+
+    const dropIndex = entries.findIndex((e) => e.key === dropNode.key);
+    let insertIndex = dropIndex;
+    const relativePos = info.dropPosition - Number(info.node.pos.split('-').pop());
+    if (relativePos === 1) insertIndex = dropIndex + 1;
+    if (dragIndex < insertIndex) insertIndex--;
+    entries.splice(insertIndex, 0, dragged);
+
+    const updatedSubgroup = { ...subgroup, children: entries };
+    const updatedGroup = {
+      ...group,
+      children: [
+        ...group.children.slice(0, subgroupIndex),
+        updatedSubgroup,
+        ...group.children.slice(subgroupIndex + 1),
+      ],
+    };
+    const newTree = [
+      ...treeDataState.slice(0, groupIndex),
+      updatedGroup,
+      ...treeDataState.slice(groupIndex + 1),
+    ];
+    setTreeDataState(newTree);
+
+    try {
+      const orders = entries.map((e, idx) => ({ id: e.key, user_sort: idx }));
+      await fetch('/api/entries/reorder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orders }),
+      });
+    } catch (err) {
+      console.error('Failed to reorder entries', err);
+    }
+
+    onDropProp && onDropProp(info);
+  };
 
   return (
     <div className={wrapperClasses} style={style}>
       <Tree
-        {...treeProps}
+        {...restTreeProps}
         blockNode
         expandAction="click"
         treeData={treeData}
+        onDrop={handleDrop}
         titleRender={(node) => {
           if (node.kind === 'add') {
             const handleClick = (e) => {
@@ -343,7 +415,20 @@ export default function NotebookTree({
               : node.type === 'entry'
               ? styles.entryTitle
               : '';
-          return <span className={typeClass}>{node.title}</span>;
+
+          const isPreview = previewEntry && previewEntry.id === node.key;
+          const snippet =
+            isPreview && previewEntry.content
+              ? previewEntry.content.slice(0, 200) +
+                (previewEntry.content.length > 200 ? '...' : '')
+              : null;
+
+          return (
+            <span className={styles.nodeContainer}>
+              <span className={typeClass}>{node.title}</span>
+              {snippet && <span className={styles.entrySnippet}>{snippet}</span>}
+            </span>
+          );
         }}
         onSelect={(keys, info) => {
           const node = info.node;
