@@ -420,9 +420,10 @@ export default function DeskSurface({
     onDrop,
     onSelect: handleNodeSelect,
     manageMode: showEdits,
-    onAddGroup: handleAddGroup,
-    onAddSubgroup: handleAddSubgroup,
-    onAddEntry: handleAddEntry,
+    onAddGroup: showEdits ? undefined : handleAddGroup,
+    onAddSubgroup: showEdits ? undefined : handleAddSubgroup,
+    onAddEntry: showEdits ? undefined : handleAddEntry,
+    notebookId,
     ...treePropOverrides,
     showDrawer:
       !(editorState.isOpen && editorState.type === 'entry') &&
