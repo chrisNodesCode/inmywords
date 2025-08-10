@@ -1,34 +1,26 @@
 import React from 'react';
 import { Button, Switch, InputNumber, Select } from 'antd';
-import Drawer from './Drawer';
 
 /**
- * Editor-specific drawer content built on top of the generic Drawer component.
+ * Template factory functions for Drawer.
+ * Each function receives props and returns an object with
+ * header, body and optional footer elements.
  */
-export default function EditorDrawer({
-  drawerOpen,
-  drawerWidth = 300,
-  onHamburgerClick,
-  onMouseEnter,
-  onMouseLeave,
-
+export function editor({
   pomodoroEnabled,
   onPomodoroToggle,
   maxWidth,
   onMaxWidthChange,
-
   type,
   mode,
   aliases,
   groups = [],
   selectedSubgroupId,
   onChangeSubgroup,
-
   onSave,
   onDelete,
   onArchive,
   onCancel,
-
   showShortcutList,
   onToggleShortcutList,
   entryShortcuts = [],
@@ -70,17 +62,25 @@ export default function EditorDrawer({
           size="small"
         />
       )}
-      <Button className="drawer-btn drawer-btn-save" onClick={onSave}>Save</Button>
+      <Button className="drawer-btn drawer-btn-save" onClick={onSave}>
+        Save
+      </Button>
       {mode === 'edit' && onDelete && (
-        <Button className="drawer-btn drawer-btn-delete" onClick={onDelete}>Delete</Button>
+        <Button className="drawer-btn drawer-btn-delete" onClick={onDelete}>
+          Delete
+        </Button>
       )}
       {mode === 'edit' && onArchive && (
         <Button className="drawer-btn drawer-btn-archive" onClick={onArchive}>
           Archive/Restore
         </Button>
       )}
-      <Button className="drawer-btn drawer-btn-cancel" onClick={onCancel}>Cancel</Button>
-      <Button type="link" onClick={onToggleShortcutList}>Keyboard Shortcuts</Button>
+      <Button className="drawer-btn drawer-btn-cancel" onClick={onCancel}>
+        Cancel
+      </Button>
+      <Button type="link" onClick={onToggleShortcutList}>
+        Keyboard Shortcuts
+      </Button>
       {showShortcutList && (
         <ul style={{ paddingLeft: '1rem' }}>
           {entryShortcuts.map((s) => (
@@ -93,16 +93,10 @@ export default function EditorDrawer({
     </div>
   );
 
-  return (
-    <Drawer
-      open={drawerOpen}
-      width={drawerWidth}
-      onHamburgerClick={onHamburgerClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      header={header}
-      body={body}
-    />
-  );
+  return { header, body };
 }
+
+export default {
+  editor,
+};
 

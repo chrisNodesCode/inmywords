@@ -1,9 +1,11 @@
 import React from 'react';
 import { Drawer as AntDrawer, Button } from 'antd';
 import { MenuOutlined } from '@ant-design/icons';
+import templates from './templates';
 
 /**
- * Minimal Drawer component that provides structural slots for custom content.
+ * Flexible Drawer component that can render custom sections or
+ * predefined templates selected via the `template` prop.
  */
 export default function Drawer({
   open,
@@ -11,12 +13,24 @@ export default function Drawer({
   onHamburgerClick,
   onMouseEnter,
   onMouseLeave,
+  template,
   header,
   body,
   footer,
   children,
-  ...props
+  ...rest
 }) {
+  let sections = {
+    header,
+    body: body || children,
+    footer,
+  };
+
+  if (template && templates[template]) {
+    sections = templates[template](rest);
+    rest = {};
+  }
+
   return (
     <>
       {onHamburgerClick && (
@@ -41,12 +55,12 @@ export default function Drawer({
           width={width}
           getContainer={false}
           rootStyle={{ position: 'absolute' }}
-          body={{ padding: '1rem' }}
-          {...props}
+          bodyStyle={{ padding: '1rem' }}
+          {...rest}
         >
-          {header}
-          {body || children}
-          {footer}
+          {sections.header}
+          {sections.body}
+          {sections.footer}
         </AntDrawer>
       </div>
     </>
