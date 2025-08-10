@@ -86,6 +86,13 @@ export default function DeskSurface({
     }, 2000);
   };
 
+  const resetManageHover = () => {
+    if (manageHoverTimeoutRef.current) {
+      clearTimeout(manageHoverTimeoutRef.current);
+    }
+    setManageHoverDisabled(false);
+  };
+
   useEffect(
     () => () => {
       if (manageHoverTimeoutRef.current) {
@@ -287,7 +294,7 @@ export default function DeskSurface({
     setTitleInput('');
     setContent('');
     setLastSaved(null);
-    throttleManageHover();
+    resetManageHover();
   };
 
   const handleSave = async (data) => {
