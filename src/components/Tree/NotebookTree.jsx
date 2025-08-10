@@ -23,6 +23,7 @@ export default function NotebookTree({
   onAddEntry,
   onSelectItem,
   manageMode = false,
+  showDrawer = true,
   ...treeProps
 }) {
   const wrapperClasses = [
@@ -305,15 +306,17 @@ export default function NotebookTree({
           }
         }}
       />
-      <Drawer
-        open={drawerOpen}
-        width={300}
-        onHamburgerClick={handleHamburgerClick}
-        onMouseEnter={handleDrawerMouseEnter}
-        onMouseLeave={handleDrawerMouseLeave}
-        header={header}
-        body={body}
-      />
+      {showDrawer && (
+        <Drawer
+          open={drawerOpen}
+          width={300}
+          onHamburgerClick={handleHamburgerClick}
+          onMouseEnter={handleDrawerMouseEnter}
+          onMouseLeave={handleDrawerMouseLeave}
+          header={header}
+          body={body}
+        />
+      )}
     </div>
   );
 }
