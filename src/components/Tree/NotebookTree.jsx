@@ -1,16 +1,13 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Tree, Button, Input } from 'antd';
+import { Tree, Button, Input, Affix, Tag, Space } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import Drawer from '@/components/Drawer/Drawer';
 import styles from './Tree.module.css';
 
 /**
- * NotebookTree
- * Centralized styled Tree wrapper.
- * Props pass through to antd <Tree />. Style variants are toggled via props.
- *
- * Synthetic "add" nodes are injected at each level and rendered as dashed
- * buttons. Clicking a button triggers the corresponding add handler.
+ * NotebookTree (Option B: Affixed context bar)
+ * Adds a thin Affix bar that displays the current path (Group → Subgroup → Entry).
+ * All existing behaviors are preserved (add nodes, DnD, manage drawer, preview).
  */
 export default function NotebookTree({
   className = '',
@@ -26,6 +23,10 @@ export default function NotebookTree({
   showDrawer = true,
   notebookId,
   previewEntry,
+  // Optional: offset for top app header (px). Defaults to 0.
+  affixOffsetTop = 0,
+  // Optional: hide entry in context bar (show only Group/Subgroup)
+  showEntryInContext = true,
   ...treeProps
 }) {
   const wrapperClasses = [
@@ -147,100 +148,7 @@ export default function NotebookTree({
     setDrawerOpen(false);
   };
 
-  const renderForm = () => {
-    if (!selectedItem) return null;
-    switch (selectedItem.type) {
-      case 'notebook':
-        return (
-          <>
-            <Input
-              placeholder="Title"
-              value={formValues.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            <Input.TextArea
-              placeholder="Description"
-              value={formValues.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            <Input
-              placeholder="Group Alias"
-              value={formValues.groupAlias}
-              onChange={(e) => handleInputChange('groupAlias', e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            <Input
-              placeholder="Subgroup Alias"
-              value={formValues.subgroupAlias}
-              onChange={(e) => handleInputChange('subgroupAlias', e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            <Input
-              placeholder="Entry Alias"
-              value={formValues.entryAlias}
-              onChange={(e) => handleInputChange('entryAlias', e.target.value)}
-            />
-          </>
-        );
-      case 'entry':
-        return (
-          <>
-            <Input
-              placeholder="Title"
-              value={formValues.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            <Input.TextArea
-              placeholder="Content"
-              value={formValues.content}
-              onChange={(e) => handleInputChange('content', e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-              rows={4}
-            />
-            <Input
-              placeholder="Tags"
-              value={formValues.tags}
-              onChange={(e) => handleInputChange('tags', e.target.value)}
-            />
-          </>
-        );
-      default:
-        return (
-          <Input
-            placeholder="Title"
-            value={formValues.title}
-            onChange={(e) => handleInputChange('title', e.target.value)}
-          />
-        );
-    }
-  };
-
-  const header = (
-    <h3 style={{ marginTop: 0 }}>
-      {selectedItem ? `Edit ${selectedItem.type}` : 'Manage'}
-    </h3>
-  );
-
-  const body = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      {renderForm()}
-      <Button type="primary" onClick={handleSave}>
-        Save
-      </Button>
-      {selectedItem && (
-        <Button danger onClick={handleDelete}>
-          Delete
-        </Button>
-      )}
-      <Button onClick={handleCancel}>Cancel</Button>
-    </div>
-  );
-
   const [treeDataState, setTreeDataState] = useState(rawTreeData);
-
   useEffect(() => {
     setTreeDataState(rawTreeData);
   }, [rawTreeData]);
@@ -250,9 +158,12 @@ export default function NotebookTree({
     onDragStart: onDragStartProp,
     onDragOver: onDragOverProp,
     onDragEnd: onDragEndProp,
+    onSelect: onSelectProp,
+    onExpand: onExpandProp,
     ...restTreeProps
   } = treeProps;
 
+  // Inject synthetic "add" buttons at each level (unchanged)
   const treeData = useMemo(() => {
     const addNode = (key, title, extra = {}) => ({
       key,
@@ -266,10 +177,7 @@ export default function NotebookTree({
     });
 
     const entryNodes = (g, s) => {
-      // If entries haven't been loaded yet, leave children undefined so
-      // antd's Tree will call `loadData` when the subgroup is expanded.
       if (s.children === undefined) return undefined;
-
       return [
         ...(s.children || []).map((e) => ({ ...e })),
         addNode(`add-entry:${g.key}:${s.key}`, 'Add entry', {
@@ -281,10 +189,7 @@ export default function NotebookTree({
     };
 
     const subgroupNodes = (g) => {
-      // Likewise, don't inject synthetic nodes until real subgroups have
-      // been fetched for the group.
       if (g.children === undefined) return undefined;
-
       return [
         ...(g.children || []).map((s) => ({
           ...s,
@@ -308,6 +213,51 @@ export default function NotebookTree({
     return groupNodes;
   }, [treeDataState]);
 
+  // --- Context bar state (Affix) -----------------------------------------
+  // Build an index of real nodes (skip synthetic 'add') → { key, title, type, parentKey }
+  const nodeIndex = useMemo(() => {
+    const map = new Map();
+    const walk = (nodes, parentKey = null) => {
+      (nodes || []).forEach((n) => {
+        if (n.kind !== 'add') {
+          map.set(n.key, {
+            key: n.key,
+            title: n.title,
+            type: n.type,
+            parentKey,
+          });
+        }
+        if (n.children) walk(n.children, n.key);
+      });
+    };
+    walk(treeData);
+    return map;
+  }, [treeData]);
+
+  const getPathTitles = (key) => {
+    const titles = [];
+    let cur = key;
+    while (cur != null && nodeIndex.has(cur)) {
+      const info = nodeIndex.get(cur);
+      titles.push({ title: info.title, type: info.type, key: info.key });
+      cur = info.parentKey;
+    }
+    titles.reverse();
+    return titles;
+  };
+
+  const [contextPath, setContextPath] = useState([]);
+
+  // Keep context if previewEntry is injected externally
+  useEffect(() => {
+    if (previewEntry?.id && nodeIndex.has(previewEntry.id)) {
+      const path = getPathTitles(previewEntry.id);
+      setContextPath(showEntryInContext ? path : path.filter(p => p.type !== 'entry'));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewEntry?.id, nodeIndex, showEntryInContext]);
+
+  // --- Drag & drop (unchanged) -------------------------------------------
   const dragOriginRef = useRef(null);
 
   const restoreOriginal = () => {
@@ -455,90 +405,146 @@ export default function NotebookTree({
     onDragEndProp && onDragEndProp(info);
   };
 
+  // --- Selection / Expansion with context updates ------------------------
+  const updateContextForKey = (key) => {
+    if (!key || !nodeIndex.has(key)) return;
+    const path = getPathTitles(key);
+    setContextPath(showEntryInContext ? path : path.filter(p => p.type !== 'entry'));
+  };
+
+  const handleSelect = (keys, info) => {
+    const node = info.node;
+    if (node.kind === 'add') return;
+    if (manageMode && node.type === 'entry') {
+      // Still update context so users see where they are, but do not open editor
+      updateContextForKey(node.key);
+      return;
+    }
+
+    // Preserve existing callbacks
+    onSelectProp && onSelectProp(keys, info);
+    if (onSelectItem) {
+      onSelectItem({ kind: node.type, id: node.key });
+    }
+    updateContextForKey(node.key);
+
+    if (manageMode) {
+      setSelectedItem({ type: node.type, id: node.key });
+      setFormValues({ title: node.title });
+      setDrawerOpen(true);
+    }
+  };
+
+  const handleExpand = (expandedKeys, info) => {
+    onExpandProp && onExpandProp(expandedKeys, info);
+    if (info.expanded && info.node?.key) {
+      // When a parent opens, reflect it in the context
+      updateContextForKey(info.node.key);
+    }
+  };
+
+  // Render
   return (
     <div className={wrapperClasses} style={style}>
-      <Tree
-        {...restTreeProps}
-        blockNode
-        expandAction="click"
-        treeData={treeData}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        onDragEnd={handleDragEnd}
-        titleRender={(node) => {
-          if (node.kind === 'add') {
-            const handleClick = (e) => {
-              e.stopPropagation();
-              if (manageMode) return;
-              if (node.addType === 'group') {
-                return onAddGroup && onAddGroup();
-              }
-              if (node.addType === 'subgroup' && node.parentId) {
-                return onAddSubgroup && onAddSubgroup(node.parentId);
-              }
-              if (node.addType === 'entry' && node.parentId) {
-                const parts = String(node.key).split(':');
-                const groupId = parts[1];
-                const subgroupId = parts[2];
-                return onAddEntry && onAddEntry(groupId, subgroupId);
-              }
-            };
+      {/* Affixed context bar */}
+      <Affix offsetTop={affixOffsetTop}>
+        <div
+          style={{
+            padding: 8,
+            background: 'var(--ant-color-bg-container, #fff)',
+            borderBottom: '1px solid var(--ant-color-border-secondary, #f0f0f0)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            zIndex: 1,
+          }}
+        >
+          <Space size={6} wrap>
+            {contextPath.length === 0 ? (
+              <Tag style={{ opacity: 0.7 }}>No selection</Tag>
+            ) : (
+              contextPath.map((p, i) => (
+                <Tag key={p.key || i}>{p.title}</Tag>
+              ))
+            )}
+          </Space>
+        </div>
+      </Affix>
+
+      {/* Tree */}
+      <div style={{ marginTop: 8 }}>
+        <Tree
+          {...restTreeProps}
+          blockNode
+          expandAction="click"
+          treeData={treeData}
+          onExpand={handleExpand}
+          onSelect={handleSelect}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onDragEnd={handleDragEnd}
+          titleRender={(node) => {
+            if (node.kind === 'add') {
+              const handleClick = (e) => {
+                e.stopPropagation();
+                if (manageMode) return;
+                if (node.addType === 'group') {
+                  return onAddGroup && onAddGroup();
+                }
+                if (node.addType === 'subgroup' && node.parentId) {
+                  return onAddSubgroup && onAddSubgroup(node.parentId);
+                }
+                if (node.addType === 'entry' && node.parentId) {
+                  const parts = String(node.key).split(':');
+                  const groupId = parts[1];
+                  const subgroupId = parts[2];
+                  return onAddEntry && onAddEntry(groupId, subgroupId);
+                }
+              };
+
+              return (
+                <Button
+                  type="dashed"
+                  icon={<PlusOutlined />}
+                  block
+                  onClick={handleClick}
+                  disabled={manageMode}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  size="small"
+                  style={{ justifyContent: 'flex-start' }}
+                >
+                  {node.title}
+                </Button>
+              );
+            }
+
+            const typeClass =
+              node.type === 'group'
+                ? styles.groupTitle
+                : node.type === 'subgroup'
+                  ? styles.subgroupTitle
+                  : node.type === 'entry'
+                    ? styles.entryTitle
+                    : '';
+
+            const isPreview = previewEntry && previewEntry.id === node.key;
+            const snippet =
+              isPreview && previewEntry.content
+                ? previewEntry.content.slice(0, 200) +
+                (previewEntry.content.length > 200 ? '...' : '')
+                : null;
 
             return (
-              <Button
-                type="dashed"
-                icon={<PlusOutlined />}
-                block
-                onClick={handleClick}
-                disabled={manageMode}
-                onMouseDown={(e) => e.stopPropagation()}
-                size="small"
-                style={{ justifyContent: 'flex-start' }}
-              >
-                {node.title}
-              </Button>
+              <span className={styles.nodeContainer}>
+                <span className={typeClass}>{node.title}</span>
+                {snippet && <span className={styles.entrySnippet}>{snippet}</span>}
+              </span>
             );
-          }
+          }}
+        />
+      </div>
 
-          const typeClass =
-            node.type === 'group'
-              ? styles.groupTitle
-              : node.type === 'subgroup'
-              ? styles.subgroupTitle
-              : node.type === 'entry'
-              ? styles.entryTitle
-              : '';
-
-          const isPreview = previewEntry && previewEntry.id === node.key;
-          const snippet =
-            isPreview && previewEntry.content
-              ? previewEntry.content.slice(0, 200) +
-                (previewEntry.content.length > 200 ? '...' : '')
-              : null;
-
-          return (
-            <span className={styles.nodeContainer}>
-              <span className={typeClass}>{node.title}</span>
-              {snippet && <span className={styles.entrySnippet}>{snippet}</span>}
-            </span>
-          );
-        }}
-        onSelect={(keys, info) => {
-          const node = info.node;
-          if (node.kind === 'add') return;
-          if (manageMode && node.type === 'entry') return;
-          if (treeProps.onSelect) treeProps.onSelect(keys, info);
-          if (onSelectItem) {
-            onSelectItem({ kind: node.type, id: node.key });
-          }
-          if (manageMode) {
-            setSelectedItem({ type: node.type, id: node.key });
-            setFormValues({ title: node.title });
-            setDrawerOpen(true);
-          }
-        }}
-      />
       {showDrawer && (
         <Drawer
           open={drawerOpen}
@@ -546,11 +552,96 @@ export default function NotebookTree({
           onHamburgerClick={handleHamburgerClick}
           onMouseEnter={handleDrawerMouseEnter}
           onMouseLeave={handleDrawerMouseLeave}
-          header={header}
-          body={body}
+          header={
+            <h3 style={{ marginTop: 0 }}>
+              {selectedItem ? `Edit ${selectedItem.type}` : 'Manage'}
+            </h3>
+          }
+          body={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {(() => {
+                if (!selectedItem) return null;
+                switch (selectedItem.type) {
+                  case 'notebook':
+                    return (
+                      <>
+                        <Input
+                          placeholder="Title"
+                          value={formValues.title}
+                          onChange={(e) => handleInputChange('title', e.target.value)}
+                          style={{ marginBottom: '0.5rem' }}
+                        />
+                        <Input.TextArea
+                          placeholder="Description"
+                          value={formValues.description}
+                          onChange={(e) => handleInputChange('description', e.target.value)}
+                          style={{ marginBottom: '0.5rem' }}
+                        />
+                        <Input
+                          placeholder="Group Alias"
+                          value={formValues.groupAlias}
+                          onChange={(e) => handleInputChange('groupAlias', e.target.value)}
+                          style={{ marginBottom: '0.5rem' }}
+                        />
+                        <Input
+                          placeholder="Subgroup Alias"
+                          value={formValues.subgroupAlias}
+                          onChange={(e) => handleInputChange('subgroupAlias', e.target.value)}
+                          style={{ marginBottom: '0.5rem' }}
+                        />
+                        <Input
+                          placeholder="Entry Alias"
+                          value={formValues.entryAlias}
+                          onChange={(e) => handleInputChange('entryAlias', e.target.value)}
+                        />
+                      </>
+                    );
+                  case 'entry':
+                    return (
+                      <>
+                        <Input
+                          placeholder="Title"
+                          value={formValues.title}
+                          onChange={(e) => handleInputChange('title', e.target.value)}
+                          style={{ marginBottom: '0.5rem' }}
+                        />
+                        <Input.TextArea
+                          placeholder="Content"
+                          value={formValues.content}
+                          onChange={(e) => handleInputChange('content', e.target.value)}
+                          style={{ marginBottom: '0.5rem' }}
+                          rows={4}
+                        />
+                        <Input
+                          placeholder="Tags"
+                          value={formValues.tags}
+                          onChange={(e) => handleInputChange('tags', e.target.value)}
+                        />
+                      </>
+                    );
+                  default:
+                    return (
+                      <Input
+                        placeholder="Title"
+                        value={formValues.title}
+                        onChange={(e) => handleInputChange('title', e.target.value)}
+                      />
+                    );
+                }
+              })()}
+              <Button type="primary" onClick={handleSave}>
+                Save
+              </Button>
+              {selectedItem && (
+                <Button danger onClick={handleDelete}>
+                  Delete
+                </Button>
+              )}
+              <Button onClick={handleCancel}>Cancel</Button>
+            </div>
+          }
         />
       )}
     </div>
   );
 }
-
