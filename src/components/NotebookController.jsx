@@ -12,6 +12,9 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
+  const [newGroupAlias, setNewGroupAlias] = useState('');
+  const [newSubgroupAlias, setNewSubgroupAlias] = useState('');
+  const [newEntryAlias, setNewEntryAlias] = useState('');
   const { darkMode, toggleTheme } = useContext(ThemeContext);
 
   useEffect(() => {
@@ -77,9 +80,16 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
   };
 
   const handleCreateDrawer = async () => {
-    await handleCreate({ name: newTitle, description: newDescription });
+    await handleCreate({
+      name: newTitle,
+      description: newDescription,
+      user_notebook_tree: [newGroupAlias, newSubgroupAlias, newEntryAlias],
+    });
     setNewTitle('');
     setNewDescription('');
+    setNewGroupAlias('');
+    setNewSubgroupAlias('');
+    setNewEntryAlias('');
   };
 
   useEffect(() => {
@@ -143,6 +153,24 @@ export default function NotebookController({ onSelect, showEdits, onToggleEdits,
           placeholder="Description (optional)"
           value={newDescription}
           onChange={(e) => setNewDescription(e.target.value)}
+          style={{ marginBottom: '0.5rem' }}
+        />
+        <Input
+          placeholder="Group Alias"
+          value={newGroupAlias}
+          onChange={(e) => setNewGroupAlias(e.target.value)}
+          style={{ marginBottom: '0.5rem' }}
+        />
+        <Input
+          placeholder="Subgroup Alias"
+          value={newSubgroupAlias}
+          onChange={(e) => setNewSubgroupAlias(e.target.value)}
+          style={{ marginBottom: '0.5rem' }}
+        />
+        <Input
+          placeholder="Entry Alias"
+          value={newEntryAlias}
+          onChange={(e) => setNewEntryAlias(e.target.value)}
           style={{ marginBottom: '0.5rem' }}
         />
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>

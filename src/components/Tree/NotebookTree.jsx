@@ -24,6 +24,7 @@ export default function NotebookTree({
   onSelectItem,
   manageMode = false,
   showDrawer = true,
+  notebookId,
   ...treeProps
 }) {
   const wrapperClasses = [
@@ -44,11 +45,28 @@ export default function NotebookTree({
   useEffect(() => {
     if (manageMode) {
       setDrawerOpen(true);
+      if (notebookId) {
+        setSelectedItem({ type: 'notebook', id: notebookId });
+        fetch(`/api/notebooks/${notebookId}`)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((nb) => {
+            if (nb) {
+              setFormValues({
+                title: nb.title || '',
+                description: nb.description || '',
+                groupAlias: nb.user_notebook_tree?.[0] || '',
+                subgroupAlias: nb.user_notebook_tree?.[1] || '',
+                entryAlias: nb.user_notebook_tree?.[2] || '',
+              });
+            }
+          })
+          .catch((err) => console.error('Failed to load notebook', err));
+      }
     } else {
       setDrawerOpen(false);
       setSelectedItem(null);
     }
-  }, [manageMode]);
+  }, [manageMode, notebookId]);
 
   const handleHamburgerClick = () => {
     setDrawerPinned((prev) => {
@@ -91,10 +109,22 @@ export default function NotebookTree({
     if (!selectedItem) return;
     const { type, id } = selectedItem;
     try {
+      let body = formValues;
+      if (type === 'notebook') {
+        body = {
+          title: formValues.title,
+          description: formValues.description,
+          user_notebook_tree: [
+            formValues.groupAlias,
+            formValues.subgroupAlias,
+            formValues.entryAlias,
+          ],
+        };
+      }
       await fetch(`${endpointMap[type]}/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formValues),
+        body: JSON.stringify(body),
       });
     } catch (err) {
       console.error('Save failed', err);
@@ -135,9 +165,21 @@ export default function NotebookTree({
               style={{ marginBottom: '0.5rem' }}
             />
             <Input
-              placeholder="Aliases"
-              value={formValues.aliases}
-              onChange={(e) => handleInputChange('aliases', e.target.value)}
+              placeholder="Group Alias"
+              value={formValues.groupAlias}
+              onChange={(e) => handleInputChange('groupAlias', e.target.value)}
+              style={{ marginBottom: '0.5rem' }}
+            />
+            <Input
+              placeholder="Subgroup Alias"
+              value={formValues.subgroupAlias}
+              onChange={(e) => handleInputChange('subgroupAlias', e.target.value)}
+              style={{ marginBottom: '0.5rem' }}
+            />
+            <Input
+              placeholder="Entry Alias"
+              value={formValues.entryAlias}
+              onChange={(e) => handleInputChange('entryAlias', e.target.value)}
             />
           </>
         );
@@ -262,6 +304,7 @@ export default function NotebookTree({
           if (node.kind === 'add') {
             const handleClick = (e) => {
               e.stopPropagation();
+              if (manageMode) return;
               if (node.addType === 'group') {
                 return onAddGroup && onAddGroup();
               }
@@ -282,6 +325,7 @@ export default function NotebookTree({
                 icon={<PlusOutlined />}
                 block
                 onClick={handleClick}
+                disabled={manageMode}
                 onMouseDown={(e) => e.stopPropagation()}
                 size="small"
                 style={{ justifyContent: 'flex-start' }}
@@ -304,6 +348,7 @@ export default function NotebookTree({
         onSelect={(keys, info) => {
           const node = info.node;
           if (node.kind === 'add') return;
+          if (manageMode && node.type === 'entry') return;
           if (treeProps.onSelect) treeProps.onSelect(keys, info);
           if (onSelectItem) {
             onSelectItem({ kind: node.type, id: node.key });
