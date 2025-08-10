@@ -1,7 +1,6 @@
 
 
 import React from 'react';
-import Link from 'next/link';
 import styles from './Menu.module.css';
 import NotebookController from '@/components/NotebookController';
 
@@ -25,8 +24,6 @@ export default function NotebookMenu({
   // Presentation
   className = '',
   style,
-  linkHref = '/',
-  linkText = 'Back to Notebook',
   ...rest
 }) {
   return (
@@ -39,9 +36,6 @@ export default function NotebookMenu({
           showArchived={showArchived}
           onToggleArchived={onToggleArchived}
         />
-        <Link href={linkHref} style={{ marginLeft: '1rem' }}>
-          {linkText}
-        </Link>
       </div>
 
       <div className={styles.center}>{centerContent}</div>
