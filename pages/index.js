@@ -1,6 +1,6 @@
 import { useSession } from 'next-auth/react';
 import LandingPage from '../src/components/LandingPage';
-import Notebook from '../src/components/Notebook';
+import DeskSurface from '../src/components/Desk/DeskSurface';
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -9,5 +9,5 @@ export default function HomePage() {
     return null;
   }
 
-  return session ? <Notebook /> : <LandingPage />;
+  return session ? <DeskSurface /> : <LandingPage />;
 }
