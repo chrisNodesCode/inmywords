@@ -80,7 +80,9 @@ export default function DeskSurface({
   }, [notebookId]);
 
   const loadData = (node) => {
-    if (node.children) return Promise.resolve();
+    const hasRealChildren =
+      Array.isArray(node.children) && node.children.some((child) => child.kind !== 'add');
+    if (hasRealChildren) return Promise.resolve();
 
     if (node.type === 'group') {
       return fetch(`/api/subgroups?groupId=${node.key}`)
