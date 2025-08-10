@@ -307,6 +307,7 @@ export default function DeskSurface({
     onDoubleClick: handleNodeDoubleClick,
     manageMode: showEdits,
     ...treePropOverrides,
+    showDrawer: !(editorState.isOpen && editorState.type === 'entry'),
   };
 
   // Editor props for NotebookEditor
