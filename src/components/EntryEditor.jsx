@@ -3,8 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import { listPrecursors } from '../api/precursors';
-import { Switch, InputNumber, Drawer, Button, Select } from 'antd';
-import { MenuOutlined } from '@ant-design/icons';
+import { Drawer, Button } from 'antd';
+import EditorDrawer from './Drawer/EditorDrawer';
 import PomodoroWidget from './PomodoroWidget';
 import ExportMenu from './ExportMenu';
 import FullScreenCanvas from './Editor/FullScreenCanvas';
@@ -221,10 +221,6 @@ export default function EntryEditor({
     });
   };
 
-  const subgroupOptions = groups.flatMap((g) =>
-    g.subgroups.map((s) => ({ value: s.id, label: `${g.name} / ${s.name}` }))
-  );
-
   const handleDrawerMouseEnter = () => {
     if (drawerCloseTimeoutRef.current) {
       clearTimeout(drawerCloseTimeoutRef.current);
@@ -242,6 +238,22 @@ export default function EntryEditor({
         setDrawerOpen(false);
         drawerCloseTimeoutRef.current = null;
       }, 2000);
+    }
+  };
+
+  const handleChangeSubgroup = (val) => {
+    setSelectedSubgroupId(val);
+    if (mode === 'edit') {
+      onSave({
+        title: title.trim(),
+        content: content.trim(),
+        parent,
+        mode,
+        id: safeData.id,
+        subgroupId: val,
+        autoSave: true,
+      });
+      setLastSaved(new Date());
     }
   };
 
@@ -483,106 +495,30 @@ export default function EntryEditor({
           </div>
           <div className="editor-modal-footer"></div>
         </div>
-        <Button
-          type="text"
-          icon={<MenuOutlined />}
-          onClick={handleHamburgerClick}
-          style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1002 }}
-        />
-        <div
+        <EditorDrawer
+          drawerOpen={drawerOpen}
+          drawerWidth={drawerWidth}
+          onHamburgerClick={handleHamburgerClick}
           onMouseEnter={handleDrawerMouseEnter}
           onMouseLeave={handleDrawerMouseLeave}
-          className="entry-editor-drawer-wrapper"
-          style={{ width: drawerWidth }}
-        >
-          <Drawer
-            placement="right"
-            open={drawerOpen}
-            mask={false}
-            closable={false}
-            width={drawerWidth}
-            getContainer={false}
-            rootStyle={{ position: 'absolute' }}
-            body={{ padding: '1rem' }}
-          >
-            <h2 style={{ marginTop: 0 }}>
-              {mode === 'edit'
-                ? `Edit ${aliases.entry}`
-                : `New ${aliases.entry}`}
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span>Pomodoro</span>
-                <Switch
-                  checked={pomodoroEnabled}
-                  onChange={handlePomodoroToggle}
-                  size="small"
-                />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span>Max Width</span>
-                <InputNumber
-                  min={25}
-                  max={95}
-                  step={1}
-                  value={maxWidth}
-                  onChange={handleMaxWidthChange}
-                  size="small"
-                  formatter={(value) => `${value}%`}
-                  parser={(value) => value.replace('%', '')}
-                />
-              </div>
-              {type === 'entry' && groups.length > 0 && (
-                <Select
-                  value={selectedSubgroupId}
-                  onChange={(val) => {
-                    setSelectedSubgroupId(val);
-                    if (mode === 'edit') {
-                      onSave({
-                        title: title.trim(),
-                        content: content.trim(),
-                        parent,
-                        mode,
-                        id: safeData.id,
-                        subgroupId: val,
-                        autoSave: true,
-                      });
-                      setLastSaved(new Date());
-                    }
-                  }}
-                  options={subgroupOptions}
-                  size="small"
-                />
-              )}
-              <Button className="drawer-btn drawer-btn-save" onClick={handleSave}>
-                Save
-              </Button>
-              {mode === 'edit' && onDelete && (
-                <Button className="drawer-btn drawer-btn-delete" onClick={handleDelete}>
-                  Delete
-                </Button>
-              )}
-              {mode === 'edit' && onArchive && (
-                <Button className="drawer-btn drawer-btn-archive" onClick={onArchive}>
-                  {safeData.archived ? 'Restore' : 'Archive'}
-                </Button>
-              )}
-              <Button className="drawer-btn drawer-btn-cancel" onClick={onCancel}>Cancel</Button>
-              <Button type="link" onClick={() => setShowShortcutList((prev) => !prev)}>
-                Keyboard Shortcuts
-              </Button>
-              {showShortcutList && (
-                <ul style={{ paddingLeft: '1rem' }}>
-                  {entryShortcuts.map((s) => (
-                    <li key={s.action}>
-                      {s.action}: {s.keys}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </Drawer>
-        </div>
+          pomodoroEnabled={pomodoroEnabled}
+          onPomodoroToggle={handlePomodoroToggle}
+          maxWidth={maxWidth}
+          onMaxWidthChange={handleMaxWidthChange}
+          type={type}
+          mode={mode}
+          aliases={aliases}
+          groups={groups}
+          selectedSubgroupId={selectedSubgroupId}
+          onChangeSubgroup={handleChangeSubgroup}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onArchive={onArchive}
+          onCancel={onCancel}
+          showShortcutList={showShortcutList}
+          onToggleShortcutList={() => setShowShortcutList((prev) => !prev)}
+          entryShortcuts={entryShortcuts}
+        />
       </FullScreenCanvas>
       {pomodoroEnabled && <PomodoroWidget />}
     </>

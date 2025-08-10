@@ -36,8 +36,8 @@ body {
   color: #000000;
 }
 
-/* Fixed container for entry editor side drawer */
-.entry-editor-drawer-wrapper {
+/* Fixed container for side drawer */
+.drawer-wrapper {
   position: fixed;
   top: 0;
   right: 0;
