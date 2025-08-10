@@ -44,25 +44,37 @@ export default function NotebookTree({
       ...extra,
     });
 
-    const entryNodes = (g, s) => [
-      ...(s.children || []).map((e) => ({ ...e })),
-      addNode(`add-entry:${g.key}:${s.key}`, 'Add entry', {
-        parentId: s.key,
-        addType: 'entry',
-        groupId: g.key,
-      }),
-    ];
+    const entryNodes = (g, s) => {
+      // If entries haven't been loaded yet, leave children undefined so
+      // antd's Tree will call `loadData` when the subgroup is expanded.
+      if (s.children === undefined) return undefined;
 
-    const subgroupNodes = (g) => [
-      ...(g.children || []).map((s) => ({
-        ...s,
-        children: entryNodes(g, s),
-      })),
-      addNode(`add-subgroup:${g.key}`, 'Add subgroup', {
-        parentId: g.key,
-        addType: 'subgroup',
-      }),
-    ];
+      return [
+        ...(s.children || []).map((e) => ({ ...e })),
+        addNode(`add-entry:${g.key}:${s.key}`, 'Add entry', {
+          parentId: s.key,
+          addType: 'entry',
+          groupId: g.key,
+        }),
+      ];
+    };
+
+    const subgroupNodes = (g) => {
+      // Likewise, don't inject synthetic nodes until real subgroups have
+      // been fetched for the group.
+      if (g.children === undefined) return undefined;
+
+      return [
+        ...(g.children || []).map((s) => ({
+          ...s,
+          children: entryNodes(g, s),
+        })),
+        addNode(`add-subgroup:${g.key}`, 'Add subgroup', {
+          parentId: g.key,
+          addType: 'subgroup',
+        }),
+      ];
+    };
 
     const groupNodes = [
       ...(rawTreeData || []).map((g) => ({
