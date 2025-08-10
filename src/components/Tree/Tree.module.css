@@ -13,6 +13,10 @@
   margin-bottom: 1rem;
 }
 
+.root :where(.ant-tree) .ant-tree-treenode {
+  transition: all var(--ant-motion-duration-mid) ease;
+}
+
 .root :where(.ant-tree) .ant-tree-title {
   font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
 }
