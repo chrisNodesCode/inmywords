@@ -37,6 +37,7 @@ export default function DeskSurface({
   // === Lifted state from NotebookDev.jsx ===
   const [notebookId, setNotebookId] = useState(null);
   const [treeData, setTreeData] = useState([]);
+  const [showEdits, setShowEdits] = useState(false);
   const [editorState, setEditorState] = useState({
     isOpen: false,
     type: null,
@@ -304,6 +305,7 @@ export default function DeskSurface({
     treeData,
     onDrop,
     onDoubleClick: handleNodeDoubleClick,
+    manageMode: showEdits,
     ...treePropOverrides,
   };
 
@@ -376,8 +378,8 @@ export default function DeskSurface({
         <div className={styles.menuInner}>
           <NotebookMenu
             onSelect={setNotebookId}
-            showEdits={false}
-            onToggleEdits={() => { }}
+            showEdits={showEdits}
+            onToggleEdits={() => setShowEdits((prev) => !prev)}
             showArchived={false}
             onToggleArchived={() => { }}
             {...menuProps}
