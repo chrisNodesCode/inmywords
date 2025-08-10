@@ -61,6 +61,7 @@ export default function DeskSurface({
   const drawerCloseTimeoutRef = useRef(null);
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
   const [showShortcutList, setShowShortcutList] = useState(false);
+  const [previewEntry, setPreviewEntry] = useState(null);
 
   const fetchGroups = async () => {
     if (!notebookId) return;
@@ -278,10 +279,7 @@ export default function DeskSurface({
     await handleSave({ title, content, subgroupId: editorState.parent?.subgroupId });
   };
 
-  const handleNodeDoubleClick = async (event, node) => {
-    if (node.type !== 'entry') return;
-    const res = await fetch(`/api/entries/${node.key}`);
-    const item = res.ok ? await res.json() : { id: node.key, title: node.title, content: '' };
+  const openEntry = (node, item) => {
     setTitle(item.title || '');
     setContent(item.content || '');
     setIsEditingTitle(false);
@@ -296,6 +294,19 @@ export default function DeskSurface({
     });
   };
 
+  const handleNodeSelect = async (keys, info) => {
+    const node = info.node;
+    if (node.type !== 'entry') return;
+    if (previewEntry && previewEntry.id === node.key) {
+      openEntry(node, previewEntry);
+      setPreviewEntry(null);
+      return;
+    }
+    const res = await fetch(`/api/entries/${node.key}`);
+    const item = res.ok ? await res.json() : { id: node.key, title: node.title, content: '' };
+    setPreviewEntry({ ...item, groupId: node.groupId, subgroupId: node.subgroupId });
+  };
+
 
   // Tree props to pass to wrapper component
   const treeProps = {
@@ -304,7 +315,7 @@ export default function DeskSurface({
     loadData,
     treeData,
     onDrop,
-    onDoubleClick: handleNodeDoubleClick,
+    onSelect: handleNodeSelect,
     manageMode: showEdits,
     ...treePropOverrides,
     showDrawer: !(editorState.isOpen && editorState.type === 'entry'),
@@ -394,7 +405,27 @@ export default function DeskSurface({
           <NotebookTree {...treeProps} />
         </aside>
 
-        <section className={styles.editorPane}></section>
+        <section className={styles.editorPane}>
+          {previewEntry && !editorState.isOpen && (
+            <div
+              className={styles.preview}
+              onClick={() => {
+                openEntry(
+                  {
+                    key: previewEntry.id,
+                    subgroupId: previewEntry.subgroupId,
+                    groupId: previewEntry.groupId,
+                  },
+                  previewEntry
+                );
+                setPreviewEntry(null);
+              }}
+            >
+              {previewEntry.content?.slice(0, 200)}
+              {previewEntry.content && previewEntry.content.length > 200 ? '...' : ''}
+            </div>
+          )}
+        </section>
       </div>
 
       <FullScreenCanvas

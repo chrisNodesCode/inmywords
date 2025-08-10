@@ -1,5 +1,5 @@
 .root {
-  padding: 1rem;
+  padding: 2rem;
   background: var(--ant-colorBgContainer);
   border: 1px solid var(--ant-colorBorder);
   border-radius: 12px;
@@ -9,10 +9,24 @@
 .root :where(.ant-tree) .ant-tree-node-content-wrapper {
   border-radius: 12px;
   transition: background var(--ant-motion-duration-mid) ease;
+  padding: 8px 12px;
+  margin-bottom: 4px;
 }
 
 .root :where(.ant-tree) .ant-tree-title {
   font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
+}
+
+.groupTitle {
+  font-size: 3rem;
+}
+
+.subgroupTitle {
+  font-size: 2rem;
+}
+
+.entryTitle {
+  font-size: 1.5rem;
 }
 
 /* Hover + selected states mapped to theme vars */
