@@ -1,5 +1,5 @@
 // src/components/Editor/NotebookEditor.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import ExportMenu from '../ExportMenu';
 import 'react-quill/dist/quill.snow.css';
@@ -21,11 +21,8 @@ export default function NotebookEditor({
   content,
   setContent,
   lastSaved,
-  setLastSaved,
 
   // actions provided by parent
-  onSaveEntry,        // () => void  (save with current state)
-  onSaveAndClose,     // () => void  (save then close)
   onCancel,           // () => void  (close without save)
 
   // presentation
@@ -65,29 +62,6 @@ export default function NotebookEditor({
     }
   };
 
-  // keyboard shortcuts (editor-specific only)
-  useEffect(() => {
-    const onKey = (e) => {
-      const key = e.key.toLowerCase();
-      if (e.ctrlKey && !e.shiftKey && !e.altKey && key === 's') {
-        e.preventDefault();
-        onSaveEntry();
-        setLastSaved?.(new Date());
-      } else if (e.ctrlKey && e.shiftKey && !e.altKey && key === 's') {
-        e.preventDefault();
-        onSaveAndClose();
-        setLastSaved?.(new Date());
-      } else if (!e.ctrlKey && !e.altKey && e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      } else if (e.ctrlKey && !e.altKey && e.key === 'Enter') {
-        e.preventDefault();
-        quillRef.current?.getEditor?.().focus();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onSaveEntry, onSaveAndClose, onCancel]);
 
   const overlayClass = 'editor-modal-overlay fullscreen';
   const contentClass = 'editor-modal-content fullscreen slide-up';
