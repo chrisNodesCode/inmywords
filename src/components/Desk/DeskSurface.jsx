@@ -10,6 +10,7 @@ import NotebookEditor from '@/components/Editor/NotebookEditor';
 import FullScreenCanvas from '@/components/Editor/FullScreenCanvas';
 import Drawer from '@/components/Drawer/Drawer';
 import { Drawer as AntDrawer, Input, Button } from 'antd';
+import PomodoroWidget from '@/components/PomodoroWidget';
 
 function updateTreeData(list, key, children) {
   return list.map((node) => {
@@ -358,12 +359,16 @@ export default function DeskSurface({
   };
 
   const handlePomodoroToggle = (checked) => {
-    setPomodoroEnabled(checked);
-    const eventName = checked ? 'pomodoro-start' : 'pomodoro-stop';
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event(eventName));
+    if (!checked && typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('pomodoro-stop'));
     }
+    setPomodoroEnabled(checked);
   };
+
+  useEffect(() => {
+    if (!pomodoroEnabled || typeof window === 'undefined') return;
+    window.dispatchEvent(new Event('pomodoro-start'));
+  }, [pomodoroEnabled]);
 
   const handleToggleShortcutList = () => {
     setShowShortcutList((prev) => !prev);
@@ -634,6 +639,8 @@ export default function DeskSurface({
       </AntDrawer>
 
       <Drawer template="controller" {...controllerDrawerProps} />
+
+      {pomodoroEnabled && <PomodoroWidget />}
 
       {children}
     </div>

@@ -114,6 +114,7 @@ export default function PomodoroWidget() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const startHandler = () => {
       resume();
     };
