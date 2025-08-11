@@ -631,7 +631,9 @@ export default function DeskSurface({
         </div>
       </AntDrawer>
 
-      <Drawer template="controller" {...controllerDrawerProps} />
+      {!(editorState.isOpen && editorState.type === 'entry') && (
+        <Drawer template="controller" {...controllerDrawerProps} />
+      )}
 
       {pomodoroEnabled && <PomodoroWidget />}
 
