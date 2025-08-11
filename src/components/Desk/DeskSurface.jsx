@@ -6,7 +6,6 @@ import styles from './Desk.module.css';
 
 // Core children, centralized
 import NotebookTree from '@/components/Tree/NotebookTree';
-import NotebookMenu from '@/components/Menu/Menu';
 import NotebookEditor from '@/components/Editor/NotebookEditor';
 import FullScreenCanvas from '@/components/Editor/FullScreenCanvas';
 import Drawer from '@/components/Drawer/Drawer';
@@ -75,6 +74,9 @@ export default function DeskSurface({
   const [notebookAddOpen, setNotebookAddOpen] = useState(false);
   const [manageHoverDisabled, setManageHoverDisabled] = useState(false);
   const manageHoverTimeoutRef = useRef(null);
+  const [controllerOpen, setControllerOpen] = useState(false);
+  const [controllerPinned, setControllerPinned] = useState(false);
+  const controllerCloseTimeoutRef = useRef(null);
 
   const throttleManageHover = () => {
     setManageHoverDisabled(true);
@@ -367,6 +369,51 @@ export default function DeskSurface({
     setShowShortcutList((prev) => !prev);
   };
 
+  const handleControllerHamburgerClick = () => {
+    setControllerPinned((prev) => {
+      const next = !prev;
+      setControllerOpen(next);
+      return next;
+    });
+  };
+
+  const handleControllerMouseEnter = () => {
+    if (controllerCloseTimeoutRef.current) {
+      clearTimeout(controllerCloseTimeoutRef.current);
+    }
+    setControllerOpen(true);
+  };
+
+  const handleControllerMouseLeave = () => {
+    if (controllerCloseTimeoutRef.current) {
+      clearTimeout(controllerCloseTimeoutRef.current);
+    }
+    controllerCloseTimeoutRef.current = setTimeout(() => {
+      if (!controllerPinned && !showEdits) {
+        setControllerOpen(false);
+      }
+    }, 200);
+  };
+
+  useEffect(() => {
+    if (showEdits) {
+      setControllerOpen(true);
+      setControllerPinned(true);
+    } else {
+      setControllerPinned(false);
+      setControllerOpen(false);
+    }
+  }, [showEdits]);
+
+  useEffect(
+    () => () => {
+      if (controllerCloseTimeoutRef.current) {
+        clearTimeout(controllerCloseTimeoutRef.current);
+      }
+    },
+    []
+  );
+
   const handleChangeSubgroup = (subgroupId) => {
     setEditorState((prev) => ({
       ...prev,
@@ -494,7 +541,7 @@ export default function DeskSurface({
     { action: 'Cancel', keys: 'Esc' },
   ];
 
-  const drawerProps = {
+  const editorDrawerProps = {
     open: drawerOpen,
     width: drawerWidth,
     onHamburgerClick: handleHamburgerClick,
@@ -520,27 +567,26 @@ export default function DeskSurface({
     ...drawerPropOverrides,
   };
 
+  const controllerDrawerProps = {
+    open: controllerOpen,
+    onHamburgerClick: handleControllerHamburgerClick,
+    onMouseEnter: handleControllerMouseEnter,
+    onMouseLeave: handleControllerMouseLeave,
+    onSelect: setNotebookId,
+    showEdits,
+    onToggleEdits: () => setShowEdits((prev) => !prev),
+    showArchived,
+    onToggleArchived: handleToggleArchived,
+    onAddNotebookDrawerChange: (open) => {
+      setNotebookAddOpen(open);
+      menuDrawerChange?.(open);
+      if (!open) throttleManageHover();
+    },
+    ...menuRest,
+  };
+
   return (
     <div className={classNames(styles.root, { [styles.hideTree]: hideTree }, className)} style={style}>
-      {/* Top Menu */}
-      <div className={styles.menuBar}>
-        <div className={styles.menuInner}>
-          <NotebookMenu
-            onSelect={setNotebookId}
-            showEdits={showEdits}
-            onToggleEdits={() => setShowEdits((prev) => !prev)}
-            showArchived={showArchived}
-            onToggleArchived={handleToggleArchived}
-            onAddNotebookDrawerChange={(open) => {
-              setNotebookAddOpen(open);
-              menuDrawerChange?.(open);
-              if (!open) throttleManageHover();
-            }}
-            {...menuRest}
-          />
-        </div>
-      </div>
-
       {/* Main Content: Tree | Editor */}
       <div className={styles.content}>
         <aside className={styles.treePane}>
@@ -555,7 +601,7 @@ export default function DeskSurface({
         onClose={handleCancel}
       >
         <NotebookEditor {...editorProps} />
-        <Drawer template="editor" {...drawerProps} />
+        <Drawer template="editor" {...editorDrawerProps} />
       </FullScreenCanvas>
 
       <AntDrawer
@@ -586,6 +632,8 @@ export default function DeskSurface({
           </Button>
         </div>
       </AntDrawer>
+
+      <Drawer template="controller" {...controllerDrawerProps} />
 
       {children}
     </div>
