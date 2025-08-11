@@ -104,6 +104,32 @@ export default function DeskSurface({
     []
   );
 
+  // Load available notebooks on first render so tree data can load without
+  // waiting for the controller drawer to mount and trigger selection.
+  useEffect(() => {
+    async function fetchInitialNotebook() {
+      try {
+        const res = await fetch('/api/notebooks');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.length) {
+          let initial = data[0].id;
+          if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('lastNotebookId');
+            if (stored && data.some((nb) => nb.id === stored)) {
+              initial = stored;
+            }
+            localStorage.setItem('lastNotebookId', initial);
+          }
+          setNotebookId(initial);
+        }
+      } catch (err) {
+        console.error('Failed to load notebooks', err);
+      }
+    }
+    fetchInitialNotebook();
+  }, []);
+
   const fetchGroups = async () => {
     if (!notebookId) return;
     try {

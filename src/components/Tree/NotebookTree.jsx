@@ -26,6 +26,7 @@ export default function NotebookTree({
   onAddSubgroup,
   onAddEntry,
   notebookId,
+  loadData,
 }) {
   // notebook metadata
   const [notebookTitle, setNotebookTitle] = useState('');
@@ -63,17 +64,29 @@ export default function NotebookTree({
     }
   };
 
-  const handleGroupToggle = (id) => {
-    setOpenGroupId((prev) => (prev === id ? null : id));
+  const handleGroupToggle = (group) => {
+    setOpenGroupId((prev) => {
+      const isOpening = prev !== group.key;
+      if (isOpening) {
+        loadData?.(group);
+      }
+      return isOpening ? group.key : null;
+    });
     setOpenSubgroupId(null);
     setOpenEntryId(null);
-    setTimeout(() => scrollTo(groupRefs, id), 0);
+    setTimeout(() => scrollTo(groupRefs, group.key), 0);
   };
 
-  const handleSubgroupToggle = (id) => {
-    setOpenSubgroupId((prev) => (prev === id ? null : id));
+  const handleSubgroupToggle = (sub) => {
+    setOpenSubgroupId((prev) => {
+      const isOpening = prev !== sub.key;
+      if (isOpening) {
+        loadData?.(sub);
+      }
+      return isOpening ? sub.key : null;
+    });
     setOpenEntryId(null);
-    setTimeout(() => scrollTo(subgroupRefs, id), 0);
+    setTimeout(() => scrollTo(subgroupRefs, sub.key), 0);
   };
 
   const handleEntryToggle = (id) => {
@@ -99,7 +112,7 @@ export default function NotebookTree({
           ref={(el) => (groupRefs.current[group.key] = el)}
           title={group.title}
           isOpen={openGroupId === group.key}
-          onToggle={() => handleGroupToggle(group.key)}
+          onToggle={() => handleGroupToggle(group)}
         >
           {group.children?.map((sub) => (
             <SubgroupCard
@@ -107,7 +120,7 @@ export default function NotebookTree({
               ref={(el) => (subgroupRefs.current[sub.key] = el)}
               title={sub.title}
               isOpen={openSubgroupId === sub.key}
-              onToggle={() => handleSubgroupToggle(sub.key)}
+              onToggle={() => handleSubgroupToggle(sub)}
             >
               {sub.children?.map((entry) => (
                 <EntryCard
