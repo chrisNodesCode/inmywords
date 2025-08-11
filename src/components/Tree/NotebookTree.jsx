@@ -4,6 +4,13 @@ import { PlusOutlined } from '@ant-design/icons';
 import Drawer from '@/components/Drawer/Drawer';
 import styles from './Tree.module.css';
 
+const getPlainTextSnippet = (html, length = 200) => {
+  if (!html) return null;
+  const text = html.replace(/<[^>]+>/g, '').trim();
+  if (!text) return null;
+  return text.length > length ? `${text.slice(0, length)}...` : text;
+};
+
 /**
  * NotebookTree (Option B: Affixed context bar)
  * Adds a thin Affix bar that displays the current path (Group → Subgroup → Entry).
@@ -635,10 +642,7 @@ export default function NotebookTree({
 
             const isPreview = previewEntry && previewEntry.id === node.key;
             const snippet =
-              isPreview && previewEntry.content
-                ? previewEntry.content.slice(0, 200) +
-                (previewEntry.content.length > 200 ? '...' : '')
-                : null;
+              isPreview ? getPlainTextSnippet(previewEntry.content, 200) : null;
 
             return (
               <span className={styles.nodeContainer}>
