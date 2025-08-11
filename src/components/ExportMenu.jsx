@@ -9,8 +9,8 @@ export default function ExportMenu({ quillRef, content }) {
   const copyTextOnly = async () => {
     try {
       const editor = quillRef.current?.getEditor();
-      const text = editor ? editor.getText() : '';
-      await navigator.clipboard.writeText(text.trim());
+      const text = editor ? editor.getText().trim() : '';
+      await navigator.clipboard.writeText(text);
     } catch (err) {
       console.error('Failed to copy text', err);
     }
@@ -18,9 +18,13 @@ export default function ExportMenu({ quillRef, content }) {
 
   const copyHtml = async () => {
     try {
-      if (navigator.clipboard && navigator.clipboard.write) {
+      if (
+        navigator.clipboard &&
+        navigator.clipboard.write &&
+        typeof ClipboardItem !== 'undefined'
+      ) {
         const editor = quillRef.current?.getEditor();
-        const text = editor ? editor.getText() : '';
+        const text = editor ? editor.getText().trim() : '';
         await navigator.clipboard.write([
           new ClipboardItem({
             'text/plain': new Blob([text], { type: 'text/plain' }),
