@@ -388,31 +388,110 @@ export default function NotebookTree({
   const handleDrop = async (info) => {
     const dragNode = info.dragNode;
     const dropNode = info.node;
+    // --- Group reorder ---------------------------------------------------
+    if (dragNode.type === 'group' && dropNode.type === 'group') {
+      try {
+        const dragIndex = treeDataState.findIndex((g) => g.key === dragNode.key);
+        const dropIndex = treeDataState.findIndex((g) => g.key === dropNode.key);
+        if (dragIndex !== -1 && dropIndex !== -1) {
+          let insertIndex = dropIndex;
+          const relativePos = info.dropPosition - Number(info.node.pos.split('-').pop());
+          if (relativePos === 1) insertIndex = dropIndex + 1;
+          const newGroups = [...treeDataState];
+          const [moved] = newGroups.splice(dragIndex, 1);
+          if (dragIndex < insertIndex) insertIndex--;
+          newGroups.splice(insertIndex, 0, moved);
+          setTreeDataState(newGroups);
+          const orders = newGroups.map((g, idx) => ({ id: g.key, user_sort: idx }));
+          await fetch('/api/groups/reorder', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orders }),
+          });
+        }
+      } catch (err) {
+        console.error('Failed to reorder groups', err);
+      }
 
-    if (dragNode.type !== 'entry' || dropNode.type !== 'entry' || dragNode.subgroupId !== dropNode.subgroupId) {
-      restoreOriginal();
       dragOriginRef.current = null;
       dropHandledRef.current = true;
       onDropProp && onDropProp(info);
       return;
     }
 
-    try {
-      const groupIndex = treeDataState.findIndex((g) => g.key === dragNode.groupId);
-      const subgroupIndex = treeDataState[groupIndex].children?.findIndex(
-        (s) => s.key === dragNode.subgroupId
-      );
-      const entries = treeDataState[groupIndex].children?.[subgroupIndex]?.children || [];
-      const orders = entries.map((e, idx) => ({ id: e.key, user_sort: idx }));
-      await fetch('/api/entries/reorder', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orders }),
-      });
-    } catch (err) {
-      console.error('Failed to reorder entries', err);
+    // --- Subgroup reorder ------------------------------------------------
+    if (
+      dragNode.type === 'subgroup' &&
+      dropNode.type === 'subgroup' &&
+      dragNode.groupId === dropNode.groupId
+    ) {
+      try {
+        const groupIndex = treeDataState.findIndex((g) => g.key === dragNode.groupId);
+        if (groupIndex !== -1) {
+          const group = treeDataState[groupIndex];
+          const subgroups = [...(group.children || [])];
+          const dragIndex = subgroups.findIndex((s) => s.key === dragNode.key);
+          const dropIndex = subgroups.findIndex((s) => s.key === dropNode.key);
+          if (dragIndex !== -1 && dropIndex !== -1) {
+            let insertIndex = dropIndex;
+            const relativePos = info.dropPosition - Number(info.node.pos.split('-').pop());
+            if (relativePos === 1) insertIndex = dropIndex + 1;
+            const [moved] = subgroups.splice(dragIndex, 1);
+            if (dragIndex < insertIndex) insertIndex--;
+            subgroups.splice(insertIndex, 0, moved);
+            const updatedGroup = { ...group, children: subgroups };
+            const newTree = [...treeDataState];
+            newTree[groupIndex] = updatedGroup;
+            setTreeDataState(newTree);
+            const orders = subgroups.map((s, idx) => ({ id: s.key, user_sort: idx }));
+            await fetch('/api/subgroups/reorder', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orders }),
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to reorder subgroups', err);
+      }
+
+      dragOriginRef.current = null;
+      dropHandledRef.current = true;
+      onDropProp && onDropProp(info);
+      return;
     }
 
+    // --- Entry reorder ---------------------------------------------------
+    if (
+      dragNode.type === 'entry' &&
+      dropNode.type === 'entry' &&
+      dragNode.subgroupId === dropNode.subgroupId
+    ) {
+      try {
+        const groupIndex = treeDataState.findIndex((g) => g.key === dragNode.groupId);
+        const subgroupIndex = treeDataState[groupIndex].children?.findIndex(
+          (s) => s.key === dragNode.subgroupId
+        );
+        const entries =
+          treeDataState[groupIndex].children?.[subgroupIndex]?.children || [];
+        const orders = entries.map((e, idx) => ({ id: e.key, user_sort: idx }));
+        await fetch('/api/entries/reorder', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orders }),
+        });
+      } catch (err) {
+        console.error('Failed to reorder entries', err);
+      }
+
+      dragOriginRef.current = null;
+      dropHandledRef.current = true;
+      onDropProp && onDropProp(info);
+      return;
+    }
+
+    // Unknown or unsupported drop → revert
+    restoreOriginal();
     dragOriginRef.current = null;
     dropHandledRef.current = true;
     onDropProp && onDropProp(info);
