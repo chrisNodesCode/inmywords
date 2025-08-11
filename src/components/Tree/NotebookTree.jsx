@@ -43,32 +43,43 @@ export default function NotebookTree({
   const drawerCloseTimeoutRef = useRef(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [formValues, setFormValues] = useState({});
+  const [notebookTitle, setNotebookTitle] = useState('');
 
   useEffect(() => {
     if (manageMode) {
       setDrawerOpen(true);
       if (notebookId) {
         setSelectedItem({ type: 'notebook', id: notebookId });
-        fetch(`/api/notebooks/${notebookId}`)
-          .then((res) => (res.ok ? res.json() : null))
-          .then((nb) => {
-            if (nb) {
-              setFormValues({
-                title: nb.title || '',
-                description: nb.description || '',
-                groupAlias: nb.user_notebook_tree?.[0] || '',
-                subgroupAlias: nb.user_notebook_tree?.[1] || '',
-                entryAlias: nb.user_notebook_tree?.[2] || '',
-              });
-            }
-          })
-          .catch((err) => console.error('Failed to load notebook', err));
       }
     } else {
       setDrawerOpen(false);
       setSelectedItem(null);
     }
   }, [manageMode, notebookId]);
+
+  useEffect(() => {
+    if (!notebookId) {
+      setNotebookTitle('');
+      return;
+    }
+    fetch(`/api/notebooks/${notebookId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((nb) => {
+        if (nb) {
+          setNotebookTitle(nb.title || '');
+          if (manageMode) {
+            setFormValues({
+              title: nb.title || '',
+              description: nb.description || '',
+              groupAlias: nb.user_notebook_tree?.[0] || '',
+              subgroupAlias: nb.user_notebook_tree?.[1] || '',
+              entryAlias: nb.user_notebook_tree?.[2] || '',
+            });
+          }
+        }
+      })
+      .catch((err) => console.error('Failed to load notebook', err));
+  }, [notebookId, manageMode]);
 
   const handleHamburgerClick = () => {
     setDrawerPinned((prev) => {
@@ -160,8 +171,14 @@ export default function NotebookTree({
     onDragEnd: onDragEndProp,
     onSelect: onSelectProp,
     onExpand: onExpandProp,
+    style: treeStyle = {},
     ...restTreeProps
   } = treeProps;
+
+  const treeWidthStyle = {
+    maxWidth: treeStyle.maxWidth,
+    width: treeStyle.width,
+  };
 
   // Inject synthetic "add" buttons at each level (unchanged)
   const treeData = useMemo(() => {
@@ -472,9 +489,13 @@ export default function NotebookTree({
       </Affix>
 
       {/* Tree */}
-      <div style={{ marginTop: 8 }}>
+      <div style={{ marginTop: 8, ...treeWidthStyle }}>
+        {notebookTitle && (
+          <h2 style={{ margin: '0 0 8px 0' }}>{notebookTitle}</h2>
+        )}
         <Tree
           {...restTreeProps}
+          style={treeStyle}
           blockNode
           expandAction="click"
           treeData={treeData}
