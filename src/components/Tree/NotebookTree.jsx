@@ -276,6 +276,7 @@ export default function NotebookTree({
 
   // --- Drag & drop (unchanged) -------------------------------------------
   const dragOriginRef = useRef(null);
+  const dropHandledRef = useRef(false);
 
   const restoreOriginal = () => {
     const origin = dragOriginRef.current;
@@ -325,6 +326,7 @@ export default function NotebookTree({
       subgroupIndex,
       entries: [...(subgroup.children || [])],
     };
+    dropHandledRef.current = false;
     onDragStartProp && onDragStartProp(info);
   };
 
@@ -390,6 +392,7 @@ export default function NotebookTree({
     if (dragNode.type !== 'entry' || dropNode.type !== 'entry' || dragNode.subgroupId !== dropNode.subgroupId) {
       restoreOriginal();
       dragOriginRef.current = null;
+      dropHandledRef.current = true;
       onDropProp && onDropProp(info);
       return;
     }
@@ -411,14 +414,16 @@ export default function NotebookTree({
     }
 
     dragOriginRef.current = null;
+    dropHandledRef.current = true;
     onDropProp && onDropProp(info);
   };
 
   const handleDragEnd = (info) => {
-    if (dragOriginRef.current) {
+    if (!dropHandledRef.current && dragOriginRef.current) {
       restoreOriginal();
-      dragOriginRef.current = null;
     }
+    dragOriginRef.current = null;
+    dropHandledRef.current = false;
     onDragEndProp && onDragEndProp(info);
   };
 
