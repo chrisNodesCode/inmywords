@@ -31,6 +31,7 @@ export function editor({
   selectedSubgroupId,
   onChangeSubgroup,
   onSave,
+  onSaveAndClose,
   onDelete,
   onArchive,
   onCancel,
@@ -78,6 +79,9 @@ export function editor({
       <Button className="drawer-btn drawer-btn-save" onClick={onSave}>
         Save
       </Button>
+      <Button className="drawer-btn drawer-btn-save" onClick={onSaveAndClose}>
+        Save and Close
+      </Button>
       {mode === 'edit' && onDelete && (
         <Button className="drawer-btn drawer-btn-delete" onClick={onDelete}>
           Delete
@@ -89,7 +93,7 @@ export function editor({
         </Button>
       )}
       <Button className="drawer-btn drawer-btn-cancel" onClick={onCancel}>
-        Cancel
+        Close without Saving
       </Button>
       <Button type="link" onClick={onToggleShortcutList}>
         Keyboard Shortcuts

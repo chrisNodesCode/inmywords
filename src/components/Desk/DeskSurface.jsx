@@ -323,7 +323,6 @@ export default function DeskSurface({
     } catch (err) {
       console.error('Save failed', err);
     }
-    handleCancel();
   };
 
 
@@ -456,10 +455,12 @@ export default function DeskSurface({
 
   const handleNotebookSave = async () => {
     await handleSave({ title, content, subgroupId: editorState.parent?.subgroupId });
+    setLastSaved(new Date());
   };
 
   const handleNotebookSaveAndClose = async () => {
     await handleSave({ title, content, subgroupId: editorState.parent?.subgroupId });
+    handleCancel();
   };
 
   const openEntry = (node, item) => {
@@ -545,7 +546,7 @@ export default function DeskSurface({
     { action: 'Save', keys: 'Ctrl+S' },
     { action: 'Save & Close', keys: 'Ctrl+Shift+S' },
     { action: 'Focus Editor', keys: 'Ctrl+Enter' },
-    { action: 'Cancel', keys: 'Esc' },
+    { action: 'Close without Saving', keys: 'Esc' },
   ];
 
   const editorDrawerProps = {
@@ -565,6 +566,7 @@ export default function DeskSurface({
     selectedSubgroupId: editorState.parent?.subgroupId,
     onChangeSubgroup: handleChangeSubgroup,
     onSave: handleNotebookSave,
+    onSaveAndClose: handleNotebookSaveAndClose,
     onDelete: handleDelete,
     onArchive: handleArchive,
     onCancel: handleCancel,
