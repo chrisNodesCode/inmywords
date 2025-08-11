@@ -545,9 +545,9 @@ export default function DeskSurface({
   // Tree props to pass to wrapper component
   const treeProps = {
     showLine: true,
-    draggable: true,
     loadData,
     treeData,
+    setTreeData,
     onSelect: handleNodeSelect,
     manageMode: showEdits,
     onAddGroup: showEdits ? undefined : handleAddGroup,

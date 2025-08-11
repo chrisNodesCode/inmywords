@@ -12,7 +12,7 @@ describe('NotebookTree custom cards', () => {
       { title: 'Group 1', key: 'g1', children: [{ title: 'Sub 1', key: 's1' }] },
       { title: 'Group 2', key: 'g2', children: [{ title: 'Sub 2', key: 's2' }] },
     ];
-    render(<NotebookTree treeData={treeData} />);
+    render(<NotebookTree treeData={treeData} manageMode />);
     expect(screen.queryByText('Sub 1')).not.toBeInTheDocument();
     await user.click(screen.getByText('Group 1'));
     await screen.findByText('Sub 1');
@@ -26,7 +26,7 @@ describe('NotebookTree custom cards', () => {
   it('calls onAddGroup when add group button is clicked', async () => {
     const user = userEvent.setup();
     const onAddGroup = jest.fn();
-    render(<NotebookTree treeData={[]} onAddGroup={onAddGroup} />);
+    render(<NotebookTree treeData={[]} onAddGroup={onAddGroup} manageMode />);
     await user.click(screen.getByRole('button', { name: /add new group/i }));
     expect(onAddGroup).toHaveBeenCalled();
   });
@@ -36,7 +36,11 @@ describe('NotebookTree custom cards', () => {
     const onAddSubgroup = jest.fn();
     const treeData = [{ title: 'Group 1', key: 'g1', children: [] }];
     render(
-      <NotebookTree treeData={treeData} onAddSubgroup={onAddSubgroup} />
+      <NotebookTree
+        treeData={treeData}
+        onAddSubgroup={onAddSubgroup}
+        manageMode
+      />
     );
     await user.click(screen.getByText('Group 1'));
     await user.click(
@@ -51,7 +55,9 @@ describe('NotebookTree custom cards', () => {
     const treeData = [
       { title: 'Group 1', key: 'g1', children: [{ title: 'Sub 1', key: 's1' }] },
     ];
-    render(<NotebookTree treeData={treeData} onAddEntry={onAddEntry} />);
+    render(
+      <NotebookTree treeData={treeData} onAddEntry={onAddEntry} manageMode />
+    );
     await user.click(screen.getByText('Group 1'));
     await user.click(screen.getByText('Sub 1'));
     await user.click(

@@ -1,4 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { DndContext, closestCenter } from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
 import GroupCard from './GroupCard';
 import SubgroupCard from './SubgroupCard';
 import EntryCard from './EntryCard';
@@ -16,12 +22,14 @@ const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : '');
  */
 export default function NotebookTree({
   treeData = [],
+  setTreeData,
   onAddGroup,
   onAddSubgroup,
   onAddEntry,
   onEdit,
   notebookId,
   loadData,
+  manageMode,
 }) {
   // notebook metadata
   const [notebookTitle, setNotebookTitle] = useState('');
@@ -98,6 +106,80 @@ export default function NotebookTree({
     setTimeout(() => scrollTo(entryRefs, id), 0);
   };
 
+  const persistGroupOrder = (items) => {
+    const orders = items.map((g, index) => ({ id: g.key, user_sort: index }));
+    fetch('/api/groups/reorder', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orders }),
+    });
+  };
+
+  const persistSubgroupOrder = (items) => {
+    const orders = items.map((s, index) => ({ id: s.key, user_sort: index }));
+    fetch('/api/subgroups/reorder', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orders }),
+    });
+  };
+
+  const persistEntryOrder = (items) => {
+    const orders = items.map((e, index) => ({ id: e.key, user_sort: index }));
+    fetch('/api/entries/reorder', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orders }),
+    });
+  };
+
+  const handleGroupDragEnd = ({ active, over }) => {
+    if (manageMode || !over || active.id === over.id) return;
+    setTreeData((items) => {
+      const oldIndex = items.findIndex((i) => i.key === active.id);
+      const newIndex = items.findIndex((i) => i.key === over.id);
+      const newItems = arrayMove(items, oldIndex, newIndex);
+      persistGroupOrder(newItems);
+      return newItems;
+    });
+  };
+
+  const handleSubgroupDragEnd = (groupKey) => ({ active, over }) => {
+    if (manageMode || !over || active.id === over.id) return;
+    setTreeData((groups) => {
+      const gIndex = groups.findIndex((g) => g.key === groupKey);
+      const group = groups[gIndex];
+      const children = group.children || [];
+      const oldIndex = children.findIndex((c) => c.key === active.id);
+      const newIndex = children.findIndex((c) => c.key === over.id);
+      const newChildren = arrayMove(children, oldIndex, newIndex);
+      const newGroups = [...groups];
+      newGroups[gIndex] = { ...group, children: newChildren };
+      persistSubgroupOrder(newChildren);
+      return newGroups;
+    });
+  };
+
+  const handleEntryDragEnd = (groupKey, subgroupKey) => ({ active, over }) => {
+    if (manageMode || !over || active.id === over.id) return;
+    setTreeData((groups) => {
+      const gIndex = groups.findIndex((g) => g.key === groupKey);
+      const group = groups[gIndex];
+      const sIndex = group.children?.findIndex((s) => s.key === subgroupKey) ?? -1;
+      if (sIndex === -1) return groups;
+      const subgroup = group.children[sIndex];
+      const entries = subgroup.children || [];
+      const oldIndex = entries.findIndex((e) => e.key === active.id);
+      const newIndex = entries.findIndex((e) => e.key === over.id);
+      const newEntries = arrayMove(entries, oldIndex, newIndex);
+      const newGroups = [...groups];
+      newGroups[gIndex] = { ...group, children: [...group.children] };
+      newGroups[gIndex].children[sIndex] = { ...subgroup, children: newEntries };
+      persistEntryOrder(newEntries);
+      return newGroups;
+    });
+  };
+
   return (
     <div className={styles.root}>
       {notebookTitle && (
@@ -110,51 +192,84 @@ export default function NotebookTree({
         </header>
       )}
 
-      {treeData.map((group) => (
-        <GroupCard
-          key={group.key}
-          ref={(el) => (groupRefs.current[group.key] = el)}
-          title={group.title}
-          isOpen={openGroupId === group.key}
-          onToggle={() => handleGroupToggle(group)}
+      <DndContext collisionDetection={closestCenter} onDragEnd={handleGroupDragEnd}>
+        <SortableContext
+          items={treeData.map((g) => g.key)}
+          strategy={verticalListSortingStrategy}
         >
-          {group.children?.map((sub) => (
-            <SubgroupCard
-              key={sub.key}
-              ref={(el) => (subgroupRefs.current[sub.key] = el)}
-              title={sub.title}
-              isOpen={openSubgroupId === sub.key}
-              onToggle={() => handleSubgroupToggle(sub)}
+          {treeData.map((group) => (
+            <GroupCard
+              key={group.key}
+              id={group.key}
+              disableDrag={manageMode}
+              ref={(el) => (groupRefs.current[group.key] = el)}
+              title={group.title}
+              isOpen={openGroupId === group.key}
+              onToggle={() => handleGroupToggle(group)}
             >
-              {sub.children?.map((entry) => (
-                <EntryCard
-                  key={entry.key}
-                  ref={(el) => (entryRefs.current[entry.id] = el)}
-                  entry={entry}
-                  isOpen={openEntryId === entry.id}
-                  onToggle={() => handleEntryToggle(entry.id)}
-                  onEdit={onEdit}
-                />
-              ))}
-              {onAddEntry && (
-                <AddEntryButton
+              <DndContext
+                collisionDetection={closestCenter}
+                onDragEnd={handleSubgroupDragEnd(group.key)}
+              >
+                <SortableContext
+                  items={group.children?.map((sg) => sg.key) || []}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {group.children?.map((sub) => (
+                    <SubgroupCard
+                      key={sub.key}
+                      id={sub.key}
+                      disableDrag={manageMode}
+                      ref={(el) => (subgroupRefs.current[sub.key] = el)}
+                      title={sub.title}
+                      isOpen={openSubgroupId === sub.key}
+                      onToggle={() => handleSubgroupToggle(sub)}
+                    >
+                      <DndContext
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleEntryDragEnd(group.key, sub.key)}
+                      >
+                        <SortableContext
+                          items={sub.children?.map((e) => e.key) || []}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {sub.children?.map((entry) => (
+                            <EntryCard
+                              key={entry.key}
+                              id={entry.key}
+                              disableDrag={manageMode}
+                              ref={(el) => (entryRefs.current[entry.id] = el)}
+                              entry={entry}
+                              isOpen={openEntryId === entry.id}
+                              onToggle={() => handleEntryToggle(entry.id)}
+                              onEdit={onEdit}
+                            />
+                          ))}
+                        </SortableContext>
+                      </DndContext>
+                      {onAddEntry && (
+                        <AddEntryButton
+                          groupKey={group.key}
+                          subgroupKey={sub.key}
+                          subgroupTitle={sub.title}
+                          onAddEntry={onAddEntry}
+                        />
+                      )}
+                    </SubgroupCard>
+                  ))}
+                </SortableContext>
+              </DndContext>
+              {onAddSubgroup && (
+                <AddSubgroupButton
                   groupKey={group.key}
-                  subgroupKey={sub.key}
-                  subgroupTitle={sub.title}
-                  onAddEntry={onAddEntry}
+                  groupTitle={group.title}
+                  onAddSubgroup={onAddSubgroup}
                 />
               )}
-            </SubgroupCard>
+            </GroupCard>
           ))}
-          {onAddSubgroup && (
-            <AddSubgroupButton
-              groupKey={group.key}
-              groupTitle={group.title}
-              onAddSubgroup={onAddSubgroup}
-            />
-          )}
-        </GroupCard>
-      ))}
+        </SortableContext>
+      </DndContext>
       {onAddGroup && <AddGroupButton onAddGroup={onAddGroup} />}
     </div>
   );

@@ -1,9 +1,30 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useCallback } from 'react';
 import { Button } from 'antd';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import styles from './Tree.module.css';
 
-const EntryCard = forwardRef(({ entry, isOpen, onToggle, onEdit }, ref) => {
+const EntryCard = forwardRef(
+  ({ id, entry, isOpen, onToggle, onEdit, disableDrag }, ref) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+      id,
+      disabled: disableDrag,
+    });
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      marginBottom: '0.5rem',
+    };
+    const mergedRef = useCallback(
+      (node) => {
+        setNodeRef(node);
+        if (typeof ref === 'function') ref(node);
+        else if (ref) ref.current = node;
+      },
+      [ref, setNodeRef]
+    );
+
   const handleEdit = (e) => {
     e.stopPropagation();
     onEdit?.(entry);
@@ -58,8 +79,14 @@ const EntryCard = forwardRef(({ entry, isOpen, onToggle, onEdit }, ref) => {
   };
 
   return (
-    <div ref={ref} style={{ marginBottom: '0.5rem' }}>
-      <div className={styles.entryTitle} style={{ cursor: 'pointer' }} onClick={onToggle}>
+    <div ref={mergedRef} style={style}>
+      <div
+        className={styles.entryTitle}
+        style={{ cursor: 'pointer' }}
+        onClick={onToggle}
+        {...attributes}
+        {...listeners}
+      >
         {entry.title}
       </div>
       <AnimatePresence initial={false}>
