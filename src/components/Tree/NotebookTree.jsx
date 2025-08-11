@@ -11,6 +11,8 @@ const getPlainTextSnippet = (html, length = 200) => {
   return text.length > length ? `${text.slice(0, length)}...` : text;
 };
 
+const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : '');
+
 /**
  * NotebookTree (Option B: Affixed context bar)
  * Adds a thin Affix bar that displays the current path (Group → Subgroup → Entry).
@@ -51,6 +53,8 @@ export default function NotebookTree({
   const [selectedItem, setSelectedItem] = useState(null);
   const [formValues, setFormValues] = useState({});
   const [notebookTitle, setNotebookTitle] = useState('');
+  const [createdAt, setCreatedAt] = useState('');
+  const [updatedAt, setUpdatedAt] = useState('');
 
   useEffect(() => {
     if (manageMode) {
@@ -67,6 +71,8 @@ export default function NotebookTree({
   useEffect(() => {
     if (!notebookId) {
       setNotebookTitle('');
+      setCreatedAt('');
+      setUpdatedAt('');
       return;
     }
     fetch(`/api/notebooks/${notebookId}`)
@@ -74,6 +80,8 @@ export default function NotebookTree({
       .then((nb) => {
         if (nb) {
           setNotebookTitle(nb.title || '');
+          setCreatedAt(nb.createdAt || '');
+          setUpdatedAt(nb.updatedAt || '');
           if (manageMode) {
             setFormValues({
               title: nb.title || '',
@@ -554,6 +562,20 @@ export default function NotebookTree({
   // Render
   return (
     <div className={wrapperClasses} style={style}>
+      {notebookTitle && (
+        <header className={styles.header}>
+          <h2 className={styles.headerTitle}>{notebookTitle}</h2>
+          <div className={styles.meta}>
+            {createdAt && (
+              <time dateTime={createdAt}>{formatDate(createdAt)}</time>
+            )}
+            {updatedAt && (
+              <time dateTime={updatedAt}>{formatDate(updatedAt)}</time>
+            )}
+          </div>
+        </header>
+      )}
+
       {/* Affixed context bar */}
       <Affix offsetTop={affixOffsetTop}>
         <div
@@ -581,9 +603,6 @@ export default function NotebookTree({
 
       {/* Tree */}
       <div style={{ marginTop: 8, ...treeWidthStyle }}>
-        {notebookTitle && (
-          <h2 style={{ margin: '0 0 8px 0' }}>{notebookTitle}</h2>
-        )}
         <Tree
           {...restTreeProps}
           style={treeStyle}

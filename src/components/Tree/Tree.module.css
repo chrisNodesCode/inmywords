@@ -64,3 +64,19 @@
   outline: 1px dashed color-mix(in oklab, var(--ant-colorText) 25%, transparent);
   outline-offset: 3px;
 }
+
+.header {
+  margin-bottom: 1rem;
+}
+
+.headerTitle {
+  margin: 0;
+}
+
+.meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--ant-colorTextSecondary);
+}
