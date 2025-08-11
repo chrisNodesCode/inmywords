@@ -213,6 +213,9 @@ export default function DeskSurface({
     setIsEditingTitle(true);
     setTitleInput('');
     setLastSaved(null);
+    setControllerPinned(false);
+    setControllerOpen(false);
+    setDrawerOpen(true);
     setEditorState({
       isOpen: true,
       type: 'entry',
@@ -466,6 +469,9 @@ export default function DeskSurface({
     setIsEditingTitle(false);
     setTitleInput('');
     setLastSaved(null);
+    setControllerPinned(false);
+    setControllerOpen(false);
+    setDrawerOpen(true);
     setEditorState({
       isOpen: true,
       type: 'entry',
@@ -535,16 +541,6 @@ export default function DeskSurface({
         .filter((sg) => sg.type === 'subgroup')
         .map((sg) => ({ id: sg.key, name: sg.title })),
     }));
-
-
-  const entryShortcuts = [
-    { action: 'Save', keys: 'Ctrl+S' },
-    { action: 'Save & Close', keys: 'Ctrl+Shift+S' },
-    { action: 'Focus Editor', keys: 'Ctrl+Enter' },
-    { action: 'Close without Saving', keys: 'Esc' },
-  ];
-
-
   const editorDrawerProps = {
     open: drawerOpen,
     width: drawerWidth,
@@ -635,7 +631,9 @@ export default function DeskSurface({
         </div>
       </AntDrawer>
 
-      <Drawer template="controller" {...controllerDrawerProps} />
+      {!(editorState.isOpen && editorState.type === 'entry') && (
+        <Drawer template="controller" {...controllerDrawerProps} />
+      )}
 
       {pomodoroEnabled && <PomodoroWidget />}
 
