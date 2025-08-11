@@ -64,3 +64,30 @@
   outline: 1px dashed color-mix(in oklab, var(--ant-colorText) 25%, transparent);
   outline-offset: 3px;
 }
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.groupCard {
+  border-radius: 12px;
+}
+
+.groupTitle {
+  font-size: 2rem;
+}
+
+.subTitle {
+  font-size: 1.5rem;
+}
+
+.entryItem {
+  cursor: pointer;
+}
+
+.subgroups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
