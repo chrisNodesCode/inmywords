@@ -43,6 +43,12 @@
   margin-top: 0.5rem;
 }
 
+.entryActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 /* Hover + selected states mapped to theme vars */
 .root :where(.ant-tree) .ant-tree-node-content-wrapper:hover {
   background: var(--ant-controlItemBgHover);

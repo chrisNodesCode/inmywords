@@ -5,14 +5,6 @@ import SubgroupCard from './SubgroupCard';
 import EntryCard from './EntryCard';
 import styles from './Tree.module.css';
 
-// Utility helpers preserved from previous implementation
-const getPlainTextSnippet = (html, length = 200) => {
-  if (!html) return null;
-  const text = html.replace(/<[^>]+>/g, '').trim();
-  if (!text) return null;
-  return text.length > length ? `${text.slice(0, length)}...` : text;
-};
-
 const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : '');
 
 /**
@@ -25,6 +17,7 @@ export default function NotebookTree({
   onAddGroup,
   onAddSubgroup,
   onAddEntry,
+  onEdit,
   notebookId,
   loadData,
 }) {
@@ -134,11 +127,11 @@ export default function NotebookTree({
               {sub.children?.map((entry) => (
                 <EntryCard
                   key={entry.key}
-                  ref={(el) => (entryRefs.current[entry.key] = el)}
-                  title={entry.title}
-                  snippet={getPlainTextSnippet(entry.content)}
-                  isOpen={openEntryId === entry.key}
-                  onToggle={() => handleEntryToggle(entry.key)}
+                  ref={(el) => (entryRefs.current[entry.id] = el)}
+                  entry={entry}
+                  isOpen={openEntryId === entry.id}
+                  onToggle={() => handleEntryToggle(entry.id)}
+                  onEdit={onEdit}
                 />
               ))}
               {onAddEntry && (

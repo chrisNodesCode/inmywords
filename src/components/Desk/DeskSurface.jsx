@@ -20,6 +20,13 @@ function updateTreeData(list, key, children) {
   });
 }
 
+function getPlainTextSnippet(html, length = 200) {
+  if (!html) return null;
+  const text = html.replace(/<[^>]+>/g, '').trim();
+  if (!text) return null;
+  return text.length > length ? `${text.slice(0, length)}...` : text;
+}
+
 /**
  * DeskSurface
  * Pure layout + lifted state. Holds top-level state/handlers formerly in NotebookDev.jsx
@@ -185,8 +192,11 @@ export default function DeskSurface({
               origin,
               node.key,
               filtered.map((e) => ({
+                id: e.id,
                 title: e.title,
                 key: e.id,
+                snippet: getPlainTextSnippet(e.content),
+                content: e.content,
                 isLeaf: true,
                 type: 'entry',
                 subgroupId: node.key,
@@ -211,8 +221,11 @@ export default function DeskSurface({
             origin,
             subgroupId,
             filtered.map((e) => ({
+              id: e.id,
               title: e.title,
               key: e.id,
+              snippet: getPlainTextSnippet(e.content),
+              content: e.content,
               isLeaf: true,
               type: 'entry',
               subgroupId,
@@ -507,6 +520,14 @@ export default function DeskSurface({
     });
   };
 
+  const handleEditEntry = async (entry) => {
+    const res = await fetch(`/api/entries/${entry.id}`);
+    const item = res.ok
+      ? await res.json()
+      : { id: entry.id, title: entry.title, content: '' };
+    openEntry(entry, item);
+  };
+
   const handleNodeSelect = async (keys, info) => {
     const node = info.node;
     if (node.type !== 'entry') return;
@@ -532,6 +553,7 @@ export default function DeskSurface({
     onAddGroup: showEdits ? undefined : handleAddGroup,
     onAddSubgroup: showEdits ? undefined : handleAddSubgroup,
     onAddEntry: showEdits ? undefined : handleAddEntry,
+    onEdit: showEdits ? undefined : handleEditEntry,
     notebookId,
     previewEntry,
     ...treePropOverrides,
