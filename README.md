@@ -147,3 +147,13 @@ Authentication requires the following environment variables to be set:
 - `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret used by `/api/stripe/webhook`
 
 Configure a Stripe webhook to send events to `/api/stripe/webhook` and set the `STRIPE_WEBHOOK_SECRET` environment variable accordingly.
+
+## Testing & Linting
+
+Before committing, run the full lint and test suite:
+
+```bash
+npm test
+```
+
+This command runs ESLint (with zero warnings allowed) and Jest tests. See `TESTING.md` for guidelines on writing tests for dynamic UI interactions such as animations and drag-and-drop.

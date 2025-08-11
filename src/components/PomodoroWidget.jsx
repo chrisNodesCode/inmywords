@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useTimer } from 'react-timer-hook';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
@@ -71,9 +71,13 @@ export default function PomodoroWidget() {
     } else if (savedDurations) {
       setDurations(savedDurations);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const getRemainingSeconds = () => minutes * 60 + seconds;
+  const getRemainingSeconds = useCallback(
+    () => minutes * 60 + seconds,
+    [minutes, seconds]
+  );
 
   useEffect(() => {
     localStorage.setItem(
@@ -88,7 +92,15 @@ export default function PomodoroWidget() {
       })
     );
     localStorage.setItem('pomodoro-durations', JSON.stringify(durations));
-  }, [isRunning, seconds, minutes, currentType, durations, pomodoroCount]);
+  }, [
+    isRunning,
+    seconds,
+    minutes,
+    currentType,
+    durations,
+    pomodoroCount,
+    getRemainingSeconds,
+  ]);
 
   const handleClick = () => {
     if (isRunning) {

@@ -1,5 +1,4 @@
 /* eslint-env node */
-/* eslint-disable no-undef */
 const withTM = require('next-transpile-modules')([
   'antd',
   '@ant-design/icons',

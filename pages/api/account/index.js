@@ -1,5 +1,4 @@
 /* eslint-env node */
-/* global process */
 // pages/api/account/index.js
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';

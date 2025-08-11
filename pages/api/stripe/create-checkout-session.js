@@ -1,5 +1,4 @@
 /* eslint-env node */
-/* global process */
 
 import Stripe from 'stripe';
 import { getServerSession } from 'next-auth/next';

@@ -1,5 +1,4 @@
 /* eslint-env node */
-/* global process, Buffer */
 
 import Stripe from 'stripe';
 import { PrismaClient } from '@prisma/client';
