@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Button } from 'antd';
 import GroupCard from './GroupCard';
 import SubgroupCard from './SubgroupCard';
 import EntryCard from './EntryCard';
+import AddGroupButton from './AddGroupButton';
+import AddSubgroupButton from './AddSubgroupButton';
+import AddEntryButton from './AddEntryButton';
 import styles from './Tree.module.css';
 
 const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : '');
@@ -135,24 +137,25 @@ export default function NotebookTree({
                 />
               ))}
               {onAddEntry && (
-                <Button type="dashed" onClick={() => onAddEntry(group.key, sub.key)}>
-                  Add entry
-                </Button>
+                <AddEntryButton
+                  groupKey={group.key}
+                  subgroupKey={sub.key}
+                  subgroupTitle={sub.title}
+                  onAddEntry={onAddEntry}
+                />
               )}
             </SubgroupCard>
           ))}
           {onAddSubgroup && (
-            <Button type="dashed" onClick={() => onAddSubgroup(group.key)}>
-              Add subgroup
-            </Button>
+            <AddSubgroupButton
+              groupKey={group.key}
+              groupTitle={group.title}
+              onAddSubgroup={onAddSubgroup}
+            />
           )}
         </GroupCard>
       ))}
-      {onAddGroup && (
-        <Button type="dashed" onClick={onAddGroup} style={{ marginTop: '1rem' }}>
-          Add group
-        </Button>
-      )}
+      {onAddGroup && <AddGroupButton onAddGroup={onAddGroup} />}
     </div>
   );
 }
