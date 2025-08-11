@@ -63,7 +63,6 @@ export default function DeskSurface({
   const [drawerPinned, setDrawerPinned] = useState(false);
   const drawerCloseTimeoutRef = useRef(null);
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
-  const [showShortcutList, setShowShortcutList] = useState(false);
   const [previewEntry, setPreviewEntry] = useState(null);
   const [addDrawer, setAddDrawer] = useState({
     open: false,
@@ -371,10 +370,6 @@ export default function DeskSurface({
     window.dispatchEvent(new Event('pomodoro-start'));
   }, [pomodoroEnabled]);
 
-  const handleToggleShortcutList = () => {
-    setShowShortcutList((prev) => !prev);
-  };
-
   const handleControllerHamburgerClick = () => {
     setControllerPinned((prev) => {
       const next = !prev;
@@ -458,10 +453,12 @@ export default function DeskSurface({
     setLastSaved(new Date());
   };
 
+
   const handleNotebookSaveAndClose = async () => {
     await handleSave({ title, content, subgroupId: editorState.parent?.subgroupId });
     handleCancel();
   };
+
 
   const openEntry = (node, item) => {
     setTitle(item.title || '');
@@ -524,9 +521,6 @@ export default function DeskSurface({
     content,
     setContent,
     lastSaved,
-    setLastSaved,
-    onSaveEntry: handleNotebookSave,
-    onSaveAndClose: handleNotebookSaveAndClose,
     onCancel: handleCancel,
     maxWidth,
     ...editorPropOverrides,
@@ -542,12 +536,14 @@ export default function DeskSurface({
         .map((sg) => ({ id: sg.key, name: sg.title })),
     }));
 
+
   const entryShortcuts = [
     { action: 'Save', keys: 'Ctrl+S' },
     { action: 'Save & Close', keys: 'Ctrl+Shift+S' },
     { action: 'Focus Editor', keys: 'Ctrl+Enter' },
     { action: 'Close without Saving', keys: 'Esc' },
   ];
+
 
   const editorDrawerProps = {
     open: drawerOpen,
@@ -570,9 +566,6 @@ export default function DeskSurface({
     onDelete: handleDelete,
     onArchive: handleArchive,
     onCancel: handleCancel,
-    showShortcutList,
-    onToggleShortcutList: handleToggleShortcutList,
-    entryShortcuts,
     ...drawerPropOverrides,
   };
 

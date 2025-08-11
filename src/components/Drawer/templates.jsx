@@ -35,9 +35,6 @@ export function editor({
   onDelete,
   onArchive,
   onCancel,
-  showShortcutList,
-  onToggleShortcutList,
-  entryShortcuts = [],
 }) {
   const subgroupOptions = groups.flatMap((g) =>
     g.subgroups.map((s) => ({ value: s.id, label: `${g.name} / ${s.name}` }))
@@ -95,18 +92,6 @@ export function editor({
       <Button className="drawer-btn drawer-btn-cancel" onClick={onCancel}>
         Close without Saving
       </Button>
-      <Button type="link" onClick={onToggleShortcutList}>
-        Keyboard Shortcuts
-      </Button>
-      {showShortcutList && (
-        <ul style={{ paddingLeft: '1rem' }}>
-          {entryShortcuts.map((s) => (
-            <li key={s.action}>
-              {s.action}: {s.keys}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 
