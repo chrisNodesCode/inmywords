@@ -64,27 +64,36 @@ export default function NotebookTree({
     }
   };
 
-  const handleGroupToggle = (group) => {
-    setOpenGroupId((prev) => {
-      const isOpening = prev !== group.key;
-      if (isOpening) {
-        loadData?.(group);
-      }
-      return isOpening ? group.key : null;
-    });
+  const handleGroupToggle = async (group) => {
+    const isCurrentlyOpen = openGroupId === group.key;
+    if (isCurrentlyOpen) {
+      setOpenGroupId(null);
+      return;
+    }
+
+    // wait for data to load before expanding so children render with animation
+    if (loadData) {
+      await loadData(group);
+    }
+
+    setOpenGroupId(group.key);
     setOpenSubgroupId(null);
     setOpenEntryId(null);
     setTimeout(() => scrollTo(groupRefs, group.key), 0);
   };
 
-  const handleSubgroupToggle = (sub) => {
-    setOpenSubgroupId((prev) => {
-      const isOpening = prev !== sub.key;
-      if (isOpening) {
-        loadData?.(sub);
-      }
-      return isOpening ? sub.key : null;
-    });
+  const handleSubgroupToggle = async (sub) => {
+    const isCurrentlyOpen = openSubgroupId === sub.key;
+    if (isCurrentlyOpen) {
+      setOpenSubgroupId(null);
+      return;
+    }
+
+    if (loadData) {
+      await loadData(sub);
+    }
+
+    setOpenSubgroupId(sub.key);
     setOpenEntryId(null);
     setTimeout(() => scrollTo(subgroupRefs, sub.key), 0);
   };

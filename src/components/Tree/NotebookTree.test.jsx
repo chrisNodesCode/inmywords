@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import NotebookTree from './NotebookTree';
 
@@ -15,10 +15,12 @@ describe('NotebookTree custom cards', () => {
     render(<NotebookTree treeData={treeData} />);
     expect(screen.queryByText('Sub 1')).not.toBeInTheDocument();
     await user.click(screen.getByText('Group 1'));
-    expect(screen.getByText('Sub 1')).toBeInTheDocument();
+    await screen.findByText('Sub 1');
     await user.click(screen.getByText('Group 2'));
     await screen.findByText('Sub 2');
-    expect(screen.queryByText('Sub 1')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByText('Sub 1')).not.toBeInTheDocument()
+    );
   });
 
   it('calls onAddGroup when add group button is clicked', async () => {
