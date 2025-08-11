@@ -338,6 +338,7 @@ export default function DeskSurface({
   const handleDrawerMouseEnter = () => {
     if (drawerCloseTimeoutRef.current) {
       clearTimeout(drawerCloseTimeoutRef.current);
+      drawerCloseTimeoutRef.current = null;
     }
     setDrawerOpen(true);
   };
@@ -345,12 +346,13 @@ export default function DeskSurface({
   const handleDrawerMouseLeave = () => {
     if (drawerCloseTimeoutRef.current) {
       clearTimeout(drawerCloseTimeoutRef.current);
+      drawerCloseTimeoutRef.current = null;
     }
     drawerCloseTimeoutRef.current = setTimeout(() => {
       if (!drawerPinned) {
         setDrawerOpen(false);
       }
-    }, 200);
+    }, 2000);
   };
 
   const handleMaxWidthChange = (value) => {
