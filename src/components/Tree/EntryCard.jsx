@@ -80,14 +80,25 @@ const EntryCard = forwardRef(
 
   return (
     <div ref={mergedRef} style={style}>
-      <div
-        className={styles.entryTitle}
-        style={{ cursor: 'pointer' }}
-        onClick={onToggle}
-        {...attributes}
-        {...listeners}
-      >
-        {entry.title}
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <span
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            cursor: disableDrag ? 'default' : 'grab',
+            marginRight: '0.5rem',
+          }}
+        >
+          ⋮
+        </span>
+        <div
+          className={styles.entryTitle}
+          style={{ cursor: 'pointer' }}
+          onClick={onToggle}
+        >
+          {entry.title}
+        </div>
       </div>
       <AnimatePresence initial={false}>
         {isOpen && (

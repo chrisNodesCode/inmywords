@@ -26,14 +26,25 @@ const SubgroupCard = forwardRef(
 
     return (
       <div ref={mergedRef} style={style}>
-        <div
-          className={styles.subgroupTitle}
-          style={{ cursor: 'pointer' }}
-          onClick={onToggle}
-          {...attributes}
-          {...listeners}
-        >
-          {title}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <span
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              cursor: disableDrag ? 'default' : 'grab',
+              marginRight: '0.5rem',
+            }}
+          >
+            ⋮
+          </span>
+          <div
+            className={styles.subgroupTitle}
+            style={{ cursor: 'pointer' }}
+            onClick={onToggle}
+          >
+            {title}
+          </div>
         </div>
         <AnimatePresence initial={false}>
           {isOpen && (
