@@ -72,6 +72,7 @@ export default function DeskSurface({
   const [content, setContent] = useState('');
   const [lastSaved, setLastSaved] = useState(null);
   const [maxWidth, setMaxWidth] = useState(50);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Drawer state
   const drawerWidth = drawerPropOverrides.width || 300;
@@ -356,27 +357,39 @@ export default function DeskSurface({
   };
 
   const handleSave = async (data) => {
+    setIsSaving(true);
     try {
       const subgroupId = data.subgroupId || editorState.parent?.subgroupId;
+      let savedEntry;
       if (editorState.mode === 'edit') {
-        await fetch(`/api/entries/${editorState.item.id}`, {
+        const res = await fetch(`/api/entries/${editorState.item.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: data.title, content: data.content, subgroupId }),
         });
+        if (res.ok) {
+          savedEntry = await res.json();
+        }
       } else {
-        await fetch('/api/entries', {
+        const res = await fetch('/api/entries', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: data.title, content: data.content, subgroupId }),
         });
+        if (res.ok) {
+          savedEntry = await res.json();
+          setEditorState((prev) => ({ ...prev, mode: 'edit', item: savedEntry }));
+        }
       }
       reloadEntries(subgroupId, editorState.parent.groupId);
       if (editorState.mode === 'edit' && subgroupId !== editorState.parent.subgroupId) {
         reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
       }
+      return savedEntry;
     } catch (err) {
       console.error('Save failed', err);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -627,6 +640,7 @@ export default function DeskSurface({
     onDelete: handleDelete,
     onArchive: handleArchive,
     onCancel: handleCancel,
+    saving: isSaving,
     ...drawerPropOverrides,
   };
 

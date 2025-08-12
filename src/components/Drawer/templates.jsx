@@ -35,6 +35,7 @@ export function editor({
   onDelete,
   onArchive,
   onCancel,
+  saving = false,
 }) {
   const subgroupOptions = groups.flatMap((g) =>
     g.subgroups.map((s) => ({ value: s.id, label: `${g.name} / ${s.name}` }))
@@ -73,10 +74,18 @@ export function editor({
           size="small"
         />
       )}
-      <Button className="drawer-btn drawer-btn-save" onClick={onSave}>
+      <Button
+        className="drawer-btn drawer-btn-save"
+        onClick={onSave}
+        disabled={saving}
+      >
         Save
       </Button>
-      <Button className="drawer-btn drawer-btn-save" onClick={onSaveAndClose}>
+      <Button
+        className="drawer-btn drawer-btn-save"
+        onClick={onSaveAndClose}
+        disabled={saving}
+      >
         Save and Close
       </Button>
       {mode === 'edit' && onDelete && (
