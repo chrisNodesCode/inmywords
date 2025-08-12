@@ -48,6 +48,14 @@ export default function DeskSurface({
   const [treeData, setTreeData] = useState([]);
   const [showEdits, setShowEdits] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('showArchived');
+      if (stored !== null) {
+        setShowArchived(stored === 'true');
+      }
+    }
+  }, []);
   const [reorderMode, setReorderMode] = useState(false);
   const [editorState, setEditorState] = useState({
     isOpen: false,
@@ -149,7 +157,7 @@ export default function DeskSurface({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notebookId]);
 
-  const loadData = (node) => {
+  const loadData = (node, showArch = showArchived) => {
     const hasRealChildren =
       Array.isArray(node.children) && node.children.some((child) => child.kind !== 'add');
     if (hasRealChildren) return Promise.resolve();
@@ -178,7 +186,7 @@ export default function DeskSurface({
       return fetch(`/api/entries?subgroupId=${node.key}`)
         .then((res) => (res.ok ? res.json() : []))
         .then((entries) => {
-          const filtered = showArchived
+          const filtered = showArch
             ? entries
             : entries.filter((e) => !e.archived);
           setTreeData((origin) =>
@@ -319,6 +327,9 @@ export default function DeskSurface({
           }
         });
       });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('showArchived', next.toString());
+      }
       return next;
     });
   };
@@ -547,6 +558,7 @@ export default function DeskSurface({
     onSelect: handleNodeSelect,
     manageMode: showEdits,
     reorderMode,
+    showArchived,
     onAddGroup: showEdits ? undefined : handleAddGroup,
     onAddSubgroup: showEdits ? undefined : handleAddSubgroup,
     onAddEntry: showEdits ? undefined : handleAddEntry,

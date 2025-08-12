@@ -239,7 +239,11 @@ function NotebookControllerContent({
           <span>Re-order</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Switch checked={showArchived} onChange={onToggleArchived} />
+          <Switch
+            checked={showArchived}
+            onChange={onToggleArchived}
+            size="small"
+          />
           <span>Show Archived</span>
         </div>
         <Avatar
