@@ -116,7 +116,19 @@ export default function NotebookTree({
   const handleEntryToggle = (entry) => {
     const entryId = typeof entry === 'object' ? entry.id : entry;
     if (manageMode) {
-      setEditEntity({ type: 'entry', id: entryId, data: entry });
+      const subs = treeData.flatMap((g) =>
+        (g.children || []).map((s) => ({
+          id: s.key,
+          title: s.title,
+          groupTitle: g.title,
+        }))
+      );
+      setEditEntity({
+        type: 'entry',
+        id: entryId,
+        data: entry,
+        subgroups: subs,
+      });
       return;
     }
     setOpenEntryId((prev) => (prev === entryId ? null : entryId));
@@ -212,11 +224,105 @@ export default function NotebookTree({
     });
   };
 
+  const handleEntitySave = (updated) => {
+    if (!editEntity) return;
+    const type = editEntity.type;
+    if (type === 'notebook') {
+      setNotebookTitle(updated.title || '');
+      return;
+    }
+    if (!setTreeData) return;
+    if (type === 'group') {
+      setTreeData((groups) =>
+        groups.map((g) =>
+          g.key === updated.id
+            ? {
+                ...g,
+                title: updated.name ?? updated.title ?? g.title,
+                description: updated.description,
+              }
+            : g
+        )
+      );
+    } else if (type === 'subgroup') {
+      setTreeData((groups) =>
+        groups.map((g) => ({
+          ...g,
+          children: g.children?.map((s) =>
+            s.key === updated.id
+              ? {
+                  ...s,
+                  title: updated.name ?? updated.title ?? s.title,
+                  description: updated.description,
+                }
+              : s
+          ),
+        }))
+      );
+    } else if (type === 'entry') {
+      setTreeData((groups) => {
+        const newGroups = groups.map((g) => ({
+          ...g,
+          children: g.children?.map((s) => ({
+            ...s,
+            children: s.children ? [...s.children] : [],
+          })) || [],
+        }));
+
+        // remove entry from old location
+        for (const g of newGroups) {
+          for (const s of g.children) {
+            s.children = (s.children || []).filter(
+              (e) => e.id !== updated.id && e.key !== updated.id
+            );
+          }
+        }
+
+        const targetGroupId = updated.subgroup?.group?.id || updated.subgroup?.groupId;
+        const targetSubId = updated.subgroupId;
+        const targetGroup = newGroups.find((g) => g.key === targetGroupId);
+        if (targetGroup) {
+          const targetSub = targetGroup.children.find((s) => s.key === targetSubId);
+          if (targetSub) {
+            targetSub.children = targetSub.children || [];
+            targetSub.children.push({
+              key: updated.id,
+              id: updated.id,
+              title: updated.title,
+              snippet: updated.content?.slice(0, 100) || updated.snippet || '',
+            });
+          }
+        }
+
+        return newGroups;
+      });
+
+      setOpenGroupId(updated.subgroup?.group?.id || updated.subgroup?.groupId || null);
+      setOpenSubgroupId(updated.subgroupId);
+      setOpenEntryId(updated.id);
+    }
+  };
+
   return (
     <div className={styles.root}>
       {notebookTitle && (
         <header className={styles.header}>
-          <h2 className={styles.headerTitle}>{notebookTitle}</h2>
+          <h2
+            className={styles.headerTitle}
+            style={{ cursor: manageMode ? 'pointer' : 'default' }}
+            onClick={
+              manageMode
+                ? () =>
+                    setEditEntity({
+                      type: 'notebook',
+                      id: notebookId,
+                      data: { title: notebookTitle },
+                    })
+                : undefined
+            }
+          >
+            {notebookTitle}
+          </h2>
           <div className={styles.meta}>
             {createdAt && <time dateTime={createdAt}>{formatDate(createdAt)}</time>}
             {updatedAt && <time dateTime={updatedAt}>{formatDate(updatedAt)}</time>}
@@ -327,6 +433,8 @@ export default function NotebookTree({
           id={editEntity.id}
           open={!!editEntity}
           initialData={editEntity.data}
+          subgroupOptions={editEntity.subgroups}
+          onSave={handleEntitySave}
           onClose={() => setEditEntity(null)}
         />
       )}
