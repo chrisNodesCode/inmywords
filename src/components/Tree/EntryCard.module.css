@@ -17,9 +17,14 @@ body[data-theme="dark"] .card {
   background-color: color-mix(in srgb, var(--ant-colorBgContainer) 88%, var(--ant-colorText) 12%);
 }
 
+.interactive {}
+
 .card:hover {
-  --scale: 1.02;
   background-color: color-mix(in oklab, var(--ant-colorBgContainer) 90%, var(--ant-colorPrimary));
+}
+
+.card.interactive:hover {
+  --scale: 1.02;
 }
 
 .title {
