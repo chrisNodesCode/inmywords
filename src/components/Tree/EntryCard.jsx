@@ -1,4 +1,5 @@
 import React, { forwardRef, useCallback } from 'react';
+import classNames from 'classnames';
 import { Button } from 'antd';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useSortable } from '@dnd-kit/sortable';
@@ -7,7 +8,16 @@ import styles from './EntryCard.module.css';
 
 const EntryCard = forwardRef(
   (
-    { id, entry, isOpen, onToggle, onEdit, disableDrag, actionsDisabled },
+    {
+      id,
+      entry,
+      isOpen,
+      onToggle,
+      onEdit,
+      disableDrag,
+      actionsDisabled,
+      manageMode,
+    },
     ref
   ) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
@@ -85,7 +95,11 @@ const EntryCard = forwardRef(
   };
 
   return (
-    <div ref={mergedRef} style={style} className={styles.card}>
+    <div
+      ref={mergedRef}
+      style={style}
+      className={classNames(styles.card, { [styles.interactive]: !manageMode })}
+    >
       <div style={{ display: 'flex', alignItems: 'center' }}>
         {!disableDrag && (
           <span
@@ -112,7 +126,7 @@ const EntryCard = forwardRef(
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            style={{ overflow: 'hidden', marginLeft: '1rem' }}
+            style={{ overflow: 'visible', marginLeft: '1rem', padding: '0.25rem 0' }}
             onClick={() => onEdit?.(entry)}
           >
             {entry.snippet && <p className={styles.snippet}>{entry.snippet}</p>}

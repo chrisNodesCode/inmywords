@@ -1,11 +1,15 @@
 import React, { forwardRef, useCallback } from 'react';
+import classNames from 'classnames';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import styles from './SubgroupCard.module.css';
 
 const SubgroupCard = forwardRef(
-  ({ id, title, isOpen, onToggle, children, disableDrag }, ref) => {
+  (
+    { id, title, isOpen, onToggle, children, disableDrag, manageMode },
+    ref
+  ) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
       id,
       disabled: disableDrag,
@@ -28,7 +32,11 @@ const SubgroupCard = forwardRef(
     );
 
     return (
-      <div ref={mergedRef} style={style} className={styles.card}>
+      <div
+        ref={mergedRef}
+        style={style}
+        className={classNames(styles.card, { [styles.interactive]: !manageMode })}
+      >
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {!disableDrag && (
             <span
@@ -55,7 +63,7 @@ const SubgroupCard = forwardRef(
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              style={{ overflow: 'hidden', marginLeft: '1rem' }}
+              style={{ overflow: 'visible', marginLeft: '1rem', padding: '0.25rem 0' }}
             >
               {children}
             </Motion.div>

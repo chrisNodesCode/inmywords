@@ -373,6 +373,7 @@ export default function NotebookTree({
                 title={group.title}
                 isOpen={manageMode || openGroupId === group.key}
                 onToggle={() => handleGroupToggle(group)}
+                manageMode={manageMode}
               >
                 <DndContext
                   collisionDetection={closestCenter}
@@ -397,6 +398,7 @@ export default function NotebookTree({
                           title={sub.title}
                           isOpen={manageMode || openSubgroupId === sub.key}
                           onToggle={() => handleSubgroupToggle(sub)}
+                          manageMode={manageMode}
                         >
                           <DndContext
                             collisionDetection={closestCenter}
@@ -428,6 +430,7 @@ export default function NotebookTree({
                                     onToggle={() => handleEntryToggle(entryWithContext)}
                                     onEdit={onEdit}
                                     actionsDisabled={manageMode}
+                                    manageMode={manageMode}
                                   />
                                 );
                               })}
