@@ -5,9 +5,15 @@ import { Drawer, Input, Button } from 'antd';
  * Simple drawer for editing an entity (group, subgroup or entry).
  * Expects `type` ('group' | 'subgroup' | 'entry') and `id`.
  */
-export default function EntityEditDrawer({ type, id, open, onClose }) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+export default function EntityEditDrawer({ type, id, open, initialData, onClose }) {
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [description, setDescription] = useState(initialData?.description || '');
+
+  useEffect(() => {
+    if (!open) return;
+    setTitle(initialData?.title || '');
+    setDescription(initialData?.description || '');
+  }, [initialData, open]);
 
   useEffect(() => {
     if (!open || !type || !id || typeof fetch === 'undefined') return;

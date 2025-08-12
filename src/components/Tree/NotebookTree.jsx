@@ -73,7 +73,7 @@ export default function NotebookTree({
 
   const handleGroupToggle = async (group) => {
     if (manageMode) {
-      setEditEntity({ type: 'group', id: group.key });
+      setEditEntity({ type: 'group', id: group.key, data: group });
       return;
     }
     const isCurrentlyOpen = openGroupId === group.key;
@@ -95,7 +95,7 @@ export default function NotebookTree({
 
   const handleSubgroupToggle = async (sub) => {
     if (manageMode) {
-      setEditEntity({ type: 'subgroup', id: sub.key });
+      setEditEntity({ type: 'subgroup', id: sub.key, data: sub });
       return;
     }
     const isCurrentlyOpen = openSubgroupId === sub.key;
@@ -113,13 +113,14 @@ export default function NotebookTree({
     setTimeout(() => scrollTo(subgroupRefs, sub.key), 0);
   };
 
-  const handleEntryToggle = (id) => {
+  const handleEntryToggle = (entry) => {
+    const entryId = typeof entry === 'object' ? entry.id : entry;
     if (manageMode) {
-      setEditEntity({ type: 'entry', id });
+      setEditEntity({ type: 'entry', id: entryId, data: entry });
       return;
     }
-    setOpenEntryId((prev) => (prev === id ? null : id));
-    setTimeout(() => scrollTo(entryRefs, id), 0);
+    setOpenEntryId((prev) => (prev === entryId ? null : entryId));
+    setTimeout(() => scrollTo(entryRefs, entryId), 0);
   };
 
   useEffect(() => {
@@ -286,7 +287,7 @@ export default function NotebookTree({
                                     ref={(el) => (entryRefs.current[entry.id] = el)}
                                     entry={entry}
                                     isOpen={openEntryId === entry.id}
-                                    onToggle={() => handleEntryToggle(entry.id)}
+                                    onToggle={() => handleEntryToggle(entry)}
                                     onEdit={onEdit}
                                     actionsDisabled={manageMode}
                                   />
@@ -325,6 +326,7 @@ export default function NotebookTree({
           type={editEntity.type}
           id={editEntity.id}
           open={!!editEntity}
+          initialData={editEntity.data}
           onClose={() => setEditEntity(null)}
         />
       )}

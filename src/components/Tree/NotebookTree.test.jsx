@@ -5,6 +5,7 @@ import NotebookTree from './NotebookTree';
 describe('NotebookTree custom cards', () => {
   beforeAll(() => {
     window.scrollTo = jest.fn();
+    window.getComputedStyle = () => ({ width: 0, height: 0, getPropertyValue: () => '' });
   });
   it('auto expands all groups and subgroups in manage mode', async () => {
     const user = userEvent.setup();
@@ -52,6 +53,25 @@ describe('NotebookTree custom cards', () => {
     await user.click(screen.getByText('Group 1'));
     await screen.findByText('Sub 1');
     expect(screen.getAllByText('=').length).toBe(1);
+  });
+
+  it('loads existing values into entity edit drawer', async () => {
+    const user = userEvent.setup();
+    const treeData = [{ title: 'Group 1', key: 'g1', children: [] }];
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ title: 'Group 1', description: 'desc' }),
+    });
+
+    render(<NotebookTree treeData={treeData} manageMode />);
+    await user.click(screen.getByText('Group 1'));
+
+    const input = await screen.findByPlaceholderText('Title');
+    expect(input).toHaveValue('Group 1');
+    expect(global.fetch).toHaveBeenCalledWith('/api/groups/g1');
+
+    global.fetch = originalFetch;
   });
 });
 
