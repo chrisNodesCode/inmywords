@@ -65,5 +65,18 @@ describe('NotebookTree custom cards', () => {
     );
     expect(onAddEntry).toHaveBeenCalledWith('g1', 's1');
   });
+
+  it('shows drag handles only when items and siblings are collapsed', async () => {
+    const user = userEvent.setup();
+    const treeData = [
+      { title: 'Group 1', key: 'g1', children: [{ title: 'Sub 1', key: 's1' }] },
+      { title: 'Group 2', key: 'g2', children: [] },
+    ];
+    render(<NotebookTree treeData={treeData} />);
+    expect(screen.getAllByText('=').length).toBe(2);
+    await user.click(screen.getByText('Group 1'));
+    await screen.findByText('Sub 1');
+    expect(screen.getAllByText('=').length).toBe(1);
+  });
 });
 
