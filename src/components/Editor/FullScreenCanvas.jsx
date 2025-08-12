@@ -1,5 +1,6 @@
 // src/components/Editor/FullScreenCanvas.jsx
 import React from 'react';
+import Drawer from '@/components/Drawer/Drawer';
 
 /**
  * Generic full screen overlay component used for editor modals.
@@ -11,6 +12,7 @@ export default function FullScreenCanvas({
   onClose,
   className = '',
   children,
+  drawerProps,
 }) {
   if (!open) return null;
 
@@ -25,6 +27,7 @@ export default function FullScreenCanvas({
   return (
     <div className={overlayClass} onClick={handleClick}>
       {children}
+      {drawerProps && <Drawer {...drawerProps} />}
     </div>
   );
 }
