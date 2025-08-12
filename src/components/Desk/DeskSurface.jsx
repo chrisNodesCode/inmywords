@@ -96,13 +96,6 @@ export default function DeskSurface({
     }, 2000);
   };
 
-  const resetManageHover = () => {
-    if (manageHoverTimeoutRef.current) {
-      clearTimeout(manageHoverTimeoutRef.current);
-    }
-    setManageHoverDisabled(false);
-  };
-
   useEffect(
     () => () => {
       if (manageHoverTimeoutRef.current) {
@@ -339,7 +332,7 @@ export default function DeskSurface({
     setTitleInput('');
     setContent('');
     setLastSaved(null);
-    resetManageHover();
+    throttleManageHover();
   };
 
   const handleSave = async (data) => {
@@ -414,6 +407,7 @@ export default function DeskSurface({
   }, [pomodoroEnabled]);
 
   const handleControllerHamburgerClick = () => {
+    if (showEdits) return;
     setControllerPinned((prev) => {
       const next = !prev;
       setControllerOpen(next);
@@ -436,7 +430,7 @@ export default function DeskSurface({
       if (!controllerPinned && !showEdits) {
         setControllerOpen(false);
       }
-    }, 200);
+    }, 2000);
   };
 
   useEffect(() => {
