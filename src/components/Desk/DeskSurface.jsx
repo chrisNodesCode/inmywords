@@ -334,7 +334,15 @@ export default function DeskSurface({
     });
   };
 
-  const handleCancel = () => {
+  const handleCancel = (skipRefresh = false) => {
+    if (
+      !skipRefresh &&
+      editorState.type === 'entry' &&
+      editorState.parent?.subgroupId &&
+      editorState.parent?.groupId
+    ) {
+      reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
+    }
     setEditorState({ isOpen: false, type: null, parent: null, item: null, mode: 'create' });
     setDrawerPinned(false);
     setDrawerOpen(false);
@@ -479,7 +487,7 @@ export default function DeskSurface({
     } catch (err) {
       console.error('Delete failed', err);
     }
-    handleCancel();
+    handleCancel(true);
   };
 
   const handleArchive = async () => {
@@ -494,7 +502,7 @@ export default function DeskSurface({
     } catch (err) {
       console.error('Archive failed', err);
     }
-    handleCancel();
+    handleCancel(true);
   };
 
   const handleNotebookSave = async () => {
@@ -505,7 +513,7 @@ export default function DeskSurface({
 
   const handleNotebookSaveAndClose = async () => {
     await handleSave({ title, content, subgroupId: editorState.parent?.subgroupId });
-    handleCancel();
+    handleCancel(true);
   };
 
 
@@ -656,9 +664,9 @@ export default function DeskSurface({
       <FullScreenCanvas
         open={editorState.isOpen && editorState.type === 'entry'}
         onClose={handleCancel}
+        drawerProps={{ template: 'editor', ...editorDrawerProps }}
       >
         <NotebookEditor {...editorProps} />
-        <Drawer template="editor" {...editorDrawerProps} />
       </FullScreenCanvas>
 
       <AntDrawer

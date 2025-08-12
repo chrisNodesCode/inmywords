@@ -412,15 +412,20 @@ export default function NotebookTree({
                                   !reorderMode ||
                                   openSubgroupId !== sub.key ||
                                   openEntryId !== null;
+                                const entryWithContext = {
+                                  ...entry,
+                                  subgroupId: sub.key,
+                                  groupId: group.key,
+                                };
                                 return (
                                   <EntryCard
                                     key={entry.key}
                                     id={entry.key}
                                     disableDrag={entryDragDisabled}
-                                    ref={(el) => (entryRefs.current[entry.id] = el)}
-                                    entry={entry}
+                                    ref={(el) => (entryRefs.current[entryWithContext.id] = el)}
+                                    entry={entryWithContext}
                                     isOpen={openEntryId === entry.id}
-                                    onToggle={() => handleEntryToggle(entry)}
+                                    onToggle={() => handleEntryToggle(entryWithContext)}
                                     onEdit={onEdit}
                                     actionsDisabled={manageMode}
                                   />
