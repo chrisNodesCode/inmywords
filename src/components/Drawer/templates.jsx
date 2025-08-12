@@ -22,6 +22,8 @@ import { ThemeContext } from '../ThemeProvider';
 export function editor({
   pomodoroEnabled,
   onPomodoroToggle,
+  fullFocus,
+  onFullFocusToggle,
   maxWidth,
   onMaxWidthChange,
   type,
@@ -52,6 +54,10 @@ export function editor({
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
         <span>Pomodoro</span>
         <Switch checked={pomodoroEnabled} onChange={onPomodoroToggle} size="small" />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <span>Full Focus Mode</span>
+        <Switch checked={fullFocus} onChange={onFullFocusToggle} size="small" />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
         <span>Max Width</span>
@@ -113,6 +119,8 @@ function NotebookControllerContent({
   onToggleEdits,
   reorderMode,
   onToggleReorder,
+  fullFocus,
+  onFullFocusToggle,
   showArchived,
   onToggleArchived,
   onAddNotebookDrawerChange,
@@ -246,6 +254,10 @@ function NotebookControllerContent({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Switch checked={reorderMode} onChange={onToggleReorder} />
           <span>Re-order</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Switch checked={fullFocus} onChange={onFullFocusToggle} />
+          <span>Full Focus Mode</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Switch

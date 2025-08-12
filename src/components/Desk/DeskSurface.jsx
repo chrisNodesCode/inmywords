@@ -95,6 +95,18 @@ export default function DeskSurface({
   const [controllerPinned, setControllerPinned] = useState(false);
   const controllerCloseTimeoutRef = useRef(null);
 
+  const [fullFocus, setFullFocus] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setFullFocus(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   const throttleManageHover = () => {
     setManageHoverDisabled(true);
     if (manageHoverTimeoutRef.current) {
@@ -439,6 +451,15 @@ export default function DeskSurface({
     window.dispatchEvent(new Event('pomodoro-start'));
   }, [pomodoroEnabled]);
 
+  const toggleFullFocus = () => {
+    if (fullFocus) {
+      document.exitFullscreen?.();
+    } else {
+      document.documentElement.requestFullscreen?.();
+    }
+    setFullFocus((prev) => !prev);
+  };
+
   const handleControllerHamburgerClick = () => {
     if (showEdits) return;
     setControllerPinned((prev) => {
@@ -627,6 +648,8 @@ export default function DeskSurface({
     onMouseLeave: handleDrawerMouseLeave,
     pomodoroEnabled,
     onPomodoroToggle: handlePomodoroToggle,
+    fullFocus,
+    onFullFocusToggle: toggleFullFocus,
     maxWidth,
     onMaxWidthChange: handleMaxWidthChange,
     type: editorState.type,
@@ -654,6 +677,8 @@ export default function DeskSurface({
     onToggleEdits: () => setShowEdits((prev) => !prev),
     reorderMode,
     onToggleReorder: () => setReorderMode((prev) => !prev),
+    fullFocus,
+    onFullFocusToggle: toggleFullFocus,
     showArchived,
     onToggleArchived: handleToggleArchived,
     onAddNotebookDrawerChange: (open) => {
