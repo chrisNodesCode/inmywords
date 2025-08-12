@@ -6,13 +6,17 @@ import { Drawer, Input, Button } from 'antd';
  * Expects `type` ('group' | 'subgroup' | 'entry') and `id`.
  */
 export default function EntityEditDrawer({ type, id, open, initialData, onClose }) {
-  const [title, setTitle] = useState(initialData?.title || '');
-  const [description, setDescription] = useState(initialData?.description || '');
+  const [title, setTitle] = useState(
+    initialData?.title ?? initialData?.name ?? ''
+  );
+  const [description, setDescription] = useState(
+    initialData?.description ?? ''
+  );
 
   useEffect(() => {
     if (!open) return;
-    setTitle(initialData?.title || '');
-    setDescription(initialData?.description || '');
+    setTitle(initialData?.title ?? initialData?.name ?? '');
+    setDescription(initialData?.description ?? '');
   }, [initialData, open]);
 
   useEffect(() => {
@@ -22,8 +26,8 @@ export default function EntityEditDrawer({ type, id, open, initialData, onClose 
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!cancelled && data) {
-          setTitle(data.title || '');
-          setDescription(data.description || '');
+          setTitle(data.title ?? data.name ?? '');
+          setDescription(data.description ?? '');
         }
       });
     return () => {
@@ -32,10 +36,14 @@ export default function EntityEditDrawer({ type, id, open, initialData, onClose 
   }, [type, id, open]);
 
   const handleSave = async () => {
+    const payload =
+      type === 'entry'
+        ? { title, description }
+        : { name: title, description };
     await fetch(`/api/${type}s/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description }),
+      body: JSON.stringify(payload),
     });
     onClose?.();
   };

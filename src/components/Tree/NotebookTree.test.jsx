@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import NotebookTree from './NotebookTree';
 
@@ -61,15 +61,27 @@ describe('NotebookTree custom cards', () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ title: 'Group 1', description: 'desc' }),
+      json: async () => ({ name: 'Group 1', description: 'desc' }),
     });
 
     render(<NotebookTree treeData={treeData} manageMode />);
     await user.click(screen.getByText('Group 1'));
 
     const input = await screen.findByPlaceholderText('Title');
-    expect(input).toHaveValue('Group 1');
+    await waitFor(() => expect(input).toHaveValue('Group 1'));
     expect(global.fetch).toHaveBeenCalledWith('/api/groups/g1');
+
+    await user.clear(input);
+    await user.type(input, 'Updated');
+    await user.click(screen.getByRole('button', { name: /save/i }));
+
+    expect(global.fetch).toHaveBeenLastCalledWith(
+      '/api/groups/g1',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ name: 'Updated', description: 'desc' }),
+      })
+    );
 
     global.fetch = originalFetch;
   });
