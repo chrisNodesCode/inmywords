@@ -6,7 +6,10 @@ import { CSS } from '@dnd-kit/utilities';
 import styles from './Tree.module.css';
 
 const EntryCard = forwardRef(
-  ({ id, entry, isOpen, onToggle, onEdit, disableDrag }, ref) => {
+  (
+    { id, entry, isOpen, onToggle, onEdit, disableDrag, actionsDisabled },
+    ref
+  ) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
       id,
       disabled: disableDrag,
@@ -93,7 +96,7 @@ const EntryCard = forwardRef(
         )}
         <div
           className={styles.entryTitle}
-          style={{ cursor: 'pointer' }}
+          style={{ cursor: actionsDisabled ? 'default' : 'pointer' }}
           onClick={onToggle}
         >
           {entry.title}
@@ -110,23 +113,28 @@ const EntryCard = forwardRef(
             onClick={() => onEdit?.(entry)}
           >
             {entry.snippet && <p className={styles.entrySnippet}>{entry.snippet}</p>}
-            <div className={styles.entryActions} onClick={(e) => e.stopPropagation()}>
-              <Button size="small" onClick={handleEdit}>
-                Edit
-              </Button>
-              <Button size="small" onClick={handleArchive}>
-                Archive
-              </Button>
-              <Button size="small" onClick={handleDelete}>
-                Delete
-              </Button>
-              <Button size="small" onClick={handleDuplicate}>
-                Duplicate
-              </Button>
-              <Button size="small" onClick={handleAddTag}>
-                Add Tag
-              </Button>
-            </div>
+            {!actionsDisabled && (
+              <div
+                className={styles.entryActions}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button size="small" onClick={handleEdit}>
+                  Edit
+                </Button>
+                <Button size="small" onClick={handleArchive}>
+                  Archive
+                </Button>
+                <Button size="small" onClick={handleDelete}>
+                  Delete
+                </Button>
+                <Button size="small" onClick={handleDuplicate}>
+                  Duplicate
+                </Button>
+                <Button size="small" onClick={handleAddTag}>
+                  Add Tag
+                </Button>
+              </div>
+            )}
           </Motion.div>
         )}
       </AnimatePresence>

@@ -11,6 +11,7 @@ import EntryCard from './EntryCard';
 import AddGroupButton from './AddGroupButton';
 import AddSubgroupButton from './AddSubgroupButton';
 import AddEntryButton from './AddEntryButton';
+import EntityEditDrawer from './EntityEditDrawer';
 import styles from './Tree.module.css';
 
 const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : '');
@@ -56,6 +57,8 @@ export default function NotebookTree({
   const [openSubgroupId, setOpenSubgroupId] = useState(null);
   const [openEntryId, setOpenEntryId] = useState(null);
 
+  const [editEntity, setEditEntity] = useState(null);
+
   // refs for scrolling
   const groupRefs = useRef({});
   const subgroupRefs = useRef({});
@@ -69,6 +72,10 @@ export default function NotebookTree({
   };
 
   const handleGroupToggle = async (group) => {
+    if (manageMode) {
+      setEditEntity({ type: 'group', id: group.key });
+      return;
+    }
     const isCurrentlyOpen = openGroupId === group.key;
     if (isCurrentlyOpen) {
       setOpenGroupId(null);
@@ -87,6 +94,10 @@ export default function NotebookTree({
   };
 
   const handleSubgroupToggle = async (sub) => {
+    if (manageMode) {
+      setEditEntity({ type: 'subgroup', id: sub.key });
+      return;
+    }
     const isCurrentlyOpen = openSubgroupId === sub.key;
     if (isCurrentlyOpen) {
       setOpenSubgroupId(null);
@@ -103,9 +114,28 @@ export default function NotebookTree({
   };
 
   const handleEntryToggle = (id) => {
+    if (manageMode) {
+      setEditEntity({ type: 'entry', id });
+      return;
+    }
     setOpenEntryId((prev) => (prev === id ? null : id));
     setTimeout(() => scrollTo(entryRefs, id), 0);
   };
+
+  useEffect(() => {
+    if (!manageMode || !loadData) return;
+    async function loadAll() {
+      for (const group of treeData) {
+        await loadData(group);
+        if (group.children) {
+          for (const sub of group.children) {
+            await loadData(sub);
+          }
+        }
+      }
+    }
+    loadAll();
+  }, [manageMode, loadData, treeData]);
 
   const persistGroupOrder = (items) => {
     const orders = items.map((g, index) => ({ id: g.key, user_sort: index }));
@@ -207,7 +237,7 @@ export default function NotebookTree({
                 disableDrag={groupDragDisabled}
                 ref={(el) => (groupRefs.current[group.key] = el)}
                 title={group.title}
-                isOpen={openGroupId === group.key}
+                isOpen={manageMode || openGroupId === group.key}
                 onToggle={() => handleGroupToggle(group)}
               >
                 <DndContext
@@ -231,7 +261,7 @@ export default function NotebookTree({
                           disableDrag={subgroupDragDisabled}
                           ref={(el) => (subgroupRefs.current[sub.key] = el)}
                           title={sub.title}
-                          isOpen={openSubgroupId === sub.key}
+                          isOpen={manageMode || openSubgroupId === sub.key}
                           onToggle={() => handleSubgroupToggle(sub)}
                         >
                           <DndContext
@@ -258,12 +288,13 @@ export default function NotebookTree({
                                     isOpen={openEntryId === entry.id}
                                     onToggle={() => handleEntryToggle(entry.id)}
                                     onEdit={onEdit}
+                                    actionsDisabled={manageMode}
                                   />
                                 );
                               })}
                             </SortableContext>
                           </DndContext>
-                          {onAddEntry && (
+                          {!manageMode && onAddEntry && (
                             <AddEntryButton
                               groupKey={group.key}
                               subgroupKey={sub.key}
@@ -276,7 +307,7 @@ export default function NotebookTree({
                     })}
                   </SortableContext>
                 </DndContext>
-                {onAddSubgroup && (
+                {!manageMode && onAddSubgroup && (
                   <AddSubgroupButton
                     groupKey={group.key}
                     groupTitle={group.title}
@@ -288,7 +319,15 @@ export default function NotebookTree({
           })}
         </SortableContext>
       </DndContext>
-      {onAddGroup && <AddGroupButton onAddGroup={onAddGroup} />}
+      {!manageMode && onAddGroup && <AddGroupButton onAddGroup={onAddGroup} />}
+      {editEntity && (
+        <EntityEditDrawer
+          type={editEntity.type}
+          id={editEntity.id}
+          open={!!editEntity}
+          onClose={() => setEditEntity(null)}
+        />
+      )}
     </div>
   );
 }
