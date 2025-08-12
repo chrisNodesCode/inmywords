@@ -1,0 +1,32 @@
+.card {
+  --scale: 1;
+  margin-bottom: 0.5rem;
+  padding: 1rem;
+  background-color: var(--ant-colorBgContainer);
+  color: var(--ant-colorText);
+  border: 1px solid var(--ant-colorBorder);
+  border-radius: 12px;
+  transition:
+    transform var(--ant-motion-duration-mid) ease,
+    background-color var(--ant-motion-duration-mid) ease;
+}
+
+.card:hover {
+  --scale: 1.02;
+  background-color: color-mix(in oklab, var(--ant-colorBgContainer) 90%, var(--ant-colorPrimary));
+}
+
+.title {
+  font-size: 1.5rem;
+}
+
+.snippet {
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
