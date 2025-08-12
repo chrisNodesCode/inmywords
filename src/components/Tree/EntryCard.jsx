@@ -3,7 +3,7 @@ import { Button } from 'antd';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import styles from './Tree.module.css';
+import styles from './EntryCard.module.css';
 
 const EntryCard = forwardRef(
   (
@@ -14,10 +14,13 @@ const EntryCard = forwardRef(
       id,
       disabled: disableDrag,
     });
+    const transformStyle = CSS.Transform.toString(transform);
     const style = {
-      transform: CSS.Transform.toString(transform),
+      transform:
+        transformStyle === 'none'
+          ? 'scale(var(--scale))'
+          : `${transformStyle} scale(var(--scale))`,
       transition,
-      marginBottom: '0.5rem',
     };
     const mergedRef = useCallback(
       (node) => {
@@ -82,7 +85,7 @@ const EntryCard = forwardRef(
   };
 
   return (
-    <div ref={mergedRef} style={style}>
+    <div ref={mergedRef} style={style} className={styles.card}>
       <div style={{ display: 'flex', alignItems: 'center' }}>
         {!disableDrag && (
           <span
@@ -95,7 +98,7 @@ const EntryCard = forwardRef(
           </span>
         )}
         <div
-          className={styles.entryTitle}
+          className={styles.title}
           style={{ cursor: actionsDisabled ? 'default' : 'pointer' }}
           onClick={onToggle}
         >
@@ -112,10 +115,10 @@ const EntryCard = forwardRef(
             style={{ overflow: 'hidden', marginLeft: '1rem' }}
             onClick={() => onEdit?.(entry)}
           >
-            {entry.snippet && <p className={styles.entrySnippet}>{entry.snippet}</p>}
+            {entry.snippet && <p className={styles.snippet}>{entry.snippet}</p>}
             {!actionsDisabled && (
               <div
-                className={styles.entryActions}
+                className={styles.actions}
                 onClick={(e) => e.stopPropagation()}
               >
                 <Button size="small" onClick={handleEdit}>

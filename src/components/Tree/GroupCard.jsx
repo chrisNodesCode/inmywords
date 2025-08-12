@@ -2,7 +2,7 @@ import React, { forwardRef, useCallback } from 'react';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import styles from './Tree.module.css';
+import styles from './GroupCard.module.css';
 
 const GroupCard = forwardRef(
   ({ id, title, isOpen, onToggle, children, disableDrag }, ref) => {
@@ -10,10 +10,13 @@ const GroupCard = forwardRef(
       id,
       disabled: disableDrag,
     });
+    const transformStyle = CSS.Transform.toString(transform);
     const style = {
-      transform: CSS.Transform.toString(transform),
+      transform:
+        transformStyle === 'none'
+          ? 'scale(var(--scale))'
+          : `${transformStyle} scale(var(--scale))`,
       transition,
-      marginBottom: '1rem',
     };
     const mergedRef = useCallback(
       (node) => {
@@ -25,7 +28,7 @@ const GroupCard = forwardRef(
     );
 
     return (
-      <div ref={mergedRef} style={style}>
+      <div ref={mergedRef} style={style} className={styles.card}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {!disableDrag && (
             <span
@@ -38,7 +41,7 @@ const GroupCard = forwardRef(
             </span>
           )}
           <div
-            className={styles.groupTitle}
+            className={styles.title}
             style={{ cursor: 'pointer' }}
             onClick={onToggle}
           >
