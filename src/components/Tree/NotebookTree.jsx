@@ -63,6 +63,32 @@ export default function NotebookTree({
   const groupRefs = useRef({});
   const subgroupRefs = useRef({});
   const entryRefs = useRef({});
+  const editDrawerHideRef = useRef(null);
+
+  const clearEditDrawerHide = () => {
+    if (editDrawerHideRef.current) {
+      clearTimeout(editDrawerHideRef.current);
+      editDrawerHideRef.current = null;
+    }
+  };
+
+  const handleEditDrawerMouseEnter = () => {
+    clearEditDrawerHide();
+  };
+
+  const handleEditDrawerMouseLeave = () => {
+    clearEditDrawerHide();
+    editDrawerHideRef.current = setTimeout(() => {
+      setEditEntity(null);
+    }, 2000);
+  };
+
+  useEffect(
+    () => () => {
+      clearEditDrawerHide();
+    },
+    []
+  );
 
   const scrollTo = (refMap, id) => {
     const node = refMap.current[id];
@@ -428,15 +454,20 @@ export default function NotebookTree({
       </DndContext>
       {!manageMode && onAddGroup && <AddGroupButton onAddGroup={onAddGroup} />}
       {editEntity && (
-        <EntityEditDrawer
-          type={editEntity.type}
-          id={editEntity.id}
-          open={!!editEntity}
-          initialData={editEntity.data}
-          subgroupOptions={editEntity.subgroups}
-          onSave={handleEntitySave}
-          onClose={() => setEditEntity(null)}
-        />
+        <div
+          onMouseEnter={handleEditDrawerMouseEnter}
+          onMouseLeave={handleEditDrawerMouseLeave}
+        >
+          <EntityEditDrawer
+            type={editEntity.type}
+            id={editEntity.id}
+            open={!!editEntity}
+            initialData={editEntity.data}
+            subgroupOptions={editEntity.subgroups}
+            onSave={handleEntitySave}
+            onClose={() => setEditEntity(null)}
+          />
+        </div>
       )}
     </div>
   );
