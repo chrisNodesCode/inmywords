@@ -327,6 +327,7 @@ export default function DeskSurface({
     setEditorState({ isOpen: false, type: null, parent: null, item: null, mode: 'create' });
     setDrawerPinned(false);
     setDrawerOpen(false);
+    setControllerOpen(false);
     setIsEditingTitle(false);
     setTitle('');
     setTitleInput('');
