@@ -32,6 +32,7 @@ export default function NotebookTree({
   loadData,
   manageMode,
   reorderMode = false,
+  showArchived = false,
 }) {
   // notebook metadata
   const [notebookTitle, setNotebookTitle] = useState('');
@@ -110,7 +111,7 @@ export default function NotebookTree({
 
     // wait for data to load before expanding so children render with animation
     if (loadData) {
-      await loadData(group);
+      await loadData(group, showArchived);
     }
 
     setOpenGroupId(group.key);
@@ -131,7 +132,7 @@ export default function NotebookTree({
     }
 
     if (loadData) {
-      await loadData(sub);
+      await loadData(sub, showArchived);
     }
 
     setOpenSubgroupId(sub.key);
@@ -165,16 +166,16 @@ export default function NotebookTree({
     if (!manageMode || !loadData) return;
     async function loadAll() {
       for (const group of treeData) {
-        await loadData(group);
+        await loadData(group, showArchived);
         if (group.children) {
           for (const sub of group.children) {
-            await loadData(sub);
+            await loadData(sub, showArchived);
           }
         }
       }
     }
     loadAll();
-  }, [manageMode, loadData, treeData]);
+  }, [manageMode, loadData, treeData, showArchived]);
 
   const persistGroupOrder = (items) => {
     const orders = items.map((g, index) => ({ id: g.key, user_sort: index }));
