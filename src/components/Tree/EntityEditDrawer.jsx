@@ -35,7 +35,7 @@ export default function EntityEditDrawer({ type, id, open, onClose }) {
   };
 
   return (
-    <Drawer open={open} onClose={onClose} title={`Edit ${type}`} getContainer={false} style={{ position: 'absolute' }}>
+    <Drawer open={open} onClose={onClose} title={`Edit ${type}`} zIndex={1002}>
       <Input
         placeholder="Title"
         value={title}
