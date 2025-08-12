@@ -30,6 +30,7 @@ export default function NotebookTree({
   notebookId,
   loadData,
   manageMode,
+  reorderMode = false,
 }) {
   // notebook metadata
   const [notebookTitle, setNotebookTitle] = useState('');
@@ -134,7 +135,7 @@ export default function NotebookTree({
   };
 
   const handleGroupDragEnd = ({ active, over }) => {
-    if (manageMode || !over || active.id === over.id) return;
+    if (manageMode || !reorderMode || !over || active.id === over.id) return;
     setTreeData((items) => {
       const oldIndex = items.findIndex((i) => i.key === active.id);
       const newIndex = items.findIndex((i) => i.key === over.id);
@@ -145,7 +146,7 @@ export default function NotebookTree({
   };
 
   const handleSubgroupDragEnd = (groupKey) => ({ active, over }) => {
-    if (manageMode || !over || active.id === over.id) return;
+    if (manageMode || !reorderMode || !over || active.id === over.id) return;
     setTreeData((groups) => {
       const gIndex = groups.findIndex((g) => g.key === groupKey);
       const group = groups[gIndex];
@@ -161,7 +162,7 @@ export default function NotebookTree({
   };
 
   const handleEntryDragEnd = (groupKey, subgroupKey) => ({ active, over }) => {
-    if (manageMode || !over || active.id === over.id) return;
+    if (manageMode || !reorderMode || !over || active.id === over.id) return;
     setTreeData((groups) => {
       const gIndex = groups.findIndex((g) => g.key === groupKey);
       const group = groups[gIndex];
@@ -198,7 +199,7 @@ export default function NotebookTree({
           strategy={verticalListSortingStrategy}
         >
           {treeData.map((group) => {
-            const groupDragDisabled = manageMode || openGroupId !== null;
+            const groupDragDisabled = manageMode || !reorderMode || openGroupId !== null;
             return (
               <GroupCard
                 key={group.key}
@@ -220,6 +221,7 @@ export default function NotebookTree({
                     {group.children?.map((sub) => {
                       const subgroupDragDisabled =
                         manageMode ||
+                        !reorderMode ||
                         openGroupId !== group.key ||
                         openSubgroupId !== null;
                       return (
@@ -243,6 +245,7 @@ export default function NotebookTree({
                               {sub.children?.map((entry) => {
                                 const entryDragDisabled =
                                   manageMode ||
+                                  !reorderMode ||
                                   openSubgroupId !== sub.key ||
                                   openEntryId !== null;
                                 return (

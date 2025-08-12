@@ -102,6 +102,8 @@ function NotebookControllerContent({
   onSelect,
   showEdits,
   onToggleEdits,
+  reorderMode,
+  onToggleReorder,
   showArchived,
   onToggleArchived,
   onAddNotebookDrawerChange,
@@ -231,6 +233,10 @@ function NotebookControllerContent({
             onChange={onToggleEdits}
           />
           <span>Manage</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Switch checked={reorderMode} onChange={onToggleReorder} />
+          <span>Re-order</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Switch checked={showArchived} onChange={onToggleArchived} />

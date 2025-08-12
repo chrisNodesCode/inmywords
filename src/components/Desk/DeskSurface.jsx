@@ -48,6 +48,7 @@ export default function DeskSurface({
   const [treeData, setTreeData] = useState([]);
   const [showEdits, setShowEdits] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [reorderMode, setReorderMode] = useState(false);
   const [editorState, setEditorState] = useState({
     isOpen: false,
     type: null,
@@ -550,6 +551,7 @@ export default function DeskSurface({
     setTreeData,
     onSelect: handleNodeSelect,
     manageMode: showEdits,
+    reorderMode,
     onAddGroup: showEdits ? undefined : handleAddGroup,
     onAddSubgroup: showEdits ? undefined : handleAddSubgroup,
     onAddEntry: showEdits ? undefined : handleAddEntry,
@@ -621,6 +623,8 @@ export default function DeskSurface({
     onSelect: setNotebookId,
     showEdits,
     onToggleEdits: () => setShowEdits((prev) => !prev),
+    reorderMode,
+    onToggleReorder: () => setReorderMode((prev) => !prev),
     showArchived,
     onToggleArchived: handleToggleArchived,
     onAddNotebookDrawerChange: (open) => {
