@@ -1,6 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&display=swap');
 
+:root {
+  --highlight-color: #547b5f;
+}
+
 body {
   font-family: 'IBM Plex Mono', 'Cutive Mono', monospace;
   margin: 0;
@@ -657,10 +661,16 @@ button {
   user-select: none;
 }
 
-.interactive:hover {
+.interactive:hover,
+button:hover {
   cursor: pointer;
   transform: scale(1.02);
-  filter: brightness(0.95);
+  background-color: color-mix(in srgb, var(--highlight-color) 15%, transparent);
+  border-color: var(--highlight-color);
+  color: var(--highlight-color);
+}
+
+.interactive:hover {
   margin-left: 2rem;
   margin-right: 2rem;
 }
@@ -678,24 +688,6 @@ button {
 .entry-header.interactive:hover {
   margin-left: 0rem;
   margin-right: 0rem;
-}
-
-
-button:hover {
-  cursor: pointer;
-  transform: scale(1.02);
-  filter: brightness(0.95);
-}
-
-body[data-theme='light'] .interactive:hover,
-body[data-theme='light'] button:hover {
-  background-color: #f0f0f0;
-}
-
-body[data-theme='dark'] .interactive:hover,
-body[data-theme='dark'] button:hover {
-  background-color: #262626;
-  filter: brightness(1.1);
 }
 
 .edit-button {
