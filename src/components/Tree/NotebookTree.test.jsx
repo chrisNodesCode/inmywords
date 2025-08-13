@@ -1,3 +1,4 @@
+import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import NotebookTree from './NotebookTree';
@@ -82,6 +83,43 @@ describe('NotebookTree custom cards', () => {
         body: JSON.stringify({ name: 'Updated', description: 'desc' }),
       })
     );
+
+    global.fetch = originalFetch;
+  });
+
+  it('removes entry card after successful delete', async () => {
+    const user = userEvent.setup();
+    const initialData = [
+      {
+        title: 'Group 1',
+        key: 'g1',
+        children: [
+          {
+            title: 'Sub 1',
+            key: 's1',
+            children: [{ title: 'Entry 1', key: 'e1', id: 'e1' }],
+          },
+        ],
+      },
+    ];
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({ ok: true });
+
+    const Wrapper = () => {
+      const [data, setData] = React.useState(initialData);
+      return <NotebookTree treeData={data} setTreeData={setData} />;
+    };
+    render(<Wrapper />);
+
+    await user.click(screen.getByText('Group 1'));
+    await screen.findByText('Sub 1');
+    await user.click(screen.getByText('Sub 1'));
+    await screen.findByText('Entry 1');
+    await user.click(screen.getByText('Entry 1'));
+    await screen.findByRole('button', { name: /delete/i });
+    await user.click(screen.getByRole('button', { name: /delete/i }));
+
+    await waitFor(() => expect(screen.queryByText('Entry 1')).toBeNull());
 
     global.fetch = originalFetch;
   });

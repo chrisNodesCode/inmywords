@@ -330,6 +330,28 @@ export default function NotebookTree({
     }
   };
 
+  const handleEntryDelete = (entry) => {
+    if (!setTreeData) return;
+    setTreeData((groups) =>
+      groups.map((g) => {
+        if (g.key !== entry.groupId) return g;
+        return {
+          ...g,
+          children: g.children?.map((s) => {
+            if (s.key !== entry.subgroupId) return s;
+            return {
+              ...s,
+              children: (s.children || []).filter(
+                (e) => e.key !== entry.key && e.id !== entry.id
+              ),
+            };
+          }),
+        };
+      })
+    );
+    setOpenEntryId((prev) => (prev === entry.id ? null : prev));
+  };
+
   return (
     <div className={styles.root}>
       {notebookTitle && (
@@ -429,6 +451,7 @@ export default function NotebookTree({
                                     isOpen={openEntryId === entry.id}
                                     onToggle={() => handleEntryToggle(entryWithContext)}
                                     onEdit={onEdit}
+                                    onDelete={handleEntryDelete}
                                     actionsDisabled={manageMode}
                                     manageMode={manageMode}
                                   />

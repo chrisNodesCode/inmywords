@@ -15,6 +15,7 @@ const EntryCard = forwardRef(
       isOpen,
       onToggle,
       onEdit,
+      onDelete,
       disableDrag,
       actionsDisabled,
       manageMode,
@@ -58,7 +59,10 @@ const EntryCard = forwardRef(
 
   const handleDelete = async (e) => {
     e.stopPropagation();
-    await fetch(`/api/entries/${entry.id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/entries/${entry.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      onDelete?.(entry);
+    }
   };
 
   const handleDuplicate = async (e) => {
