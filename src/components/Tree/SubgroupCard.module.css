@@ -2,11 +2,14 @@
   --scale: 1;
   margin-bottom: 0.75rem;
   padding: 1.25rem;
+  /* Fallbacks for browsers without color-mix support */
+  background-color: var(--ant-colorBgContainer);
   background-color: color-mix(in srgb, var(--ant-colorBgContainer) 92%, var(--ant-colorText) 8%);
   color: var(--ant-colorText);
   border: 0;
   border-radius: 1rem;
   user-select: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   box-shadow: 0 2px 4px color-mix(in srgb, var(--ant-colorText) 25%, transparent);
   transition:
     transform var(--ant-motion-duration-mid) ease,
@@ -14,7 +17,10 @@
 }
 
 body[data-theme="dark"] .card {
+  background-color: var(--ant-colorBgContainer);
   background-color: color-mix(in srgb, var(--ant-colorBgContainer) 92%, var(--ant-colorText) 8%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--ant-colorText) 25%, transparent);
 }
 
 .interactive {}
