@@ -30,10 +30,6 @@ body[data-theme="dark"] .card {
 
 .interactive {}
 
-.card:hover {
-  background-color: color-mix(in oklab, var(--ant-colorBgContainer) 90%, var(--ant-colorPrimary));
-}
-
 .card.interactive:hover {
   --scale: 1.02;
 }

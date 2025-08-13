@@ -13,6 +13,7 @@ import { signOut } from 'next-auth/react';
 import { EditOutlined, UserOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { ThemeContext } from '../ThemeProvider';
+import HighlightColorPicker from '../HighlightColorPicker';
 
 /**
  * Template factory functions for Drawer.
@@ -278,6 +279,10 @@ function NotebookControllerContent({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span>Dark Mode</span>
           <Switch checked={darkMode} onChange={toggleTheme} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span>Highlight</span>
+          <HighlightColorPicker />
         </div>
         <Button onClick={() => signOut({ redirect: false })}>Logout</Button>
       </div>
