@@ -47,12 +47,12 @@ describe('NotebookTree custom cards', () => {
       { title: 'Group 2', key: 'g2', children: [] },
     ];
     const { rerender } = render(<NotebookTree treeData={treeData} />);
-    expect(screen.queryAllByText('=').length).toBe(0);
+    expect(screen.queryAllByRole('img', { name: 'holder' }).length).toBe(0);
     rerender(<NotebookTree treeData={treeData} reorderMode />);
-    expect(screen.getAllByText('=').length).toBe(2);
+    expect(screen.getAllByRole('img', { name: 'holder' }).length).toBe(2);
     await user.click(screen.getByText('Group 1'));
     await screen.findByText('Sub 1');
-    expect(screen.getAllByText('=').length).toBe(1);
+    expect(screen.getAllByRole('img', { name: 'holder' }).length).toBe(1);
   });
 
   it('loads existing values into entity edit drawer', async () => {

@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { HolderOutlined } from '@ant-design/icons';
 import styles from './SubgroupCard.module.css';
 
 const SubgroupCard = forwardRef(
@@ -45,7 +46,7 @@ const SubgroupCard = forwardRef(
               onClick={(e) => e.stopPropagation()}
               style={{ cursor: 'grab', marginRight: '0.5rem' }}
             >
-              =
+              <HolderOutlined />
             </span>
           )}
           <div
