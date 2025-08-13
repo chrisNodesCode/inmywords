@@ -4,6 +4,7 @@ import { Button } from 'antd';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { HolderOutlined } from '@ant-design/icons';
 import styles from './EntryCard.module.css';
 
 const EntryCard = forwardRef(
@@ -108,7 +109,7 @@ const EntryCard = forwardRef(
             onClick={(e) => e.stopPropagation()}
             style={{ cursor: 'grab', marginRight: '0.5rem' }}
           >
-            =
+            <HolderOutlined />
           </span>
         )}
         <div
