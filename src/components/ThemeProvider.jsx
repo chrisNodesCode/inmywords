@@ -2,20 +2,31 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { ConfigProvider } from 'antd';
 
+const HIGHLIGHT_COLORS = {
+  blue: { light: '#1677ff', dark: '#69b1ff' },
+  green: { light: '#52c41a', dark: '#95de64' },
+  red: { light: '#ff4d4f', dark: '#ff7875' },
+  yellow: { light: '#faad14', dark: '#ffd666' },
+  purple: { light: '#722ed1', dark: '#b37feb' },
+};
+
 export const ThemeContext = createContext({
   darkMode: false,
-  toggleTheme: () => { },
+  toggleTheme: () => {},
+  highlightColor: 'green',
+  setHighlightColor: () => {},
 });
 
 export default function ThemeProvider({ children }) {
   const [darkMode, setDarkMode] = useState(false);
+  const [highlightColor, setHighlightColor] = useState('green');
 
   const lightTokens = {
     colorBgBase: '#ffffff',
     colorBgContainer: '#ffffff',
     colorTextBase: '#000000',
     colorText: '#000000',
-    colorPrimary: '#547b5f',
+    colorPrimary: HIGHLIGHT_COLORS[highlightColor].light,
   };
 
   const darkTokens = {
@@ -23,19 +34,23 @@ export default function ThemeProvider({ children }) {
     colorBgContainer: '#1f1f1f',
     colorTextBase: '#ffffff',
     colorText: '#ffffff',
-    colorPrimary: '#547b5f',
+    colorPrimary: HIGHLIGHT_COLORS[highlightColor].dark,
   };
 
   // Initialize theme from localStorage or matchMedia
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const stored = localStorage.getItem('theme');
-    if (stored) {
-      setDarkMode(stored === 'dark');
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme) {
+      setDarkMode(storedTheme === 'dark');
     } else {
-      const prefersDark = window.matchMedia &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const prefersDark =
+        window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       setDarkMode(prefersDark);
+    }
+    const storedHighlight = localStorage.getItem('highlightColor');
+    if (storedHighlight && HIGHLIGHT_COLORS[storedHighlight]) {
+      setHighlightColor(storedHighlight);
     }
   }, []);
 
@@ -45,6 +60,14 @@ export default function ThemeProvider({ children }) {
     localStorage.setItem('theme', darkMode ? 'dark' : 'light');
     document.body.setAttribute('data-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
+
+  // Persist highlight color and update CSS variable
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('highlightColor', highlightColor);
+    const value = HIGHLIGHT_COLORS[highlightColor][darkMode ? 'dark' : 'light'];
+    document.body.style.setProperty('--highlight-color', value);
+  }, [highlightColor, darkMode]);
 
   const toggleTheme = () => {
     setDarkMode((prev) => !prev);
@@ -90,7 +113,7 @@ export default function ThemeProvider({ children }) {
         },
       }}
     >
-      <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
+      <ThemeContext.Provider value={{ darkMode, toggleTheme, highlightColor, setHighlightColor }}>
         {children}
       </ThemeContext.Provider>
     </ConfigProvider>
