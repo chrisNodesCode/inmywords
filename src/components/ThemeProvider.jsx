@@ -44,6 +44,25 @@ export default function ThemeProvider({ children }) {
     if (typeof window === 'undefined') return;
     localStorage.setItem('theme', darkMode ? 'dark' : 'light');
     document.body.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+
+    // Expose Windows-95 style variables for inputs/buttons
+    const root = document.documentElement;
+    const lightVars = {
+      '--indie-bg': '#c0c0c0',
+      '--indie-border-light': '#ffffff',
+      '--indie-border-dark': '#808080',
+      '--indie-text': '#000000',
+    };
+    const darkVars = {
+      '--indie-bg': '#3a3a3a',
+      '--indie-border-light': '#999999',
+      '--indie-border-dark': '#000000',
+      '--indie-text': '#ffffff',
+    };
+    const vars = darkMode ? darkVars : lightVars;
+    Object.entries(vars).forEach(([key, value]) => {
+      root.style.setProperty(key, value);
+    });
   }, [darkMode]);
 
   const toggleTheme = () => {

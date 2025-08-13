@@ -73,11 +73,11 @@ export default function NotebookEditor({
           <div className="entry-title-row" style={{ maxWidth: `${maxWidth}%` }}>
             <div className="entry-title-container">
               {isEditingTitle ? (
-                <input
-                  type="text"
-                  className="entry-title-input"
-                  value={titleInput}
-                  onChange={(e) => setTitleInput(e.target.value)}
+                  <input
+                    type="text"
+                    className="entry-title-input indie-input"
+                    value={titleInput}
+                    onChange={(e) => setTitleInput(e.target.value)}
                   onBlur={() => {
                     setTitle(titleInput);
                     setIsEditingTitle(false);

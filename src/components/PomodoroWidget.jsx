@@ -213,31 +213,34 @@ export default function PomodoroWidget() {
           <div style={{ marginBottom: '0.25rem' }}>{label}</div>
           <label style={{ display: 'block' }}>
             Pomodoro:
-            <input
-              type="number"
-              value={Math.floor(durations.pomodoro / 60)}
-              onChange={(e) => updateDuration('pomodoro', e.target.value)}
-              style={{ width: '3rem', marginLeft: '0.25rem' }}
-            />
-          </label>
-          <label style={{ display: 'block' }}>
-            Short:
-            <input
-              type="number"
-              value={Math.floor(durations.shortBreak / 60)}
-              onChange={(e) => updateDuration('shortBreak', e.target.value)}
-              style={{ width: '3rem', marginLeft: '0.25rem' }}
-            />
-          </label>
-          <label style={{ display: 'block' }}>
-            Long:
-            <input
-              type="number"
-              value={Math.floor(durations.longBreak / 60)}
-              onChange={(e) => updateDuration('longBreak', e.target.value)}
-              style={{ width: '3rem', marginLeft: '0.25rem' }}
-            />
-          </label>
+              <input
+                type="number"
+                value={Math.floor(durations.pomodoro / 60)}
+                onChange={(e) => updateDuration('pomodoro', e.target.value)}
+                style={{ width: '3rem', marginLeft: '0.25rem' }}
+                className="indie-input"
+              />
+            </label>
+            <label style={{ display: 'block' }}>
+              Short:
+              <input
+                type="number"
+                value={Math.floor(durations.shortBreak / 60)}
+                onChange={(e) => updateDuration('shortBreak', e.target.value)}
+                style={{ width: '3rem', marginLeft: '0.25rem' }}
+                className="indie-input"
+              />
+            </label>
+            <label style={{ display: 'block' }}>
+              Long:
+              <input
+                type="number"
+                value={Math.floor(durations.longBreak / 60)}
+                onChange={(e) => updateDuration('longBreak', e.target.value)}
+                style={{ width: '3rem', marginLeft: '0.25rem' }}
+                className="indie-input"
+              />
+            </label>
         </div>
       )}
     </div>
