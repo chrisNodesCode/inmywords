@@ -102,7 +102,7 @@ export default function NotebookEditor({
                 </p>
               )}
               <div className="last-saved">
-                Last Autosave: {lastSaved ? lastSaved.toLocaleString() : 'no autosaves yet...'}
+                Saved at: {lastSaved ? lastSaved.toLocaleString() : 'not yet saved'}
               </div>
             </div>
             <ExportMenu quillRef={quillRef} content={content} />

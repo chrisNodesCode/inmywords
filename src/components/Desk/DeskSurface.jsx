@@ -550,13 +550,34 @@ export default function DeskSurface({
     handleCancel(true);
   };
 
+  // Autosave every 30 seconds while the editor is open.
+  useEffect(() => {
+    if (!(editorState.isOpen && editorState.type === 'entry')) return;
+    let retries = 0;
+    const MAX_RETRIES = 3;
+    const interval = setInterval(() => {
+      const hasTitle = title.trim().length > 0;
+      const hasContent = content.trim().length > 0;
+      if (hasTitle && hasContent) {
+        handleNotebookSave();
+        retries = 0;
+      } else if (retries >= MAX_RETRIES - 1) {
+        clearInterval(interval);
+      } else {
+        retries += 1;
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorState.isOpen, editorState.type, title, content]);
+
 
   const openEntry = (node, item) => {
     setTitle(item.title || '');
     setContent(item.content || '');
     setIsEditingTitle(false);
     setTitleInput('');
-    setLastSaved(null);
+    setLastSaved(item?.updatedAt ? new Date(item.updatedAt) : null);
     setControllerPinned(false);
     setControllerOpen(false);
     setDrawerOpen(true);
