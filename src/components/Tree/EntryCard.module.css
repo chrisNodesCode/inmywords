@@ -41,6 +41,7 @@ body[data-theme="dark"] .card {
 .snippet {
   font-size: 1rem;
   margin-top: 0.5rem;
+  cursor: pointer;
 }
 
 .actions {
