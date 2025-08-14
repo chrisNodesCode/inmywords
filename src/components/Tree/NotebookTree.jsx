@@ -411,13 +411,15 @@ export default function NotebookTree({
                         !reorderMode ||
                         openGroupId !== group.key ||
                         openSubgroupId !== null;
+                      const nonArchivedCount =
+                        sub.children?.filter((e) => !e.archived).length || 0;
                       return (
                         <SubgroupCard
                           key={sub.key}
                           id={sub.key}
                           disableDrag={subgroupDragDisabled}
                           ref={(el) => (subgroupRefs.current[sub.key] = el)}
-                          title={sub.title}
+                          title={`${sub.title} (${nonArchivedCount})`}
                           isOpen={manageMode || openSubgroupId === sub.key}
                           onToggle={() => handleSubgroupToggle(sub)}
                           manageMode={manageMode}
