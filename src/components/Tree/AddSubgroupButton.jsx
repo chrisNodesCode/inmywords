@@ -3,7 +3,11 @@ import { Button } from 'antd';
 
 export default function AddSubgroupButton({ groupKey, groupTitle, onAddSubgroup }) {
   return (
-    <Button type="dashed" onClick={() => onAddSubgroup(groupKey)}>
+    <Button
+      type="dashed"
+      onClick={() => onAddSubgroup(groupKey)}
+      style={{ marginTop: '1.5rem' }}
+    >
       {`Add New Subgroup to ${groupTitle}`}
     </Button>
   );

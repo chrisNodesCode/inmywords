@@ -15,10 +15,10 @@ describe('NotebookTree custom cards', () => {
       { title: 'Group 2', key: 'g2', children: [{ title: 'Sub 2', key: 's2' }] },
     ];
     render(<NotebookTree treeData={treeData} manageMode />);
-    expect(screen.getByText('Sub 1')).toBeInTheDocument();
-    expect(screen.getByText('Sub 2')).toBeInTheDocument();
+    expect(screen.getByText('Sub 1 (0)')).toBeInTheDocument();
+    expect(screen.getByText('Sub 2 (0)')).toBeInTheDocument();
     await user.click(screen.getByText('Group 1'));
-    expect(screen.getByText('Sub 1')).toBeInTheDocument();
+    expect(screen.getByText('Sub 1 (0)')).toBeInTheDocument();
   });
 
   it('does not render add buttons in manage mode', () => {
@@ -52,7 +52,7 @@ describe('NotebookTree custom cards', () => {
     rerender(<NotebookTree treeData={treeData} reorderMode />);
     expect(screen.getAllByRole('img', { name: 'holder' }).length).toBe(2);
     await user.click(screen.getByText('Group 1'));
-    await screen.findByText('Sub 1');
+    await screen.findByText('Sub 1 (0)');
     expect(screen.getAllByRole('img', { name: 'holder' }).length).toBe(1);
   });
 
@@ -112,8 +112,8 @@ describe('NotebookTree custom cards', () => {
     render(<Wrapper />);
 
     await user.click(screen.getByText('Group 1'));
-    await screen.findByText('Sub 1');
-    await user.click(screen.getByText('Sub 1'));
+    await screen.findByText('Sub 1 (1)');
+    await user.click(screen.getByText('Sub 1 (1)'));
     await screen.findByText('Entry 1');
     await user.click(screen.getByText('Entry 1'));
     await screen.findByRole('button', { name: /delete/i });

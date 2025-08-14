@@ -3,7 +3,7 @@ import { Button } from 'antd';
 
 export default function AddGroupButton({ onAddGroup }) {
   return (
-    <Button type="dashed" onClick={onAddGroup} style={{ marginTop: '1rem' }}>
+    <Button type="dashed" onClick={onAddGroup} style={{ marginTop: '1.5rem' }}>
       Add New Group
     </Button>
   );
