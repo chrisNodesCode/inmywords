@@ -11,7 +11,6 @@
   border: 0;
   border-radius: 1rem;
   user-select: none;
-  box-shadow: 0 2px 4px #000000;
   transition:
     transform var(--ant-motion-duration-mid) ease,
     background-color var(--ant-motion-duration-mid) ease;
@@ -23,7 +22,6 @@ body[data-theme="dark"] .card {
   /* Fallbacks for when Ant Design CSS vars exist */
   background-color: var(--ant-colorBgContainer, #1f1f1f);
   background-color: color-mix(in srgb, var(--ant-colorBgContainer, #1f1f1f) 88%, var(--ant-colorText, #ffffff) 12%);
-  box-shadow: 0 2px 4px #000000;
 }
 
 .interactive {}
