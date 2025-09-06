@@ -491,7 +491,11 @@ export default function DeskSurface({
     } else {
       closeControllerDrawer();
     }
-  }, [showEdits, openControllerDrawer, closeControllerDrawer]);
+    // openControllerDrawer/closeControllerDrawer change identity when the drawer state
+    // updates, so we intentionally omit them from the dependency array to avoid
+    // immediately closing the controller after opening it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showEdits]);
 
   const handleChangeSubgroup = (subgroupId) => {
     setEditorState((prev) => ({
