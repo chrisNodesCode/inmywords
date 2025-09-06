@@ -80,6 +80,7 @@ export default function DeskSurface({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerPinned, setDrawerPinned] = useState(false);
   const drawerCloseTimeoutRef = useRef(null);
+  const drawerPinnedRef = useRef(drawerPinned);
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
   const [previewEntry, setPreviewEntry] = useState(null);
   const [addDrawer, setAddDrawer] = useState({
@@ -101,6 +102,10 @@ export default function DeskSurface({
   } = useDrawer('controller');
 
   const [fullFocus, setFullFocus] = useState(false);
+
+  useEffect(() => {
+    drawerPinnedRef.current = drawerPinned;
+  }, [drawerPinned]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -416,6 +421,10 @@ export default function DeskSurface({
 
 
   const handleHamburgerClick = () => {
+    if (drawerCloseTimeoutRef.current) {
+      clearTimeout(drawerCloseTimeoutRef.current);
+      drawerCloseTimeoutRef.current = null;
+    }
     setDrawerPinned((prev) => {
       const next = !prev;
       setDrawerOpen(next);
@@ -443,7 +452,7 @@ export default function DeskSurface({
       drawerCloseTimeoutRef.current = null;
     }
     drawerCloseTimeoutRef.current = setTimeout(() => {
-      if (!drawerPinned) {
+      if (!drawerPinnedRef.current) {
         setDrawerOpen(false);
         clearActiveDrawer();
       }
