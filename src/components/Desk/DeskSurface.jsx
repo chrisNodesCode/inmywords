@@ -92,15 +92,13 @@ export default function DeskSurface({
   const [notebookAddOpen, setNotebookAddOpen] = useState(false);
   const [manageHoverDisabled, setManageHoverDisabled] = useState(false);
   const manageHoverTimeoutRef = useRef(null);
-  const { activeId, openDrawer: setActiveDrawer, closeDrawer: clearActiveDrawer } =
+  const { openDrawer: setActiveDrawer, closeDrawer: clearActiveDrawer } =
     useContext(DrawerContext);
   const {
     open: controllerOpen,
     openDrawer: openControllerDrawer,
     closeDrawer: closeControllerDrawer,
   } = useDrawer('controller');
-  const [controllerPinned, setControllerPinned] = useState(false);
-  const controllerCloseTimeoutRef = useRef(null);
 
   const [fullFocus, setFullFocus] = useState(false);
 
@@ -276,7 +274,6 @@ export default function DeskSurface({
     setIsEditingTitle(true);
     setTitleInput('');
     setLastSaved(null);
-    setControllerPinned(false);
     closeControllerDrawer();
     setDrawerOpen(true);
     setActiveDrawer('editor');
@@ -481,55 +478,20 @@ export default function DeskSurface({
 
   const handleControllerHamburgerClick = () => {
     if (showEdits) return;
-    setControllerPinned((prev) => {
-      const next = !prev;
-      if (next) {
-        openControllerDrawer();
-      } else {
-        closeControllerDrawer();
-      }
-      return next;
-    });
-  };
-
-  const handleControllerMouseEnter = () => {
-    if (activeId !== null) return;
-    if (controllerCloseTimeoutRef.current) {
-      clearTimeout(controllerCloseTimeoutRef.current);
+    if (controllerOpen) {
+      closeControllerDrawer();
+    } else {
+      openControllerDrawer();
     }
-    openControllerDrawer();
-  };
-
-  const handleControllerMouseLeave = () => {
-    if (activeId !== null) return;
-    if (controllerCloseTimeoutRef.current) {
-      clearTimeout(controllerCloseTimeoutRef.current);
-    }
-    controllerCloseTimeoutRef.current = setTimeout(() => {
-      if (!controllerPinned && !showEdits) {
-        closeControllerDrawer();
-      }
-    }, 2000);
   };
 
   useEffect(() => {
     if (showEdits) {
       openControllerDrawer();
-      setControllerPinned(true);
     } else {
-      setControllerPinned(false);
       closeControllerDrawer();
     }
   }, [showEdits, openControllerDrawer, closeControllerDrawer]);
-
-  useEffect(
-    () => () => {
-      if (controllerCloseTimeoutRef.current) {
-        clearTimeout(controllerCloseTimeoutRef.current);
-      }
-    },
-    []
-  );
 
   const handleChangeSubgroup = (subgroupId) => {
     setEditorState((prev) => ({
@@ -603,7 +565,6 @@ export default function DeskSurface({
     setIsEditingTitle(false);
     setTitleInput('');
     setLastSaved(item?.updatedAt ? new Date(item.updatedAt) : null);
-    setControllerPinned(false);
     closeControllerDrawer();
     setDrawerOpen(true);
     setActiveDrawer('editor');
@@ -717,8 +678,6 @@ export default function DeskSurface({
   const controllerDrawerProps = {
     open: controllerOpen,
     onHamburgerClick: handleControllerHamburgerClick,
-    onMouseEnter: handleControllerMouseEnter,
-    onMouseLeave: handleControllerMouseLeave,
     onSelect: setNotebookId,
     showEdits,
     onToggleEdits: () => setShowEdits((prev) => !prev),
