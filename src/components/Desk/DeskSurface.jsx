@@ -1,6 +1,6 @@
 
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useContext } from 'react';
 import classNames from 'classnames';
 import styles from './Desk.module.css';
 
@@ -9,6 +9,7 @@ import NotebookTree from '@/components/Tree/NotebookTree';
 import NotebookEditor from '@/components/Editor/NotebookEditor';
 import FullScreenCanvas from '@/components/Editor/FullScreenCanvas';
 import Drawer from '@/components/Drawer/Drawer';
+import { useDrawer, DrawerContext } from '@/components/Drawer/DrawerManager';
 import { Drawer as AntDrawer, Input, Button } from 'antd';
 import PomodoroWidget from '@/components/PomodoroWidget';
 
@@ -91,7 +92,13 @@ export default function DeskSurface({
   const [notebookAddOpen, setNotebookAddOpen] = useState(false);
   const [manageHoverDisabled, setManageHoverDisabled] = useState(false);
   const manageHoverTimeoutRef = useRef(null);
-  const [controllerOpen, setControllerOpen] = useState(false);
+  const { activeId, openDrawer: setActiveDrawer, closeDrawer: clearActiveDrawer } =
+    useContext(DrawerContext);
+  const {
+    open: controllerOpen,
+    openDrawer: openControllerDrawer,
+    closeDrawer: closeControllerDrawer,
+  } = useDrawer('controller');
   const [controllerPinned, setControllerPinned] = useState(false);
   const controllerCloseTimeoutRef = useRef(null);
 
@@ -255,10 +262,12 @@ export default function DeskSurface({
   const handleAddGroup = () => {
     if (!notebookId) return;
     setAddDrawer({ open: true, type: 'group', parentId: notebookId, name: '', description: '' });
+    setActiveDrawer('add');
   };
 
   const handleAddSubgroup = (groupId) => {
     setAddDrawer({ open: true, type: 'subgroup', parentId: groupId, name: '', description: '' });
+    setActiveDrawer('add');
   };
 
   const handleAddEntry = (groupId, subgroupId) => {
@@ -268,8 +277,9 @@ export default function DeskSurface({
     setTitleInput('');
     setLastSaved(null);
     setControllerPinned(false);
-    setControllerOpen(false);
+    closeControllerDrawer();
     setDrawerOpen(true);
+    setActiveDrawer('editor');
     setEditorState({
       isOpen: true,
       type: 'entry',
@@ -281,6 +291,7 @@ export default function DeskSurface({
 
   const handleAddDrawerClose = () => {
     setAddDrawer({ open: false, type: null, parentId: null, name: '', description: '' });
+    clearActiveDrawer();
     throttleManageHover();
   };
 
@@ -359,7 +370,8 @@ export default function DeskSurface({
     setEditorState({ isOpen: false, type: null, parent: null, item: null, mode: 'create' });
     setDrawerPinned(false);
     setDrawerOpen(false);
-    setControllerOpen(false);
+    clearActiveDrawer();
+    closeControllerDrawer();
     setIsEditingTitle(false);
     setTitle('');
     setTitleInput('');
@@ -410,6 +422,11 @@ export default function DeskSurface({
     setDrawerPinned((prev) => {
       const next = !prev;
       setDrawerOpen(next);
+      if (next) {
+        setActiveDrawer('editor');
+      } else {
+        clearActiveDrawer();
+      }
       return next;
     });
   };
@@ -420,6 +437,7 @@ export default function DeskSurface({
       drawerCloseTimeoutRef.current = null;
     }
     setDrawerOpen(true);
+    setActiveDrawer('editor');
   };
 
   const handleDrawerMouseLeave = () => {
@@ -430,6 +448,7 @@ export default function DeskSurface({
     drawerCloseTimeoutRef.current = setTimeout(() => {
       if (!drawerPinned) {
         setDrawerOpen(false);
+        clearActiveDrawer();
       }
     }, 2000);
   };
@@ -464,38 +483,44 @@ export default function DeskSurface({
     if (showEdits) return;
     setControllerPinned((prev) => {
       const next = !prev;
-      setControllerOpen(next);
+      if (next) {
+        openControllerDrawer();
+      } else {
+        closeControllerDrawer();
+      }
       return next;
     });
   };
 
   const handleControllerMouseEnter = () => {
+    if (activeId !== null) return;
     if (controllerCloseTimeoutRef.current) {
       clearTimeout(controllerCloseTimeoutRef.current);
     }
-    setControllerOpen(true);
+    openControllerDrawer();
   };
 
   const handleControllerMouseLeave = () => {
+    if (activeId !== null) return;
     if (controllerCloseTimeoutRef.current) {
       clearTimeout(controllerCloseTimeoutRef.current);
     }
     controllerCloseTimeoutRef.current = setTimeout(() => {
       if (!controllerPinned && !showEdits) {
-        setControllerOpen(false);
+        closeControllerDrawer();
       }
     }, 2000);
   };
 
   useEffect(() => {
     if (showEdits) {
-      setControllerOpen(true);
+      openControllerDrawer();
       setControllerPinned(true);
     } else {
       setControllerPinned(false);
-      setControllerOpen(false);
+      closeControllerDrawer();
     }
-  }, [showEdits]);
+  }, [showEdits, openControllerDrawer, closeControllerDrawer]);
 
   useEffect(
     () => () => {
@@ -579,8 +604,9 @@ export default function DeskSurface({
     setTitleInput('');
     setLastSaved(item?.updatedAt ? new Date(item.updatedAt) : null);
     setControllerPinned(false);
-    setControllerOpen(false);
+    closeControllerDrawer();
     setDrawerOpen(true);
+    setActiveDrawer('editor');
     setEditorState({
       isOpen: true,
       type: 'entry',
@@ -705,7 +731,12 @@ export default function DeskSurface({
     onAddNotebookDrawerChange: (open) => {
       setNotebookAddOpen(open);
       menuDrawerChange?.(open);
-      if (!open) throttleManageHover();
+      if (open) {
+        setActiveDrawer('notebookAdd');
+      } else {
+        clearActiveDrawer();
+        throttleManageHover();
+      }
     },
     ...menuRest,
   };
