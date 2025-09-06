@@ -4,6 +4,7 @@ import { ConfigProvider } from 'antd';
 import '../src/styles/main.css';
 import 'antd/dist/reset.css';
 import ThemeProvider from '../src/components/ThemeProvider';
+import DrawerManager from '../src/components/Drawer/DrawerManager';
 
 export default function App(props) {
   const { Component, pageProps } = props;
@@ -11,9 +12,12 @@ export default function App(props) {
     <SessionProvider session={pageProps.session}>
       <ConfigProvider theme={{ cssVar: true }}>
         <ThemeProvider>
-          <Component {...pageProps} />
+          <DrawerManager>
+            <Component {...pageProps} />
+          </DrawerManager>
         </ThemeProvider>
       </ConfigProvider>
     </SessionProvider>
   );
 }
+
