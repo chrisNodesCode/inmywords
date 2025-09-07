@@ -1,5 +1,5 @@
 // src/components/Editor/FullScreenCanvas.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import Drawer from '@/components/Drawer/Drawer';
 
 /**
@@ -14,38 +14,6 @@ export default function FullScreenCanvas({
   children,
   drawerProps,
 }) {
-  const [showDrawer, setShowDrawer] = useState(() => !!drawerProps);
-  const hideTimeoutRef = useRef(null);
-  const firstRunRef = useRef(true);
-  const hasDrawer = !!drawerProps;
-  const drawerOpen = drawerProps?.open;
-
-  useEffect(() => {
-    if (!hasDrawer) return;
-    hideTimeoutRef.current = setTimeout(() => {
-      setShowDrawer(false);
-    }, 2000);
-    return () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-        hideTimeoutRef.current = null;
-      }
-    };
-  }, [hasDrawer]);
-
-  useEffect(() => {
-    if (!hasDrawer) return;
-    if (firstRunRef.current) {
-      firstRunRef.current = false;
-      return;
-    }
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-      hideTimeoutRef.current = null;
-    }
-    setShowDrawer(!!drawerOpen);
-  }, [hasDrawer, drawerOpen]);
-
   if (!open) return null;
 
   const overlayClass = `editor-modal-overlay fullscreen ${className}`.trim();
@@ -59,7 +27,7 @@ export default function FullScreenCanvas({
   return (
     <div className={overlayClass} onClick={handleClick}>
       {children}
-      {drawerProps && <Drawer {...drawerProps} open={showDrawer} />}
+      {drawerProps && <Drawer {...drawerProps} />}
     </div>
   );
 }

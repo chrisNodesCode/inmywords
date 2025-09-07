@@ -78,9 +78,6 @@ export default function DeskSurface({
   // Drawer state
   const drawerWidth = drawerPropOverrides.width || 300;
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerPinned, setDrawerPinned] = useState(false);
-  const drawerCloseTimeoutRef = useRef(null);
-  const drawerPinnedRef = useRef(drawerPinned);
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
   const [previewEntry, setPreviewEntry] = useState(null);
   const [addDrawer, setAddDrawer] = useState({
@@ -102,10 +99,6 @@ export default function DeskSurface({
   } = useDrawer('controller');
 
   const [fullFocus, setFullFocus] = useState(false);
-
-  useEffect(() => {
-    drawerPinnedRef.current = drawerPinned;
-  }, [drawerPinned]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -370,7 +363,6 @@ export default function DeskSurface({
       reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
     }
     setEditorState({ isOpen: false, type: null, parent: null, item: null, mode: 'create' });
-    setDrawerPinned(false);
     setDrawerOpen(false);
     clearActiveDrawer();
     closeControllerDrawer();
@@ -421,13 +413,8 @@ export default function DeskSurface({
 
 
   const handleHamburgerClick = () => {
-    if (drawerCloseTimeoutRef.current) {
-      clearTimeout(drawerCloseTimeoutRef.current);
-      drawerCloseTimeoutRef.current = null;
-    }
-    setDrawerPinned((prev) => {
+    setDrawerOpen((prev) => {
       const next = !prev;
-      setDrawerOpen(next);
       if (next) {
         setActiveDrawer('editor');
       } else {
@@ -435,28 +422,6 @@ export default function DeskSurface({
       }
       return next;
     });
-  };
-
-  const handleDrawerMouseEnter = () => {
-    if (drawerCloseTimeoutRef.current) {
-      clearTimeout(drawerCloseTimeoutRef.current);
-      drawerCloseTimeoutRef.current = null;
-    }
-    setDrawerOpen(true);
-    setActiveDrawer('editor');
-  };
-
-  const handleDrawerMouseLeave = () => {
-    if (drawerCloseTimeoutRef.current) {
-      clearTimeout(drawerCloseTimeoutRef.current);
-      drawerCloseTimeoutRef.current = null;
-    }
-    drawerCloseTimeoutRef.current = setTimeout(() => {
-      if (!drawerPinnedRef.current) {
-        setDrawerOpen(false);
-        clearActiveDrawer();
-      }
-    }, 2000);
   };
 
   const handleMaxWidthChange = (value) => {
@@ -665,8 +630,6 @@ export default function DeskSurface({
     open: drawerOpen,
     width: drawerWidth,
     onHamburgerClick: handleHamburgerClick,
-    onMouseEnter: handleDrawerMouseEnter,
-    onMouseLeave: handleDrawerMouseLeave,
     pomodoroEnabled,
     onPomodoroToggle: handlePomodoroToggle,
     fullFocus,
