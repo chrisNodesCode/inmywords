@@ -33,7 +33,7 @@ export default function Drawer({
 
   return (
     <>
-      {onHamburgerClick && (
+      {onHamburgerClick && !open && (
         <Button
           type="text"
           icon={<MenuOutlined />}
@@ -45,7 +45,7 @@ export default function Drawer({
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className="drawer-wrapper"
-        style={{ width }}
+        style={{ width: open ? width : 0 }}
       >
         <AntDrawer
           placement="right"
@@ -55,9 +55,17 @@ export default function Drawer({
           width={width}
           getContainer={false}
           rootStyle={{ position: 'absolute' }}
-          bodyStyle={{ padding: '1rem' }}
+          bodyStyle={{ padding: '1rem', position: 'relative' }}
           {...rest}
         >
+          {onHamburgerClick && open && (
+            <Button
+              type="text"
+              icon={<MenuOutlined />}
+              onClick={onHamburgerClick}
+              style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 1 }}
+            />
+          )}
           {sections.header}
           {sections.body}
           {sections.footer}
