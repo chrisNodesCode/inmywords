@@ -2,6 +2,9 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import NotebookTree from './NotebookTree';
+import DrawerManager from '../Drawer/DrawerManager';
+
+const renderWithDrawer = (ui) => render(<DrawerManager>{ui}</DrawerManager>);
 
 describe('NotebookTree custom cards', () => {
   beforeAll(() => {
@@ -14,7 +17,7 @@ describe('NotebookTree custom cards', () => {
       { title: 'Group 1', key: 'g1', children: [{ title: 'Sub 1', key: 's1' }] },
       { title: 'Group 2', key: 'g2', children: [{ title: 'Sub 2', key: 's2' }] },
     ];
-    render(<NotebookTree treeData={treeData} manageMode />);
+    renderWithDrawer(<NotebookTree treeData={treeData} manageMode />);
     expect(screen.getByText('Sub 1 (0)')).toBeInTheDocument();
     expect(screen.getByText('Sub 2 (0)')).toBeInTheDocument();
     await user.click(screen.getByText('Group 1'));
@@ -25,7 +28,7 @@ describe('NotebookTree custom cards', () => {
     const treeData = [
       { title: 'Group 1', key: 'g1', children: [{ title: 'Sub 1', key: 's1' }] },
     ];
-    render(
+    renderWithDrawer(
       <NotebookTree
         treeData={treeData}
         onAddGroup={() => {}}
@@ -47,9 +50,13 @@ describe('NotebookTree custom cards', () => {
       { title: 'Group 1', key: 'g1', children: [{ title: 'Sub 1', key: 's1' }] },
       { title: 'Group 2', key: 'g2', children: [] },
     ];
-    const { rerender } = render(<NotebookTree treeData={treeData} />);
+    const { rerender } = renderWithDrawer(<NotebookTree treeData={treeData} />);
     expect(screen.queryAllByRole('img', { name: 'holder' }).length).toBe(0);
-    rerender(<NotebookTree treeData={treeData} reorderMode />);
+    rerender(
+      <DrawerManager>
+        <NotebookTree treeData={treeData} reorderMode />
+      </DrawerManager>
+    );
     expect(screen.getAllByRole('img', { name: 'holder' }).length).toBe(2);
     await user.click(screen.getByText('Group 1'));
     await screen.findByText('Sub 1 (0)');
@@ -65,7 +72,7 @@ describe('NotebookTree custom cards', () => {
       json: async () => ({ name: 'Group 1', description: 'desc' }),
     });
 
-    render(<NotebookTree treeData={treeData} manageMode />);
+    renderWithDrawer(<NotebookTree treeData={treeData} manageMode />);
     await user.click(screen.getByText('Group 1'));
 
     const input = await screen.findByPlaceholderText('Title');
@@ -109,7 +116,7 @@ describe('NotebookTree custom cards', () => {
       const [data, setData] = React.useState(initialData);
       return <NotebookTree treeData={data} setTreeData={setData} />;
     };
-    render(<Wrapper />);
+    renderWithDrawer(<Wrapper />);
 
     await user.click(screen.getByText('Group 1'));
     await screen.findByText('Sub 1 (1)');

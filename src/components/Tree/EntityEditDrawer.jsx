@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Drawer, Input, Button, Select, Tag } from 'antd';
+import Drawer from '@/components/Drawer/Drawer';
+import { useDrawer } from '@/components/Drawer/DrawerManager';
+import { Input, Button, Select, Tag } from 'antd';
 
 /**
  * Drawer for editing a notebook tree entity.
@@ -9,12 +11,15 @@ import { Drawer, Input, Button, Select, Tag } from 'antd';
 export default function EntityEditDrawer({
   type,
   id,
-  open,
   initialData,
   onClose,
   onSave,
   subgroupOptions = [],
 }) {
+  const {
+    open,
+    closeDrawer,
+  } = useDrawer('entity-edit');
   const [title, setTitle] = useState(
     initialData?.title ?? initialData?.name ?? ''
   );
@@ -122,9 +127,10 @@ export default function EntityEditDrawer({
 
   const handleSave = async () => {
     let payload = {};
-    let endpoint = type === 'notebook'
-      ? `/api/notebooks/${id}`
-      : `/api/${type}s/${id}`;
+    let endpoint =
+      type === 'notebook'
+        ? `/api/notebooks/${id}`
+        : `/api/${type}s/${id}`;
 
     if (type === 'entry') {
       payload = {
@@ -153,12 +159,18 @@ export default function EntityEditDrawer({
       const data = await res.json();
       onSave?.(data);
     }
+    handleClose();
+  };
+
+  const handleClose = () => {
+    closeDrawer();
     onClose?.();
   };
 
-  return (
-    <Drawer open={open} onClose={onClose} title={`Edit ${type}`} zIndex={1002}>
-      {/* title field */}
+  const header = <h2 style={{ marginTop: 0 }}>{`Edit ${type}`}</h2>;
+
+  const body = (
+    <>
       <Input
         placeholder="Title"
         value={title}
@@ -245,14 +257,18 @@ export default function EntityEditDrawer({
           </Select>
         </>
       )}
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button type="primary" onClick={handleSave}>
-          Save
-        </Button>
-      </div>
-    </Drawer>
+    </>
   );
+
+  const footer = (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+      <Button onClick={handleClose}>Cancel</Button>
+      <Button type="primary" onClick={handleSave}>
+        Save
+      </Button>
+    </div>
+  );
+
+  return <Drawer open={open} header={header} body={body} footer={footer} zIndex={1002} />;
 }
 

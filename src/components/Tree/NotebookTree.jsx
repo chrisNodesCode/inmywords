@@ -13,6 +13,7 @@ import AddSubgroupButton from './AddSubgroupButton';
 import AddEntryButton from './AddEntryButton';
 import EntityEditDrawer from './EntityEditDrawer';
 import styles from './Tree.module.css';
+import { useDrawer } from '@/components/Drawer/DrawerManager';
 
 const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : '');
 
@@ -59,6 +60,10 @@ export default function NotebookTree({
   const [openEntryId, setOpenEntryId] = useState(null);
 
   const [editEntity, setEditEntity] = useState(null);
+  const {
+    openDrawer: openEditDrawer,
+    closeDrawer: closeEditDrawer,
+  } = useDrawer('entity-edit');
 
   // refs for scrolling
   const groupRefs = useRef({});
@@ -81,6 +86,7 @@ export default function NotebookTree({
     clearEditDrawerHide();
     editDrawerHideRef.current = setTimeout(() => {
       setEditEntity(null);
+      closeEditDrawer();
     }, 2000);
   };
 
@@ -101,6 +107,7 @@ export default function NotebookTree({
   const handleGroupToggle = async (group) => {
     if (manageMode) {
       setEditEntity({ type: 'group', id: group.key, data: group });
+      openEditDrawer();
       return;
     }
     const isCurrentlyOpen = openGroupId === group.key;
@@ -123,6 +130,7 @@ export default function NotebookTree({
   const handleSubgroupToggle = async (sub) => {
     if (manageMode) {
       setEditEntity({ type: 'subgroup', id: sub.key, data: sub });
+      openEditDrawer();
       return;
     }
     const isCurrentlyOpen = openSubgroupId === sub.key;
@@ -156,6 +164,7 @@ export default function NotebookTree({
         data: entry,
         subgroups: subs,
       });
+      openEditDrawer();
       return;
     }
     setOpenEntryId((prev) => (prev === entryId ? null : entryId));
@@ -495,11 +504,13 @@ export default function NotebookTree({
           <EntityEditDrawer
             type={editEntity.type}
             id={editEntity.id}
-            open={!!editEntity}
             initialData={editEntity.data}
             subgroupOptions={editEntity.subgroups}
             onSave={handleEntitySave}
-            onClose={() => setEditEntity(null)}
+            onClose={() => {
+              setEditEntity(null);
+              closeEditDrawer();
+            }}
           />
         </div>
       )}
