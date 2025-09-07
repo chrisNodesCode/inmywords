@@ -10,7 +10,7 @@ import NotebookEditor from '@/components/Editor/NotebookEditor';
 import FullScreenCanvas from '@/components/Editor/FullScreenCanvas';
 import Drawer from '@/components/Drawer/Drawer';
 import { useDrawer, DrawerContext } from '@/components/Drawer/DrawerManager';
-import { Drawer as AntDrawer, Input, Button } from 'antd';
+import { Input, Button } from 'antd';
 import PomodoroWidget from '@/components/PomodoroWidget';
 
 function updateTreeData(list, key, children) {
@@ -81,12 +81,16 @@ export default function DeskSurface({
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
   const [previewEntry, setPreviewEntry] = useState(null);
   const [addDrawer, setAddDrawer] = useState({
-    open: false,
     type: null,
     parentId: null,
     name: '',
     description: '',
   });
+  const {
+    open: addDrawerOpen,
+    openDrawer: openAddDrawer,
+    closeDrawer: closeAddDrawer,
+  } = useDrawer('add-group');
   const [notebookAddOpen, setNotebookAddOpen] = useState(false);
   const [manageHoverDisabled, setManageHoverDisabled] = useState(false);
   const manageHoverTimeoutRef = useRef(null);
@@ -257,13 +261,13 @@ export default function DeskSurface({
 
   const handleAddGroup = () => {
     if (!notebookId) return;
-    setAddDrawer({ open: true, type: 'group', parentId: notebookId, name: '', description: '' });
-    setActiveDrawer('add');
+    setAddDrawer({ type: 'group', parentId: notebookId, name: '', description: '' });
+    openAddDrawer();
   };
 
   const handleAddSubgroup = (groupId) => {
-    setAddDrawer({ open: true, type: 'subgroup', parentId: groupId, name: '', description: '' });
-    setActiveDrawer('add');
+    setAddDrawer({ type: 'subgroup', parentId: groupId, name: '', description: '' });
+    openAddDrawer();
   };
 
   const handleAddEntry = (groupId, subgroupId) => {
@@ -285,8 +289,8 @@ export default function DeskSurface({
   };
 
   const handleAddDrawerClose = () => {
-    setAddDrawer({ open: false, type: null, parentId: null, name: '', description: '' });
-    clearActiveDrawer();
+    setAddDrawer({ type: null, parentId: null, name: '', description: '' });
+    closeAddDrawer();
     throttleManageHover();
   };
 
@@ -597,7 +601,7 @@ export default function DeskSurface({
     showDrawer:
       !manageHoverDisabled &&
       !(editorState.isOpen && editorState.type === 'entry') &&
-      !addDrawer.open &&
+      !addDrawerOpen &&
       !notebookAddOpen,
   };
 
@@ -666,10 +670,7 @@ export default function DeskSurface({
     onAddNotebookDrawerChange: (open) => {
       setNotebookAddOpen(open);
       menuDrawerChange?.(open);
-      if (open) {
-        setActiveDrawer('notebookAdd');
-      } else {
-        clearActiveDrawer();
+      if (!open) {
         throttleManageHover();
       }
     },
@@ -695,34 +696,38 @@ export default function DeskSurface({
         <NotebookEditor {...editorProps} />
       </FullScreenCanvas>
 
-      <AntDrawer
-        title={`New ${addDrawer.type === 'group' ? 'Group' : 'Subgroup'}`}
-        open={addDrawer.open}
-        onClose={handleAddDrawerClose}
-      >
-        <Input
-          placeholder="Name"
-          value={addDrawer.name}
-          onChange={(e) =>
-            setAddDrawer((prev) => ({ ...prev, name: e.target.value }))
-          }
-          style={{ marginBottom: '0.5rem' }}
-        />
-        <Input.TextArea
-          placeholder="Description (optional)"
-          value={addDrawer.description}
-          onChange={(e) =>
-            setAddDrawer((prev) => ({ ...prev, description: e.target.value }))
-          }
-          style={{ marginBottom: '0.5rem' }}
-        />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-          <Button onClick={handleAddDrawerClose}>Cancel</Button>
-          <Button type="primary" onClick={handleAddDrawerCreate}>
-            Create
-          </Button>
-        </div>
-      </AntDrawer>
+      <Drawer
+        open={addDrawerOpen}
+        header={<h2 style={{ marginTop: 0 }}>{`New ${addDrawer.type === 'group' ? 'Group' : 'Subgroup'}`}</h2>}
+        body={
+          <>
+            <Input
+              placeholder="Name"
+              value={addDrawer.name}
+              onChange={(e) =>
+                setAddDrawer((prev) => ({ ...prev, name: e.target.value }))
+              }
+              style={{ marginBottom: '0.5rem' }}
+            />
+            <Input.TextArea
+              placeholder="Description (optional)"
+              value={addDrawer.description}
+              onChange={(e) =>
+                setAddDrawer((prev) => ({ ...prev, description: e.target.value }))
+              }
+              style={{ marginBottom: '0.5rem' }}
+            />
+          </>
+        }
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <Button onClick={handleAddDrawerClose}>Cancel</Button>
+            <Button type="primary" onClick={handleAddDrawerCreate}>
+              Create
+            </Button>
+          </div>
+        }
+      />
 
       {!(editorState.isOpen && editorState.type === 'entry') && (
         <Drawer template="controller" {...controllerDrawerProps} />
