@@ -12,6 +12,7 @@ import Drawer from '@/components/Drawer/Drawer';
 import { useDrawer, DrawerContext } from '@/components/Drawer/DrawerManager';
 import { Input, Button } from 'antd';
 import PomodoroWidget from '@/components/PomodoroWidget';
+import useHoverDrawer from '@/hooks/useHoverDrawer';
 
 function updateTreeData(list, key, children) {
   return list.map((node) => {
@@ -78,6 +79,7 @@ export default function DeskSurface({
   // Drawer state
   const drawerWidth = drawerPropOverrides.width || 300;
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editorPinned, setEditorPinned] = useState(false);
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
   const [previewEntry, setPreviewEntry] = useState(null);
   const [addDrawer, setAddDrawer] = useState({
@@ -101,6 +103,41 @@ export default function DeskSurface({
     openDrawer: openControllerDrawer,
     closeDrawer: closeControllerDrawer,
   } = useDrawer('controller');
+  const [controllerPinned, setControllerPinned] = useState(false);
+
+  const openEditorDrawer = () => {
+    setDrawerOpen(true);
+    setActiveDrawer('editor');
+  };
+
+  const closeEditorDrawer = () => {
+    setDrawerOpen(false);
+    clearActiveDrawer();
+  };
+
+  const { onMouseEnter: handleEditorMouseEnter, onMouseLeave: handleEditorMouseLeave } =
+    useHoverDrawer({
+      id: 'editor',
+      open: drawerOpen,
+      openDrawer: openEditorDrawer,
+      closeDrawer: closeEditorDrawer,
+      openOnHover: true,
+      pin: editorPinned,
+      autoCloseDelay: 2000,
+    });
+
+  const {
+    onMouseEnter: handleControllerMouseEnter,
+    onMouseLeave: handleControllerMouseLeave,
+  } = useHoverDrawer({
+    id: 'controller',
+    open: controllerOpen,
+    openDrawer: openControllerDrawer,
+    closeDrawer: closeControllerDrawer,
+    openOnHover: true,
+    pin: controllerPinned,
+    autoCloseDelay: 2000,
+  });
 
   const [fullFocus, setFullFocus] = useState(false);
 
@@ -277,8 +314,9 @@ export default function DeskSurface({
     setTitleInput('');
     setLastSaved(null);
     closeControllerDrawer();
-    setDrawerOpen(true);
-    setActiveDrawer('editor');
+    setControllerPinned(false);
+    openEditorDrawer();
+    setEditorPinned(true);
     setEditorState({
       isOpen: true,
       type: 'entry',
@@ -367,9 +405,10 @@ export default function DeskSurface({
       reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
     }
     setEditorState({ isOpen: false, type: null, parent: null, item: null, mode: 'create' });
-    setDrawerOpen(false);
-    clearActiveDrawer();
+    closeEditorDrawer();
+    setEditorPinned(false);
     closeControllerDrawer();
+    setControllerPinned(false);
     setIsEditingTitle(false);
     setTitle('');
     setTitleInput('');
@@ -417,12 +456,12 @@ export default function DeskSurface({
 
 
   const handleHamburgerClick = () => {
-    setDrawerOpen((prev) => {
+    setEditorPinned((prev) => {
       const next = !prev;
       if (next) {
-        setActiveDrawer('editor');
+        openEditorDrawer();
       } else {
-        clearActiveDrawer();
+        closeEditorDrawer();
       }
       return next;
     });
@@ -456,17 +495,23 @@ export default function DeskSurface({
 
   const handleControllerHamburgerClick = () => {
     if (showEdits) return;
-    if (controllerOpen) {
-      closeControllerDrawer();
-    } else {
-      openControllerDrawer();
-    }
+    setControllerPinned((prev) => {
+      const next = !prev;
+      if (next) {
+        openControllerDrawer();
+      } else {
+        closeControllerDrawer();
+      }
+      return next;
+    });
   };
 
   useEffect(() => {
     if (showEdits) {
+      setControllerPinned(true);
       openControllerDrawer();
     } else {
+      setControllerPinned(false);
       closeControllerDrawer();
     }
     // openControllerDrawer/closeControllerDrawer change identity when the drawer state
@@ -548,8 +593,9 @@ export default function DeskSurface({
     setTitleInput('');
     setLastSaved(item?.updatedAt ? new Date(item.updatedAt) : null);
     closeControllerDrawer();
-    setDrawerOpen(true);
-    setActiveDrawer('editor');
+    setControllerPinned(false);
+    openEditorDrawer();
+    setEditorPinned(true);
     setEditorState({
       isOpen: true,
       type: 'entry',
@@ -634,6 +680,8 @@ export default function DeskSurface({
     open: drawerOpen,
     width: drawerWidth,
     onHamburgerClick: handleHamburgerClick,
+    onMouseEnter: handleEditorMouseEnter,
+    onMouseLeave: handleEditorMouseLeave,
     pomodoroEnabled,
     onPomodoroToggle: handlePomodoroToggle,
     fullFocus,
@@ -658,6 +706,8 @@ export default function DeskSurface({
   const controllerDrawerProps = {
     open: controllerOpen,
     onHamburgerClick: handleControllerHamburgerClick,
+    onMouseEnter: handleControllerMouseEnter,
+    onMouseLeave: handleControllerMouseLeave,
     onSelect: setNotebookId,
     showEdits,
     onToggleEdits: () => setShowEdits((prev) => !prev),
