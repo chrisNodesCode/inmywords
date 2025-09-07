@@ -34,9 +34,10 @@ export default function useHoverDrawer({
   };
 
   const handleMouseEnter = () => {
-    if (!openOnHover || pin) return;
-    if (activeId && activeId !== id) return;
+    if (pin) return;
     clear();
+    if (!openOnHover) return;
+    if (activeId && activeId !== id) return;
     openDrawer();
   };
 

@@ -121,7 +121,7 @@ export default function DeskSurface({
       open: drawerOpen,
       openDrawer: openEditorDrawer,
       closeDrawer: closeEditorDrawer,
-      openOnHover: true,
+      openOnHover: false,
       pin: editorPinned,
       autoCloseDelay: 2000,
     });
@@ -134,7 +134,7 @@ export default function DeskSurface({
     open: controllerOpen,
     openDrawer: openControllerDrawer,
     closeDrawer: closeControllerDrawer,
-    openOnHover: true,
+    openOnHover: false,
     pin: controllerPinned,
     autoCloseDelay: 2000,
   });
