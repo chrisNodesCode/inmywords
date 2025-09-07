@@ -9,7 +9,11 @@ import NotebookTree from '@/components/Tree/NotebookTree';
 import NotebookEditor from '@/components/Editor/NotebookEditor';
 import FullScreenCanvas from '@/components/Editor/FullScreenCanvas';
 import Drawer from '@/components/Drawer/Drawer';
-import { useDrawer, DrawerContext } from '@/components/Drawer/DrawerManager';
+import {
+  useDrawer,
+  useDrawerByType,
+  DrawerContext,
+} from '@/components/Drawer/DrawerManager';
 import { Input, Button } from 'antd';
 import PomodoroWidget from '@/components/PomodoroWidget';
 import useHoverDrawer from '@/hooks/useHoverDrawer';
@@ -82,32 +86,28 @@ export default function DeskSurface({
   const [editorPinned, setEditorPinned] = useState(false);
   const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
   const [previewEntry, setPreviewEntry] = useState(null);
-  const [addDrawer, setAddDrawer] = useState({
-    type: null,
-    parentId: null,
+  const [addDrawerFields, setAddDrawerFields] = useState({
     name: '',
     description: '',
   });
   const {
     open: addDrawerOpen,
-    openDrawer: openAddDrawer,
+    props: addDrawerProps,
     closeDrawer: closeAddDrawer,
   } = useDrawer('add-group');
   const [notebookAddOpen, setNotebookAddOpen] = useState(false);
   const [manageHoverDisabled, setManageHoverDisabled] = useState(false);
   const manageHoverTimeoutRef = useRef(null);
-  const { openDrawer: setActiveDrawer, closeDrawer: clearActiveDrawer } =
-    useContext(DrawerContext);
-  const {
-    open: controllerOpen,
-    openDrawer: openControllerDrawer,
-    closeDrawer: closeControllerDrawer,
-  } = useDrawer('controller');
+  const { closeDrawer: clearActiveDrawer } = useContext(DrawerContext);
+  const openDrawerByType = useDrawerByType();
+  const { open: controllerOpen, closeDrawer: closeControllerDrawer } =
+    useDrawer('controller');
+  const openControllerDrawer = () => openDrawerByType('controller');
   const [controllerPinned, setControllerPinned] = useState(false);
 
   const openEditorDrawer = () => {
     setDrawerOpen(true);
-    setActiveDrawer('editor');
+    openDrawerByType('editor');
   };
 
   const closeEditorDrawer = () => {
@@ -298,13 +298,13 @@ export default function DeskSurface({
 
   const handleAddGroup = () => {
     if (!notebookId) return;
-    setAddDrawer({ type: 'group', parentId: notebookId, name: '', description: '' });
-    openAddDrawer();
+    setAddDrawerFields({ name: '', description: '' });
+    openDrawerByType('addGroup', { parentId: notebookId });
   };
 
   const handleAddSubgroup = (groupId) => {
-    setAddDrawer({ type: 'subgroup', parentId: groupId, name: '', description: '' });
-    openAddDrawer();
+    setAddDrawerFields({ name: '', description: '' });
+    openDrawerByType('addSubgroup', { parentId: groupId });
   };
 
   const handleAddEntry = (groupId, subgroupId) => {
@@ -327,14 +327,15 @@ export default function DeskSurface({
   };
 
   const handleAddDrawerClose = () => {
-    setAddDrawer({ type: null, parentId: null, name: '', description: '' });
+    setAddDrawerFields({ name: '', description: '' });
     closeAddDrawer();
     throttleManageHover();
   };
 
   const handleAddDrawerCreate = async () => {
     try {
-      const { type, parentId, name, description } = addDrawer;
+      const { type, parentId } = addDrawerProps || {};
+      const { name, description } = addDrawerFields;
       let url = '';
       const body = { name, description };
       if (type === 'group') {
@@ -748,22 +749,26 @@ export default function DeskSurface({
 
       <Drawer
         open={addDrawerOpen}
-        header={<h2 style={{ marginTop: 0 }}>{`New ${addDrawer.type === 'group' ? 'Group' : 'Subgroup'}`}</h2>}
+        header={
+          <h2 style={{ marginTop: 0 }}>
+            {`New ${addDrawerProps?.type === 'group' ? 'Group' : 'Subgroup'}`}
+          </h2>
+        }
         body={
           <>
             <Input
               placeholder="Name"
-              value={addDrawer.name}
+              value={addDrawerFields.name}
               onChange={(e) =>
-                setAddDrawer((prev) => ({ ...prev, name: e.target.value }))
+                setAddDrawerFields((prev) => ({ ...prev, name: e.target.value }))
               }
               style={{ marginBottom: '0.5rem' }}
             />
             <Input.TextArea
               placeholder="Description (optional)"
-              value={addDrawer.description}
+              value={addDrawerFields.description}
               onChange={(e) =>
-                setAddDrawer((prev) => ({ ...prev, description: e.target.value }))
+                setAddDrawerFields((prev) => ({ ...prev, description: e.target.value }))
               }
               style={{ marginBottom: '0.5rem' }}
             />

@@ -8,18 +8,16 @@ import { Input, Button, Select, Tag } from 'antd';
  * Handles notebooks, groups, subgroups and entries with
  * type-specific fields.
  */
-export default function EntityEditDrawer({
-  type,
-  id,
-  initialData,
-  onClose,
-  onSave,
-  subgroupOptions = [],
-}) {
+export default function EntityEditDrawer() {
+  const { open, props = {}, closeDrawer } = useDrawer('entity-edit');
   const {
-    open,
-    closeDrawer,
-  } = useDrawer('entity-edit');
+    type,
+    id,
+    initialData,
+    onClose,
+    onSave,
+    subgroupOptions = [],
+  } = props || {};
   const [title, setTitle] = useState(
     initialData?.title ?? initialData?.name ?? ''
   );
