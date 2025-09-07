@@ -13,7 +13,7 @@ import AddSubgroupButton from './AddSubgroupButton';
 import AddEntryButton from './AddEntryButton';
 import EntityEditDrawer from './EntityEditDrawer';
 import styles from './Tree.module.css';
-import { useDrawer } from '@/components/Drawer/DrawerManager';
+import { useDrawer, useDrawerByType } from '@/components/Drawer/DrawerManager';
 
 const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : '');
 
@@ -59,11 +59,10 @@ export default function NotebookTree({
   const [openSubgroupId, setOpenSubgroupId] = useState(null);
   const [openEntryId, setOpenEntryId] = useState(null);
 
-  const [editEntity, setEditEntity] = useState(null);
-  const {
-    openDrawer: openEditDrawer,
-    closeDrawer: closeEditDrawer,
-  } = useDrawer('entity-edit');
+  const openDrawerByType = useDrawerByType();
+  const { open: editDrawerOpen, closeDrawer: closeEditDrawer } = useDrawer(
+    'entity-edit'
+  );
 
   // refs for scrolling
   const groupRefs = useRef({});
@@ -85,7 +84,6 @@ export default function NotebookTree({
   const handleEditDrawerMouseLeave = () => {
     clearEditDrawerHide();
     editDrawerHideRef.current = setTimeout(() => {
-      setEditEntity(null);
       closeEditDrawer();
     }, 2000);
   };
@@ -106,8 +104,11 @@ export default function NotebookTree({
 
   const handleGroupToggle = async (group) => {
     if (manageMode) {
-      setEditEntity({ type: 'group', id: group.key, data: group });
-      openEditDrawer();
+      openDrawerByType('editGroup', {
+        id: group.key,
+        initialData: group,
+        onSave: (updated) => handleEntitySave('group', updated),
+      });
       return;
     }
     const isCurrentlyOpen = openGroupId === group.key;
@@ -129,8 +130,11 @@ export default function NotebookTree({
 
   const handleSubgroupToggle = async (sub) => {
     if (manageMode) {
-      setEditEntity({ type: 'subgroup', id: sub.key, data: sub });
-      openEditDrawer();
+      openDrawerByType('editSubgroup', {
+        id: sub.key,
+        initialData: sub,
+        onSave: (updated) => handleEntitySave('subgroup', updated),
+      });
       return;
     }
     const isCurrentlyOpen = openSubgroupId === sub.key;
@@ -158,13 +162,12 @@ export default function NotebookTree({
           groupTitle: g.title,
         }))
       );
-      setEditEntity({
-        type: 'entry',
+      openDrawerByType('editEntry', {
         id: entryId,
-        data: entry,
-        subgroups: subs,
+        initialData: entry,
+        subgroupOptions: subs,
+        onSave: (updated) => handleEntitySave('entry', updated),
       });
-      openEditDrawer();
       return;
     }
     setOpenEntryId((prev) => (prev === entryId ? null : entryId));
@@ -260,9 +263,7 @@ export default function NotebookTree({
     });
   };
 
-  const handleEntitySave = (updated) => {
-    if (!editEntity) return;
-    const type = editEntity.type;
+  const handleEntitySave = (type, updated) => {
     if (type === 'notebook') {
       setNotebookTitle(updated.title || '');
       return;
@@ -333,7 +334,9 @@ export default function NotebookTree({
         return newGroups;
       });
 
-      setOpenGroupId(updated.subgroup?.group?.id || updated.subgroup?.groupId || null);
+      setOpenGroupId(
+        updated.subgroup?.group?.id || updated.subgroup?.groupId || null
+      );
       setOpenSubgroupId(updated.subgroupId);
       setOpenEntryId(updated.id);
     }
@@ -365,20 +368,20 @@ export default function NotebookTree({
     <div className={styles.root}>
       {notebookTitle && (
         <header className={styles.header}>
-          <h2
-            className={styles.headerTitle}
-            style={{ cursor: manageMode ? 'pointer' : 'default' }}
-            onClick={
-              manageMode
-                ? () =>
-                    setEditEntity({
-                      type: 'notebook',
-                      id: notebookId,
-                      data: { title: notebookTitle },
-                    })
-                : undefined
-            }
-          >
+            <h2
+              className={styles.headerTitle}
+              style={{ cursor: manageMode ? 'pointer' : 'default' }}
+              onClick={
+                manageMode
+                  ? () =>
+                      openDrawerByType('editNotebook', {
+                        id: notebookId,
+                        initialData: { title: notebookTitle },
+                        onSave: (updated) => handleEntitySave('notebook', updated),
+                      })
+                  : undefined
+              }
+            >
             {notebookTitle}
           </h2>
           <div className={styles.meta}>
@@ -496,22 +499,12 @@ export default function NotebookTree({
         </SortableContext>
       </DndContext>
       {!manageMode && onAddGroup && <AddGroupButton onAddGroup={onAddGroup} />}
-      {editEntity && (
+      {editDrawerOpen && (
         <div
           onMouseEnter={handleEditDrawerMouseEnter}
           onMouseLeave={handleEditDrawerMouseLeave}
         >
-          <EntityEditDrawer
-            type={editEntity.type}
-            id={editEntity.id}
-            initialData={editEntity.data}
-            subgroupOptions={editEntity.subgroups}
-            onSave={handleEntitySave}
-            onClose={() => {
-              setEditEntity(null);
-              closeEditDrawer();
-            }}
-          />
+          <EntityEditDrawer />
         </div>
       )}
     </div>

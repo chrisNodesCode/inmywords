@@ -6,6 +6,18 @@ export const DrawerContext = createContext();
 
 const initialState = { activeId: null, props: undefined };
 
+// Map logical drawer types to internal drawer ids and default props
+const typeMap = {
+  addGroup: { id: 'add-group', props: { type: 'group' } },
+  addSubgroup: { id: 'add-group', props: { type: 'subgroup' } },
+  editGroup: { id: 'entity-edit', props: { type: 'group' } },
+  editSubgroup: { id: 'entity-edit', props: { type: 'subgroup' } },
+  editEntry: { id: 'entity-edit', props: { type: 'entry' } },
+  editNotebook: { id: 'entity-edit', props: { type: 'notebook' } },
+  controller: { id: 'controller', props: { template: 'controller' } },
+  editor: { id: 'editor', props: { template: 'editor' } },
+};
+
 function reducer(state, action) {
   switch (action.type) {
     case 'OPEN':
@@ -21,10 +33,21 @@ export default function DrawerManager({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const openDrawer = (id, props) => dispatch({ type: 'OPEN', id, props });
+  const openDrawerByType = (type, extraProps = {}) => {
+    const config = typeMap[type];
+    if (!config) {
+      console.warn(`Unknown drawer type: ${type}`);
+      return;
+    }
+    const props = { ...(config.props || {}), ...extraProps };
+    openDrawer(config.id, props);
+  };
   const closeDrawer = () => dispatch({ type: 'CLOSE' });
 
   return (
-    <DrawerContext.Provider value={{ ...state, openDrawer, closeDrawer }}>
+    <DrawerContext.Provider
+      value={{ ...state, openDrawer, openDrawerByType, closeDrawer }}
+    >
       {children}
     </DrawerContext.Provider>
   );
@@ -41,5 +64,10 @@ export function useDrawer(id) {
     openDrawer: openDrawerWithId,
     closeDrawer: context.closeDrawer,
   };
+}
+
+export function useDrawerByType() {
+  const context = useContext(DrawerContext);
+  return context.openDrawerByType;
 }
 
