@@ -299,11 +299,15 @@ export default function DeskSurface({
   const handleAddGroup = () => {
     if (!notebookId) return;
     setAddDrawerFields({ name: '', description: '' });
+    setControllerPinned(false);
+    closeControllerDrawer();
     openDrawerByType('addGroup', { parentId: notebookId });
   };
 
   const handleAddSubgroup = (groupId) => {
     setAddDrawerFields({ name: '', description: '' });
+    setControllerPinned(false);
+    closeControllerDrawer();
     openDrawerByType('addSubgroup', { parentId: groupId });
   };
 

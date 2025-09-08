@@ -52,11 +52,11 @@ export default function useHoverDrawer({
   };
 
   useEffect(() => {
-    if (pin && !open) {
+    if (pin && !open && (!activeId || activeId === id)) {
       clear();
       openDrawer();
     }
-  }, [pin, open, openDrawer]);
+  }, [pin, open, openDrawer, activeId, id]);
 
   useEffect(() => {
     return () => clear();
