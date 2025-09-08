@@ -498,9 +498,7 @@ export default function DeskSurface({
     if (showEdits) return;
     setControllerPinned((prev) => {
       const next = !prev;
-      if (next) {
-        openControllerDrawer();
-      } else {
+      if (!next) {
         closeControllerDrawer();
       }
       return next;
