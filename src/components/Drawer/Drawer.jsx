@@ -18,6 +18,8 @@ export default function Drawer({
   body,
   footer,
   children,
+  destroyOnClose = false,
+  getContainer = false,
   ...rest
 }) {
   let sections = {
@@ -53,8 +55,9 @@ export default function Drawer({
           mask={false}
           closable={false}
           width={width}
-          getContainer={false}
-          rootStyle={{ position: 'absolute' }}
+          getContainer={getContainer}
+          destroyOnClose={destroyOnClose}
+          rootStyle={getContainer === false ? { position: 'absolute' } : undefined}
           bodyStyle={{ padding: '1rem', position: 'relative' }}
           {...rest}
         >
