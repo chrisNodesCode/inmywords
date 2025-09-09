@@ -17,6 +17,7 @@ import {
 import { Input, Button } from 'antd';
 import PomodoroWidget from '@/components/PomodoroWidget';
 import useHoverDrawer from '@/hooks/useHoverDrawer';
+import useDrawerActions from '@/hooks/useDrawerActions';
 
 function updateTreeData(list, key, children) {
   return list.map((node) => {
@@ -296,39 +297,18 @@ export default function DeskSurface({
       .catch((err) => console.error('Failed to reload entries', err));
   };
 
-  const handleAddGroup = () => {
-    if (!notebookId) return;
-    setAddDrawerFields({ name: '', description: '' });
-    setControllerPinned(false);
-    closeControllerDrawer();
-    openDrawerByType('addGroup', { parentId: notebookId });
-  };
-
-  const handleAddSubgroup = (groupId) => {
-    setAddDrawerFields({ name: '', description: '' });
-    setControllerPinned(false);
-    closeControllerDrawer();
-    openDrawerByType('addSubgroup', { parentId: groupId });
-  };
-
-  const handleAddEntry = (groupId, subgroupId) => {
-    setTitle('');
-    setContent('');
-    setIsEditingTitle(true);
-    setTitleInput('');
-    setLastSaved(null);
-    closeControllerDrawer();
-    setControllerPinned(false);
-    openEditorDrawer();
-    setEditorPinned(true);
-    setEditorState({
-      isOpen: true,
-      type: 'entry',
-      parent: { groupId, subgroupId },
-      item: null,
-      mode: 'create',
-    });
-  };
+  const { openAddGroup, openAddSubgroup, openAddEntry } = useDrawerActions({
+    setAddDrawerFields,
+    setTitle,
+    setContent,
+    setIsEditingTitle,
+    setTitleInput,
+    setLastSaved,
+    setEditorState,
+    setEditorPinned,
+    setControllerPinned,
+    openEditorDrawer,
+  });
 
   const handleAddDrawerClose = () => {
     setAddDrawerFields({ name: '', description: '' });
@@ -640,9 +620,9 @@ export default function DeskSurface({
     manageMode: showEdits,
     reorderMode,
     showArchived,
-    onAddGroup: showEdits ? undefined : handleAddGroup,
-    onAddSubgroup: showEdits ? undefined : handleAddSubgroup,
-    onAddEntry: showEdits ? undefined : handleAddEntry,
+    openAddGroup: showEdits ? undefined : () => openAddGroup(notebookId),
+    openAddSubgroup: showEdits ? undefined : openAddSubgroup,
+    openAddEntry: showEdits ? undefined : openAddEntry,
     onEdit: showEdits ? undefined : handleEditEntry,
     notebookId,
     previewEntry,

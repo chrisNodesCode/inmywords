@@ -25,9 +25,9 @@ const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : '');
 export default function NotebookTree({
   treeData = [],
   setTreeData,
-  onAddGroup,
-  onAddSubgroup,
-  onAddEntry,
+  openAddGroup,
+  openAddSubgroup,
+  openAddEntry,
   onEdit,
   notebookId,
   loadData,
@@ -473,12 +473,12 @@ export default function NotebookTree({
                               })}
                             </SortableContext>
                           </DndContext>
-                          {!manageMode && onAddEntry && (
+                {!manageMode && openAddEntry && (
                             <AddEntryButton
                               groupKey={group.key}
                               subgroupKey={sub.key}
                               subgroupTitle={sub.title}
-                              onAddEntry={onAddEntry}
+                              onAddEntry={openAddEntry}
                             />
                           )}
                         </SubgroupCard>
@@ -486,11 +486,11 @@ export default function NotebookTree({
                     })}
                   </SortableContext>
                 </DndContext>
-                {!manageMode && onAddSubgroup && (
+                {!manageMode && openAddSubgroup && (
                   <AddSubgroupButton
                     groupKey={group.key}
                     groupTitle={group.title}
-                    onAddSubgroup={onAddSubgroup}
+                    onAddSubgroup={openAddSubgroup}
                   />
                 )}
               </GroupCard>
@@ -498,7 +498,7 @@ export default function NotebookTree({
           })}
         </SortableContext>
       </DndContext>
-      {!manageMode && onAddGroup && <AddGroupButton onAddGroup={onAddGroup} />}
+      {!manageMode && openAddGroup && <AddGroupButton onAddGroup={openAddGroup} />}
       {editDrawerOpen && (
         <div
           onMouseEnter={handleEditDrawerMouseEnter}

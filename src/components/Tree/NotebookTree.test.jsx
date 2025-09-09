@@ -31,9 +31,9 @@ describe('NotebookTree custom cards', () => {
     renderWithDrawer(
       <NotebookTree
         treeData={treeData}
-        onAddGroup={() => {}}
-        onAddSubgroup={() => {}}
-        onAddEntry={() => {}}
+        openAddGroup={() => {}}
+        openAddSubgroup={() => {}}
+        openAddEntry={() => {}}
         manageMode
       />
     );
