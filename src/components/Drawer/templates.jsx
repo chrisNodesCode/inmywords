@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { useState, useEffect, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Button,
   Switch,
@@ -291,52 +292,58 @@ function NotebookControllerContent({
         </div>
         <Button onClick={() => signOut({ redirect: false })}>Logout</Button>
       </div>
-      <Drawer
-        open={drawerOpen}
-        header={<h2 style={{ marginTop: 0 }}>New Notebook</h2>}
-        body={
-          <>
-            <Input
-              placeholder="Name"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            <Input.TextArea
-              placeholder="Description (optional)"
-              value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            <Input
-              placeholder="Group Alias"
-              value={newGroupAlias}
-              onChange={(e) => setNewGroupAlias(e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            <Input
-              placeholder="Subgroup Alias"
-              value={newSubgroupAlias}
-              onChange={(e) => setNewSubgroupAlias(e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-            />
-            <Input
-              placeholder="Entry Alias"
-              value={newEntryAlias}
-              onChange={(e) => setNewEntryAlias(e.target.value)}
-              style={{ marginBottom: '0.5rem' }}
-            />
-          </>
-        }
-        footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-            <Button onClick={closeNotebookDrawer}>Cancel</Button>
-            <Button type="primary" onClick={handleCreateDrawer}>
-              Create
-            </Button>
-          </div>
-        }
-      />
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <Drawer
+            open={drawerOpen}
+            header={<h2 style={{ marginTop: 0 }}>New Notebook</h2>}
+            body={
+              <>
+                <Input
+                  placeholder="Name"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  style={{ marginBottom: '0.5rem' }}
+                />
+                <Input.TextArea
+                  placeholder="Description (optional)"
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  style={{ marginBottom: '0.5rem' }}
+                />
+                <Input
+                  placeholder="Group Alias"
+                  value={newGroupAlias}
+                  onChange={(e) => setNewGroupAlias(e.target.value)}
+                  style={{ marginBottom: '0.5rem' }}
+                />
+                <Input
+                  placeholder="Subgroup Alias"
+                  value={newSubgroupAlias}
+                  onChange={(e) => setNewSubgroupAlias(e.target.value)}
+                  style={{ marginBottom: '0.5rem' }}
+                />
+                <Input
+                  placeholder="Entry Alias"
+                  value={newEntryAlias}
+                  onChange={(e) => setNewEntryAlias(e.target.value)}
+                  style={{ marginBottom: '0.5rem' }}
+                />
+              </>
+            }
+            footer={
+              <div
+                style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}
+              >
+                <Button onClick={closeNotebookDrawer}>Cancel</Button>
+                <Button type="primary" onClick={handleCreateDrawer}>
+                  Create
+                </Button>
+              </div>
+            }
+          />,
+          document.body
+        )}
     </>
   );
 }
