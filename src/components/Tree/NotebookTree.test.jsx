@@ -63,6 +63,47 @@ describe('NotebookTree custom cards', () => {
     expect(screen.getAllByRole('img', { name: 'holder' }).length).toBe(1);
   });
 
+  it('collapses and restores open state when toggling reorder mode', async () => {
+    const user = userEvent.setup();
+    const treeData = [
+      {
+        title: 'Group 1',
+        key: 'g1',
+        children: [
+          {
+            title: 'Sub 1',
+            key: 's1',
+            children: [{ title: 'Entry 1', key: 'e1', id: 'e1' }],
+          },
+        ],
+      },
+    ];
+    const { rerender } = renderWithDrawer(<NotebookTree treeData={treeData} />);
+
+    await user.click(screen.getByText('Group 1'));
+    await screen.findByText('Sub 1 (1)');
+    await user.click(screen.getByText('Sub 1 (1)'));
+    await screen.findByText('Entry 1');
+
+    rerender(
+      <DrawerManager>
+        <NotebookTree treeData={treeData} reorderMode />
+      </DrawerManager>
+    );
+
+    await waitFor(() => expect(screen.queryByText('Sub 1 (1)')).toBeNull());
+    await waitFor(() => expect(screen.queryByText('Entry 1')).toBeNull());
+
+    rerender(
+      <DrawerManager>
+        <NotebookTree treeData={treeData} />
+      </DrawerManager>
+    );
+
+    await screen.findByText('Sub 1 (1)');
+    await screen.findByText('Entry 1');
+  });
+
   it('loads existing values into entity edit drawer', async () => {
     const user = userEvent.setup();
     const treeData = [{ title: 'Group 1', key: 'g1', children: [] }];
