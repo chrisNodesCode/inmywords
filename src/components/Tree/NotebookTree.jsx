@@ -59,6 +59,30 @@ export default function NotebookTree({
   const [openSubgroupId, setOpenSubgroupId] = useState(null);
   const [openEntryId, setOpenEntryId] = useState(null);
 
+  // remember open state when toggling reorder mode
+  const prevOpenStateRef = useRef({ group: null, subgroup: null, entry: null });
+
+  useEffect(() => {
+    if (reorderMode) {
+      // store current state and collapse all to enable dragging
+      prevOpenStateRef.current = {
+        group: openGroupId,
+        subgroup: openSubgroupId,
+        entry: openEntryId,
+      };
+      setOpenGroupId(null);
+      setOpenSubgroupId(null);
+      setOpenEntryId(null);
+    } else {
+      // restore previously open entities
+      const { group, subgroup, entry } = prevOpenStateRef.current;
+      setOpenGroupId(group);
+      setOpenSubgroupId(subgroup);
+      setOpenEntryId(entry);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reorderMode]);
+
   const openDrawerByType = useDrawerByType();
   const { open: editDrawerOpen, closeDrawer: closeEditDrawer } = useDrawer(
     'entity-edit'
