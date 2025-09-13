@@ -60,11 +60,16 @@ export const createEntryDeleteHandler = ({ setTreeData, setOpenEntryId }) => (en
         ...g,
         children: g.children?.map((s) => {
           if (s.key !== entry.subgroupId) return s;
+          const newChildren = (s.children || []).filter(
+            (e) => e.key !== entry.key && e.id !== entry.id
+          );
           return {
             ...s,
-            children: (s.children || []).filter(
-              (e) => e.key !== entry.key && e.id !== entry.id
-            ),
+            children: newChildren,
+            entryCount:
+              typeof s.entryCount === 'number'
+                ? Math.max(0, s.entryCount - 1)
+                : newChildren.filter((e) => !e.archived).length,
           };
         }),
       };

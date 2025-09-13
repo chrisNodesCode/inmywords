@@ -30,8 +30,23 @@ export default async function handler(req, res) {
           },
         },
         orderBy: { user_sort: 'asc' },
+        include: {
+          _count: {
+            select: {
+              entries: {
+                where: { archived: false },
+              },
+            },
+          },
+        },
       });
-      return res.status(200).json(subgroups);
+
+      const withCounts = subgroups.map(({ _count, ...sg }) => ({
+        ...sg,
+        entryCount: _count?.entries ?? 0,
+      }));
+
+      return res.status(200).json(withCounts);
     } catch (error) {
       console.error('GET /api/subgroups error', error);
       return res.status(500).json({ error: 'Failed to fetch subgroups' });

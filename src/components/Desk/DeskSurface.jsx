@@ -24,10 +24,11 @@ import {
   createEditEntryHandler,
 } from '@/utils/actionHandlers';
 
-function updateTreeData(list, key, children) {
+function updateTreeData(list, key, children, extra = {}) {
   return list.map((node) => {
-    if (node.key === key) return { ...node, children };
-    if (node.children) return { ...node, children: updateTreeData(node.children, key, children) };
+    if (node.key === key) return { ...node, ...extra, children };
+    if (node.children)
+      return { ...node, children: updateTreeData(node.children, key, children, extra) };
     return node;
   });
 }
@@ -238,6 +239,7 @@ export default function DeskSurface({
                 key: sg.id,
                 type: 'subgroup',
                 groupId: node.key,
+                entryCount: sg.entryCount ?? 0,
               }))
             )
           );
@@ -249,9 +251,8 @@ export default function DeskSurface({
       return fetch(`/api/entries?subgroupId=${node.key}`)
         .then((res) => (res.ok ? res.json() : []))
         .then((entries) => {
-          const filtered = showArch
-            ? entries
-            : entries.filter((e) => !e.archived);
+          const nonArchived = entries.filter((e) => !e.archived);
+          const filtered = showArch ? entries : nonArchived;
           setTreeData((origin) =>
             updateTreeData(
               origin,
@@ -266,7 +267,8 @@ export default function DeskSurface({
                 type: 'entry',
                 subgroupId: node.key,
                 groupId: node.groupId,
-              }))
+              })),
+              { entryCount: nonArchived.length }
             )
           );
         })
@@ -280,7 +282,8 @@ export default function DeskSurface({
     fetch(`/api/entries?subgroupId=${subgroupId}`)
       .then((res) => (res.ok ? res.json() : []))
       .then((entries) => {
-        const filtered = showArch ? entries : entries.filter((e) => !e.archived);
+        const nonArchived = entries.filter((e) => !e.archived);
+        const filtered = showArch ? entries : nonArchived;
         setTreeData((origin) =>
           updateTreeData(
             origin,
@@ -295,7 +298,8 @@ export default function DeskSurface({
               type: 'entry',
               subgroupId,
               groupId,
-            }))
+            })),
+            { entryCount: nonArchived.length }
           )
         );
       })
@@ -370,6 +374,7 @@ export default function DeskSurface({
                     key: sg.id,
                     type: 'subgroup',
                     groupId: parentId,
+                    entryCount: sg.entryCount ?? 0,
                   }))
                 )
               );
