@@ -334,9 +334,17 @@ export default function NotebookTree({
         // remove entry from old location
         for (const g of newGroups) {
           for (const s of g.children) {
-            s.children = (s.children || []).filter(
+            const newChildren = (s.children || []).filter(
               (e) => e.id !== updated.id && e.key !== updated.id
             );
+            if (newChildren.length !== (s.children || []).length) {
+              if (typeof s.entryCount === 'number') {
+                s.entryCount = Math.max(0, s.entryCount - 1);
+              } else {
+                s.entryCount = newChildren.filter((e) => !e.archived).length;
+              }
+            }
+            s.children = newChildren;
           }
         }
 
@@ -353,6 +361,10 @@ export default function NotebookTree({
               title: updated.title,
               snippet: updated.content?.slice(0, 100) || updated.snippet || '',
             });
+            targetSub.entryCount =
+              typeof targetSub.entryCount === 'number'
+                ? targetSub.entryCount + 1
+                : targetSub.children.filter((e) => !e.archived).length;
           }
         }
 
@@ -432,7 +444,9 @@ export default function NotebookTree({
                         openGroupId !== group.key ||
                         openSubgroupId !== null;
                       const nonArchivedCount =
-                        sub.children?.filter((e) => !e.archived).length || 0;
+                        typeof sub.entryCount === 'number'
+                          ? sub.entryCount
+                          : sub.children?.filter((e) => !e.archived).length || 0;
                       return (
                         <SubgroupCard
                           key={sub.key}
