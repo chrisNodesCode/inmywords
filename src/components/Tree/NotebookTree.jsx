@@ -14,6 +14,7 @@ import AddEntryButton from './AddEntryButton';
 import EntityEditDrawer from './EntityEditDrawer';
 import styles from './Tree.module.css';
 import { useDrawer, useDrawerByType } from '@/components/Drawer/DrawerManager';
+import { createEntryDeleteHandler } from '@/utils/actionHandlers';
 
 const formatDate = (date) => (date ? new Date(date).toLocaleDateString() : '');
 
@@ -366,27 +367,10 @@ export default function NotebookTree({
     }
   };
 
-  const handleEntryDelete = (entry) => {
-    if (!setTreeData) return;
-    setTreeData((groups) =>
-      groups.map((g) => {
-        if (g.key !== entry.groupId) return g;
-        return {
-          ...g,
-          children: g.children?.map((s) => {
-            if (s.key !== entry.subgroupId) return s;
-            return {
-              ...s,
-              children: (s.children || []).filter(
-                (e) => e.key !== entry.key && e.id !== entry.id
-              ),
-            };
-          }),
-        };
-      })
-    );
-    setOpenEntryId((prev) => (prev === entry.id ? null : prev));
-  };
+  const handleEntryDelete = createEntryDeleteHandler({
+    setTreeData,
+    setOpenEntryId,
+  });
 
   return (
     <div className={styles.root}>
