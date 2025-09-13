@@ -17,6 +17,12 @@ import {
 import { Input, Button } from 'antd';
 import PomodoroWidget from '@/components/PomodoroWidget';
 import useHoverDrawer from '@/hooks/useHoverDrawer';
+import {
+  createAddGroupHandler,
+  createAddSubgroupHandler,
+  createAddEntryHandler,
+  createEditEntryHandler,
+} from '@/utils/actionHandlers';
 
 function updateTreeData(list, key, children) {
   return list.map((node) => {
@@ -296,39 +302,33 @@ export default function DeskSurface({
       .catch((err) => console.error('Failed to reload entries', err));
   };
 
-  const handleAddGroup = () => {
-    if (!notebookId) return;
-    setAddDrawerFields({ name: '', description: '' });
-    setControllerPinned(false);
-    closeControllerDrawer();
-    openDrawerByType('addGroup', { parentId: notebookId });
-  };
+  const handleAddGroup = createAddGroupHandler({
+    notebookId,
+    openDrawerByType,
+    closeControllerDrawer,
+    setControllerPinned,
+    setAddDrawerFields,
+  });
 
-  const handleAddSubgroup = (groupId) => {
-    setAddDrawerFields({ name: '', description: '' });
-    setControllerPinned(false);
-    closeControllerDrawer();
-    openDrawerByType('addSubgroup', { parentId: groupId });
-  };
+  const handleAddSubgroup = createAddSubgroupHandler({
+    openDrawerByType,
+    closeControllerDrawer,
+    setControllerPinned,
+    setAddDrawerFields,
+  });
 
-  const handleAddEntry = (groupId, subgroupId) => {
-    setTitle('');
-    setContent('');
-    setIsEditingTitle(true);
-    setTitleInput('');
-    setLastSaved(null);
-    closeControllerDrawer();
-    setControllerPinned(false);
-    openEditorDrawer();
-    setEditorPinned(true);
-    setEditorState({
-      isOpen: true,
-      type: 'entry',
-      parent: { groupId, subgroupId },
-      item: null,
-      mode: 'create',
-    });
-  };
+  const handleAddEntry = createAddEntryHandler({
+    setTitle,
+    setContent,
+    setIsEditingTitle,
+    setTitleInput,
+    setLastSaved,
+    closeControllerDrawer,
+    setControllerPinned,
+    openEditorDrawer,
+    setEditorPinned,
+    setEditorState,
+  });
 
   const handleAddDrawerClose = () => {
     setAddDrawerFields({ name: '', description: '' });
@@ -607,14 +607,7 @@ export default function DeskSurface({
       mode: 'edit',
     });
   };
-
-  const handleEditEntry = async (entry) => {
-    const res = await fetch(`/api/entries/${entry.id}`);
-    const item = res.ok
-      ? await res.json()
-      : { id: entry.id, title: entry.title, content: '' };
-    openEntry(entry, item);
-  };
+  const handleEditEntry = createEditEntryHandler(openEntry);
 
   const handleNodeSelect = async (keys, info) => {
     const node = info.node;
