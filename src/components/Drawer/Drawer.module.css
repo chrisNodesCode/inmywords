@@ -8,9 +8,15 @@
 /* Row for the toggle button at the top of the open drawer */
 .toggleRow {
   display: flex;
-  justify-content: flex-start; /* left-align when drawer is open */
+  justify-content: flex-end; /* right-align when drawer is open */
   align-items: center;
   margin-bottom: 0.25rem;
+}
+
+/* Hidden but keeps layout space for the icon */
+.togglePlaceholder {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* Unified style for the hamburger/toggle button (open and closed states) */
@@ -18,16 +24,36 @@
   color: #666666;
   padding: 4px 6px;
   border-radius: 8px;
-  transition: color 150ms ease, transform 150ms ease, background-color 150ms ease;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  transition: color 150ms ease, transform 150ms ease;
+}
+
+/* Ensure nested Ant icon/SVG inherit the button color */
+.hamburgerBtn :global(.anticon),
+.hamburgerBtn :global(svg) {
+  color: inherit;
 }
 
 .hamburgerBtn:hover {
-  color: var(--highlight-color);
+  color: var(--highlight-color) !important;
   transform: scale(1.06);
-  background-color: rgba(0, 0, 0, 0.04);
+  background: transparent !important;
 }
 
-/* Dark theme subtle hover background */
-body[data-theme='dark'] .hamburgerBtn:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+.hamburgerBtn:focus,
+.hamburgerBtn:active,
+.hamburgerBtn:focus-visible {
+  outline: none;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Also neutralize Ant Design text-button hover/active backgrounds explicitly */
+.hamburgerBtn:global(.ant-btn-text):hover,
+.hamburgerBtn:global(.ant-btn-text):active,
+.hamburgerBtn:global(.ant-btn-text):focus {
+  background: transparent !important;
 }

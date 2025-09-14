@@ -36,14 +36,14 @@ export default function Drawer({
 
   return (
     <>
-      {onHamburgerClick && !open && (
+      {onHamburgerClick && (
         <Button
           type="text"
           className={styles.hamburgerBtn}
-          aria-label="Open drawer"
-          icon={<SidebarToggleIcon placement="right" />}
+          aria-label={open ? 'Close drawer' : 'Open drawer'}
+          icon={<SidebarToggleIcon placement="right" open={open} />}
           onClick={onHamburgerClick}
-          style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1002 }}
+          style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1003 }}
         />
       )}
       <div
@@ -65,17 +65,16 @@ export default function Drawer({
           {...rest}
         >
           <div className={styles.drawerBody}>
-            {onHamburgerClick && open && (
-              <div className={styles.toggleRow}>
-                <Button
-                  type="text"
-                  className={styles.hamburgerBtn}
-                  aria-label="Toggle drawer"
-                  onClick={onHamburgerClick}
-                  icon={<SidebarToggleIcon open placement="right" />}
-                />
-              </div>
-            )}
+            {/* Invisible placeholder to reserve space equal to the toggle icon */}
+            <div className={styles.toggleRow}>
+              <Button
+                type="text"
+                className={`${styles.hamburgerBtn} ${styles.togglePlaceholder}`}
+                aria-hidden
+                tabIndex={-1}
+                icon={<SidebarToggleIcon placement="right" open={open} />}
+              />
+            </div>
             {sections.header}
             {sections.body}
             {sections.footer}
