@@ -359,6 +359,16 @@ export default function DeskSurface({
       .catch((err) => console.error('Failed to reload entries', err));
   };
 
+  // Find the parent group id for a given subgroup id from current treeData
+  const findGroupIdBySubgroup = (subgroupId) => {
+    for (const g of treeData) {
+      for (const s of g.children || []) {
+        if (s.key === subgroupId) return g.key;
+      }
+    }
+    return null;
+  };
+
   const handleAddGroup = createAddGroupHandler({
     notebookId,
     openDrawerByType,
@@ -484,6 +494,8 @@ export default function DeskSurface({
     setIsSaving(true);
     try {
       const subgroupId = data.subgroupId || editorState.parent?.subgroupId;
+      const oldSubgroupId = editorState.parent?.initialSubgroupId ?? editorState.parent?.subgroupId;
+      const oldGroupId = editorState.parent?.initialGroupId ?? editorState.parent?.groupId;
       let savedEntry;
       if (editorState.mode === 'edit') {
         const res = await fetch(`/api/entries/${editorState.item.id}`, {
@@ -505,10 +517,22 @@ export default function DeskSurface({
           setEditorState((prev) => ({ ...prev, mode: 'edit', item: savedEntry }));
         }
       }
-      reloadEntries(subgroupId, editorState.parent.groupId);
-      if (editorState.mode === 'edit' && subgroupId !== editorState.parent.subgroupId) {
-        reloadEntries(editorState.parent.subgroupId, editorState.parent.groupId);
+      const newGroupId = findGroupIdBySubgroup(subgroupId) ?? editorState.parent.groupId;
+      reloadEntries(subgroupId, newGroupId);
+      if (editorState.mode === 'edit' && subgroupId !== oldSubgroupId) {
+        reloadEntries(oldSubgroupId, oldGroupId);
       }
+      // Update initial pointers to reflect the new parent after save
+      setEditorState((prev) => ({
+        ...prev,
+        parent: {
+          ...prev.parent,
+          subgroupId,
+          groupId: newGroupId,
+          initialSubgroupId: subgroupId,
+          initialGroupId: newGroupId,
+        },
+      }));
       return savedEntry;
     } catch (err) {
       console.error('Save failed', err);
@@ -582,10 +606,13 @@ export default function DeskSurface({
   }, [showEdits]);
 
   const handleChangeSubgroup = (subgroupId) => {
-    setEditorState((prev) => ({
-      ...prev,
-      parent: { ...prev.parent, subgroupId },
-    }));
+    setEditorState((prev) => {
+      const newGroupId = findGroupIdBySubgroup(subgroupId) ?? prev?.parent?.groupId;
+      return {
+        ...prev,
+        parent: { ...prev.parent, subgroupId, groupId: newGroupId },
+      };
+    });
   };
 
   const handleDelete = async () => {
@@ -660,7 +687,12 @@ export default function DeskSurface({
     setEditorState({
       isOpen: true,
       type: 'entry',
-      parent: { subgroupId: node.subgroupId, groupId: node.groupId },
+      parent: {
+        subgroupId: node.subgroupId,
+        groupId: node.groupId,
+        initialSubgroupId: node.subgroupId,
+        initialGroupId: node.groupId,
+      },
       item,
       mode: 'edit',
     });
