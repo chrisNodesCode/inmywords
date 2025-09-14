@@ -5,6 +5,7 @@ export default function AddEntryButton({ groupKey, subgroupKey, subgroupTitle, o
   return (
     <Button
       type="dashed"
+      className="nt-add-btn"
       onClick={() => onAddEntry(groupKey, subgroupKey)}
       style={{ marginTop: '1.5rem' }}
     >
@@ -12,4 +13,3 @@ export default function AddEntryButton({ groupKey, subgroupKey, subgroupTitle, o
     </Button>
   );
 }
-

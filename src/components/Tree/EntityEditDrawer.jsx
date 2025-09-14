@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Drawer from '@/components/Drawer/Drawer';
 import { useDrawer } from '@/components/Drawer/DrawerManager';
-import { Input, Button, Select, Tag } from 'antd';
+import { Input, Button, Select, Tag, Modal, message } from 'antd';
 
 /**
  * Drawer for editing a notebook tree entity.
@@ -17,6 +17,8 @@ export default function EntityEditDrawer() {
     onClose,
     onSave,
     subgroupOptions = [],
+    groupOptions = [], // for editing a subgroup's parent group
+    currentGroupId,
   } = props || {};
   const [title, setTitle] = useState(
     initialData?.title ?? initialData?.name ?? ''
@@ -46,6 +48,8 @@ export default function EntityEditDrawer() {
   const [notebookId, setNotebookId] = useState(
     initialData?.subgroup?.group?.notebookId ?? ''
   );
+  // subgroup specific: parent group selection
+  const [parentGroupId, setParentGroupId] = useState(currentGroupId || '');
 
   // reset state when drawer opens with new data
   useEffect(() => {
@@ -65,6 +69,7 @@ export default function EntityEditDrawer() {
       initialData?.subgroup?.group?.notebook?.id ??
       ''
     );
+    setParentGroupId(currentGroupId || '');
   }, [initialData, open]);
 
   // fetch latest data when opening
@@ -143,6 +148,8 @@ export default function EntityEditDrawer() {
         description,
         user_notebook_tree: [groupAlias, subgroupAlias, entryAlias],
       };
+    } else if (type === 'subgroup') {
+      payload = { name: title, description, groupId: parentGroupId || undefined };
     } else {
       payload = { name: title, description };
     }
@@ -175,6 +182,21 @@ export default function EntityEditDrawer() {
         onChange={(e) => setTitle(e.target.value)}
         style={{ marginBottom: '0.5rem' }}
       />
+
+      {type === 'subgroup' && (
+        <Select
+          value={parentGroupId}
+          onChange={setParentGroupId}
+          style={{ width: '100%', marginBottom: '0.5rem' }}
+          placeholder="Select parent group"
+        >
+          {groupOptions.map((g) => (
+            <Select.Option key={g.id} value={g.id}>
+              {g.title}
+            </Select.Option>
+          ))}
+        </Select>
+      )}
 
       {type !== 'entry' && type !== 'notebook' && (
         <Input.TextArea
@@ -259,14 +281,50 @@ export default function EntityEditDrawer() {
   );
 
   const footer = (
-    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-      <Button onClick={handleClose}>Cancel</Button>
-      <Button type="primary" onClick={handleSave}>
-        Save
-      </Button>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+      <div>
+        {type !== 'notebook' && id && (
+          <Button
+            danger
+            onClick={() => {
+              const isCascade = type === 'group' || type === 'subgroup';
+              const titleTxt = `Delete ${type}?`;
+              const contentTxt = isCascade
+                ? `This will permanently delete this ${type} and everything inside it. If you want to keep any items, click Cancel and move them to another location first.`
+                : `This will permanently delete this ${type}.`;
+
+              Modal.confirm({
+                title: titleTxt,
+                content: contentTxt,
+                okText: 'Delete',
+                okButtonProps: { danger: true },
+                cancelText: 'Cancel',
+                maskClosable: false,
+                onOk: async () => {
+                  try {
+                    const res = await fetch(`/api/${type}s/${id}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error('Delete failed');
+                    props.onDelete?.(type, id);
+                    handleClose();
+                  } catch (err) {
+                    message.error('Failed to delete. Please try again.');
+                  }
+                },
+              });
+            }}
+          >
+            Delete
+          </Button>
+        )}
+      </div>
+      <div>
+        <Button onClick={handleClose}>Cancel</Button>
+        <Button type="primary" onClick={handleSave}>
+          Save
+        </Button>
+      </div>
     </div>
   );
 
   return <Drawer open={open} header={header} body={body} footer={footer} zIndex={1002} />;
 }
-

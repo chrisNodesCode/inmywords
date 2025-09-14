@@ -133,6 +133,14 @@ export default function NotebookTree({
         id: group.key,
         initialData: group,
         onSave: (updated) => handleEntitySave('group', updated),
+        onDelete: (type, deletedId) => {
+          setTreeData((items) => items.filter((g) => g.key !== deletedId));
+          if (openGroupId === deletedId) {
+            setOpenGroupId(null);
+            setOpenSubgroupId(null);
+            setOpenEntryId(null);
+          }
+        },
       });
       return;
     }
@@ -158,7 +166,25 @@ export default function NotebookTree({
       openDrawerByType('editSubgroup', {
         id: sub.key,
         initialData: sub,
+        currentGroupId: treeData.find((g) => g.children?.some((s) => s.key === sub.key))?.key || null,
+        groupOptions: treeData.map((g) => ({ id: g.key, title: g.title })),
         onSave: (updated) => handleEntitySave('subgroup', updated),
+        onDelete: (type, deletedId) => {
+          setTreeData((groups) => {
+            const newGroups = groups.map((g) => ({ ...g }));
+            for (const g of newGroups) {
+              if (!g.children) continue;
+              const before = g.children.length;
+              g.children = g.children.filter((s) => s.key !== deletedId);
+              if (g.children.length !== before) break;
+            }
+            return newGroups;
+          });
+          if (openSubgroupId === deletedId) {
+            setOpenSubgroupId(null);
+            setOpenEntryId(null);
+          }
+        },
       });
       return;
     }
@@ -192,6 +218,35 @@ export default function NotebookTree({
         initialData: entry,
         subgroupOptions: subs,
         onSave: (updated) => handleEntitySave('entry', updated),
+        onDelete: (type, deletedId) => {
+          setTreeData((groups) => {
+            const newGroups = groups.map((g) => ({
+              ...g,
+              children: g.children?.map((s) => ({
+                ...s,
+                children: s.children ? [...s.children] : [],
+              })) || [],
+            }));
+            for (const g of newGroups) {
+              for (const s of g.children) {
+                const before = s.children.length;
+                s.children = (s.children || []).filter(
+                  (e) => e.id !== deletedId && e.key !== deletedId
+                );
+                if (before !== s.children.length) {
+                  if (typeof s.entryCount === 'number') {
+                    s.entryCount = Math.max(0, s.entryCount - 1);
+                  } else {
+                    s.entryCount = s.children.filter((e) => !e.archived).length;
+                  }
+                  break;
+                }
+              }
+            }
+            return newGroups;
+          });
+          if (openEntryId === deletedId) setOpenEntryId(null);
+        },
       });
       return;
     }
@@ -307,20 +362,53 @@ export default function NotebookTree({
         )
       );
     } else if (type === 'subgroup') {
-      setTreeData((groups) =>
-        groups.map((g) => ({
+      setTreeData((groups) => {
+        const newGroups = groups.map((g) => ({
           ...g,
-          children: g.children?.map((s) =>
-            s.key === updated.id
-              ? {
-                  ...s,
-                  title: updated.name ?? updated.title ?? s.title,
-                  description: updated.description,
-                }
-              : s
-          ),
-        }))
-      );
+          children: g.children ? g.children.map((s) => ({ ...s })) : [],
+        }));
+
+        // locate current parent group and subgroup
+        let fromGIdx = -1;
+        let fromSIdx = -1;
+        for (let gi = 0; gi < newGroups.length; gi++) {
+          const si = newGroups[gi].children.findIndex((s) => s.key === updated.id);
+          if (si !== -1) {
+            fromGIdx = gi;
+            fromSIdx = si;
+            break;
+          }
+        }
+
+        if (fromGIdx === -1) return newGroups;
+
+        const targetGroupId = updated.groupId || updated.group?.id;
+        // update fields on the subgroup
+        const subgroup = {
+          ...newGroups[fromGIdx].children[fromSIdx],
+          title: updated.name ?? updated.title ?? newGroups[fromGIdx].children[fromSIdx].title,
+          description: updated.description,
+        };
+
+        if (targetGroupId && newGroups[fromGIdx].key !== targetGroupId) {
+          // move subgroup to target group
+          newGroups[fromGIdx].children.splice(fromSIdx, 1);
+          const toGIdx = newGroups.findIndex((g) => g.key === targetGroupId);
+          if (toGIdx !== -1) {
+            newGroups[toGIdx].children = newGroups[toGIdx].children || [];
+            newGroups[toGIdx].children.push(subgroup);
+            // adjust open states to follow the subgroup
+            setOpenGroupId(newGroups[toGIdx].key);
+            setOpenSubgroupId(subgroup.key);
+            setOpenEntryId(null);
+          }
+        } else {
+          // just update in place
+          newGroups[fromGIdx].children[fromSIdx] = subgroup;
+        }
+
+        return newGroups;
+      });
     } else if (type === 'entry') {
       setTreeData((groups) => {
         const newGroups = groups.map((g) => ({
@@ -385,7 +473,7 @@ export default function NotebookTree({
   });
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} data-manage-mode={manageMode ? 'true' : 'false'}>
       {notebookTitle && (
         <header className={styles.header}>
             <h2
@@ -532,4 +620,3 @@ export default function NotebookTree({
     </div>
   );
 }
-

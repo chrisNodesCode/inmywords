@@ -20,6 +20,7 @@ export const ThemeContext = createContext({
 export default function ThemeProvider({ children }) {
   const [darkMode, setDarkMode] = useState(false);
   const [highlightColor, setHighlightColor] = useState('green');
+  const [customHighlight, setCustomHighlight] = useState(false);
 
   const lightTokens = {
     colorBgBase: '#ffffff',
@@ -51,6 +52,7 @@ export default function ThemeProvider({ children }) {
     const storedHighlight = localStorage.getItem('highlightColor');
     if (storedHighlight && HIGHLIGHT_COLORS[storedHighlight]) {
       setHighlightColor(storedHighlight);
+      setCustomHighlight(true);
     }
   }, []);
 
@@ -64,10 +66,19 @@ export default function ThemeProvider({ children }) {
   // Persist highlight color and update CSS variable
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    localStorage.setItem('highlightColor', highlightColor);
     const value = HIGHLIGHT_COLORS[highlightColor][darkMode ? 'dark' : 'light'];
     document.body.style.setProperty('--highlight-color', value);
-  }, [highlightColor, darkMode]);
+    document.body.setAttribute('data-highlight-custom', customHighlight ? 'true' : 'false');
+  }, [highlightColor, darkMode, customHighlight]);
+
+  // user-triggered highlight change helper
+  const chooseHighlight = (value) => {
+    setHighlightColor(value);
+    setCustomHighlight(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('highlightColor', value);
+    }
+  };
 
   const toggleTheme = () => {
     setDarkMode((prev) => !prev);
@@ -113,7 +124,7 @@ export default function ThemeProvider({ children }) {
         },
       }}
     >
-      <ThemeContext.Provider value={{ darkMode, toggleTheme, highlightColor, setHighlightColor }}>
+      <ThemeContext.Provider value={{ darkMode, toggleTheme, highlightColor, setHighlightColor: chooseHighlight }}>
         {children}
       </ThemeContext.Provider>
     </ConfigProvider>

@@ -3,6 +3,10 @@
 
 :root {
   --highlight-color: #547b5f;
+  /* Standard app button colors (light mode) */
+  --btn-bg: #e6e6e6;       /* matches editor archive/cancel */
+  --btn-bg-hover: #cccccc; /* matches editor hover */
+  --btn-fg: #000000;
 }
 
 body {
@@ -37,6 +41,13 @@ body {
   border-color: var(--highlight-color) !important;
 }
 
+/* In Manage mode, show dotted outlines on hover for editable cards */
+[data-manage-mode='true'] .nt-card:hover:not(:has(.nt-card:hover)):not(:has(.nt-children:hover)) {
+  border-color: var(--highlight-color) !important;
+  border-style: dotted !important;
+  border-width: 2px !important;
+}
+
 /* Global Ant Design Drawer styling */
 .ant-drawer-header,
 .ant-drawer-title,
@@ -63,6 +74,13 @@ body[data-theme='dark'] .ant-drawer-content,
 body[data-theme='dark'] .ant-drawer-header {
   background-color: #1f1f1f;
   color: #ffffff;
+}
+
+/* Dark mode button variables */
+body[data-theme='dark'] {
+  --btn-bg: #333333;      /* matches editor archive/cancel */
+  --btn-bg-hover: #444444;/* matches editor hover */
+  --btn-fg: #ffffff;
 }
 
 body[data-theme='dark'] .ant-drawer-title,
@@ -916,6 +934,42 @@ body[data-theme='dark'] .ql-toolbar .ql-picker-options {
 
 .ql-editor h2 {
   font-size: 1.5em;
+}
+
+/* Standardize Ant Design button backgrounds app-wide */
+.ant-btn {
+  background-color: var(--btn-bg) !important;
+  color: var(--btn-fg) !important;
+  border: none !important;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ant-btn:hover,
+.ant-btn:focus,
+.ant-btn:active {
+  background-color: var(--btn-bg-hover) !important;
+  color: var(--btn-fg) !important;
+}
+
+/* On hover, if the user explicitly chose a highlight, tint text to highlight */
+body[data-highlight-custom='true'] .ant-btn:hover,
+body[data-highlight-custom='true'] .ant-btn:focus,
+body[data-highlight-custom='true'] .ant-btn:active {
+  color: var(--highlight-color) !important;
+}
+
+/* Bring back dashed outline on hover for Add buttons only */
+.ant-btn.nt-add-btn {
+  border: 2px dotted transparent !important;
+}
+
+.ant-btn.nt-add-btn:hover,
+.ant-btn.nt-add-btn:focus,
+.ant-btn.nt-add-btn:active {
+  border-color: var(--highlight-color) !important;
+  border-style: dotted !important;
+  border-width: 2px !important;
 }
 
 /* Drawer button grayscale styling */
