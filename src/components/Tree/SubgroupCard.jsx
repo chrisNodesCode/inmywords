@@ -36,7 +36,16 @@ const SubgroupCard = forwardRef(
       <div
         ref={mergedRef}
         style={style}
-        className={classNames(styles.card, { [styles.interactive]: !manageMode })}
+        className={classNames('nt-card', styles.card, { [styles.interactive]: !manageMode })}
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {!disableDrag && (
@@ -49,22 +58,20 @@ const SubgroupCard = forwardRef(
               <HolderOutlined />
             </span>
           )}
-          <div
-            className={styles.title}
-            style={{ cursor: 'pointer' }}
-            onClick={onToggle}
-          >
+          <div className={styles.title}>
             {title}
           </div>
         </div>
         <AnimatePresence initial={false}>
           {isOpen && (
             <Motion.div
+              className="nt-children"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
               style={{ overflow: 'visible', marginLeft: '1rem', padding: '0.25rem 0' }}
+              onClick={(e) => e.stopPropagation()}
             >
               {children}
             </Motion.div>
@@ -76,4 +83,3 @@ const SubgroupCard = forwardRef(
 );
 
 export default SubgroupCard;
-

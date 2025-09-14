@@ -27,6 +27,16 @@ body {
   /* Chrome, Safari, Opera */
 }
 
+/* NotebookTree card hover logic: only deepest hovered card highlights */
+.nt-card {
+  transition: border-color 180ms ease;
+}
+
+/* Highlight only if this card is hovered and no descendant card is hovered */
+.nt-card:hover:not(:has(.nt-card:hover)):not(:has(.nt-children:hover)) {
+  border-color: var(--highlight-color) !important;
+}
+
 /* Global Ant Design Drawer styling */
 .ant-drawer-header,
 .ant-drawer-title,

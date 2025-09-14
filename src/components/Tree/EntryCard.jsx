@@ -103,7 +103,17 @@ const EntryCard = forwardRef(
     <div
       ref={mergedRef}
       style={style}
-      className={classNames(styles.card, { [styles.interactive]: !manageMode })}
+      className={classNames('nt-card', styles.card, { [styles.interactive]: !manageMode })}
+      role={actionsDisabled ? undefined : 'button'}
+      tabIndex={actionsDisabled ? -1 : 0}
+      onClick={onToggle}
+      onKeyDown={(e) => {
+        if (actionsDisabled) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
     >
       <div style={{ display: 'flex', alignItems: 'center' }}>
         {!disableDrag && (
@@ -119,7 +129,6 @@ const EntryCard = forwardRef(
         <div
           className={styles.title}
           style={{ cursor: actionsDisabled ? 'default' : 'pointer' }}
-          onClick={onToggle}
         >
           {entry.title}
         </div>
@@ -132,7 +141,7 @@ const EntryCard = forwardRef(
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
             style={{ overflow: 'visible', marginLeft: '1rem', padding: '0.25rem 0' }}
-            onClick={() => onEdit?.(entry)}
+            onClick={(e) => { e.stopPropagation(); onEdit?.(entry); }}
           >
             {entry.snippet && <p className={styles.snippet}>{entry.snippet}</p>}
             {!actionsDisabled && (
@@ -165,4 +174,3 @@ const EntryCard = forwardRef(
 });
 
 export default EntryCard;
-

@@ -1,37 +1,46 @@
 .card {
   --scale: 1;
-  margin-bottom: 1.5rem;
-  padding: 1.5rem;
-  /* Solid fallback if CSS vars are missing */
-  background-color: #e0e0e0;
-  /* Fallbacks for when Ant Design CSS vars exist */
-  background-color: var(--ant-colorBgContainer, #ffffff);
-  background-color: color-mix(in srgb, var(--ant-colorBgContainer, #ffffff) 88%, var(--ant-colorText, #000000) 12%);
+  margin-bottom: 1rem;
+  padding: 0.875rem 1.125rem;
+  background: color-mix(in srgb, var(--ant-colorBgContainer, #ffffff) 100%, var(--ant-colorText, #000000) 0%);
   color: var(--ant-colorText);
-  border: 0;
-  border-radius: 1rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
   user-select: none;
+  box-shadow: none;
   transition:
     transform var(--ant-motion-duration-mid) ease,
-    background-color var(--ant-motion-duration-mid) ease;
+    background-color var(--ant-motion-duration-mid) ease,
+    border-color var(--ant-motion-duration-mid) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+  .card.interactive:hover { --scale: 1; }
 }
 
 body[data-theme="dark"] .card {
-  /* Solid fallback for dark mode if CSS vars are missing */
-  background-color: #3a3a3a;
-  /* Fallbacks for when Ant Design CSS vars exist */
-  background-color: var(--ant-colorBgContainer, #1f1f1f);
-  background-color: color-mix(in srgb, var(--ant-colorBgContainer, #1f1f1f) 88%, var(--ant-colorText, #ffffff) 12%);
+  background: color-mix(in srgb, var(--ant-colorBgContainer, #1f1f1f) 100%, var(--ant-colorText, #ffffff) 0%);
+  border-color: color-mix(in oklab, var(--ant-colorText, #fff) 14%, transparent);
 }
 
 .interactive {}
 
-.card.interactive:hover {
-  --scale: 1.02;
+.card:hover {
+  --scale: 1.003;
 }
 
 .title {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
+  line-height: 1.4;
+  margin: 0.125rem 0;
+  padding: 0.125rem 0.125rem;
+  border-radius: 6px;
+}
+
+.card:focus-visible {
+  outline: none;
+  border-color: var(--highlight-color);
 }
 
 .snippet {

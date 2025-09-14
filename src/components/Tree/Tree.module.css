@@ -1,8 +1,8 @@
 .root {
-  padding: 2rem;
-  background: var(--ant-colorBgContainer);
-  border: 1px solid var(--ant-colorBorder);
-  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 /* Low-specificity overrides that play nice with AntD v5 */
@@ -49,7 +49,7 @@
 }
 
 .header {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .headerTitle {
@@ -58,8 +58,8 @@
 
 .meta {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin-top: 0.25rem;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--ant-colorTextSecondary);
 }
