@@ -1,6 +1,7 @@
 import React from 'react';
 import { Drawer as AntDrawer, Button } from 'antd';
-import { MenuOutlined } from '@ant-design/icons';
+import SidebarToggleIcon from './SidebarToggleIcon';
+import styles from './Drawer.module.css';
 import templates from './templates';
 
 /**
@@ -38,7 +39,9 @@ export default function Drawer({
       {onHamburgerClick && !open && (
         <Button
           type="text"
-          icon={<MenuOutlined />}
+          className={styles.hamburgerBtn}
+          aria-label="Open drawer"
+          icon={<SidebarToggleIcon placement="right" />}
           onClick={onHamburgerClick}
           style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1002 }}
         />
@@ -58,23 +61,27 @@ export default function Drawer({
           getContainer={getContainer}
           destroyOnClose={destroyOnClose}
           rootStyle={getContainer === false ? { position: 'absolute' } : undefined}
-          bodyStyle={{ padding: '1rem', position: 'relative' }}
+          bodyStyle={{ padding: '1rem' }}
           {...rest}
         >
-          {onHamburgerClick && open && (
-            <Button
-              type="text"
-              icon={<MenuOutlined />}
-              onClick={onHamburgerClick}
-              style={{ position: 'absolute', top: '1rem', left: '1rem', zIndex: 1 }}
-            />
-          )}
-          {sections.header}
-          {sections.body}
-          {sections.footer}
+          <div className={styles.drawerBody}>
+            {onHamburgerClick && open && (
+              <div className={styles.toggleRow}>
+                <Button
+                  type="text"
+                  className={styles.hamburgerBtn}
+                  aria-label="Toggle drawer"
+                  onClick={onHamburgerClick}
+                  icon={<SidebarToggleIcon open placement="right" />}
+                />
+              </div>
+            )}
+            {sections.header}
+            {sections.body}
+            {sections.footer}
+          </div>
         </AntDrawer>
       </div>
     </>
   );
 }
-
