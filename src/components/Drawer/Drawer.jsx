@@ -1,7 +1,9 @@
 import React from 'react';
 import { Drawer as AntDrawer, Button } from 'antd';
 import SidebarToggleIcon from './SidebarToggleIcon';
+import SpinnerIcon from './SpinnerIcon';
 import styles from './Drawer.module.css';
+import { useNetwork } from '@/components/NetworkProvider';
 import templates from './templates';
 
 /**
@@ -23,6 +25,7 @@ export default function Drawer({
   getContainer = false,
   ...rest
 }) {
+  const { isLoading } = useNetwork();
   let sections = {
     header,
     body: body || children,
@@ -41,7 +44,16 @@ export default function Drawer({
           type="text"
           className={styles.hamburgerBtn}
           aria-label={open ? 'Close drawer' : 'Open drawer'}
-          icon={<SidebarToggleIcon placement="right" open={open} />}
+          icon={
+            <span className={`${styles.iconSwap} ${isLoading ? styles.loading : ''}`}>
+              <span className={`${styles.iconLayer} ${styles.iconNormal}`}>
+                <SidebarToggleIcon placement="right" open={open} />
+              </span>
+              <span className={`${styles.iconLayer} ${styles.iconSpinner}`}>
+                <SpinnerIcon size={28} />
+              </span>
+            </span>
+          }
           onClick={onHamburgerClick}
           style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1003 }}
         />
@@ -61,7 +73,7 @@ export default function Drawer({
           getContainer={getContainer}
           destroyOnClose={destroyOnClose}
           rootStyle={getContainer === false ? { position: 'absolute' } : undefined}
-          bodyStyle={{ padding: '1rem' }}
+          styles={{ body: { padding: '1rem' } }}
           {...rest}
         >
           <div className={styles.drawerBody}>

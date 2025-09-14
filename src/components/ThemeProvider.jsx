@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useEffect, useState } from 'react';
 import { ConfigProvider } from 'antd';
+import NetworkProvider from './NetworkProvider';
 
 const HIGHLIGHT_COLORS = {
   blue: { light: '#1677ff', dark: '#69b1ff' },
@@ -125,7 +126,7 @@ export default function ThemeProvider({ children }) {
       }}
     >
       <ThemeContext.Provider value={{ darkMode, toggleTheme, highlightColor, setHighlightColor: chooseHighlight }}>
-        {children}
+        <NetworkProvider>{children}</NetworkProvider>
       </ThemeContext.Provider>
     </ConfigProvider>
   );

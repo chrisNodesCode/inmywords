@@ -57,3 +57,42 @@
 .hamburgerBtn:global(.ant-btn-text):focus {
   background: transparent !important;
 }
+
+/* Spinner animation */
+@keyframes nt-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Apply animation to our SVG spinner inside the button */
+.hamburgerBtn :global(.spinnerIcon) {
+  display: block;
+  animation: nt-spin 1s linear infinite;
+}
+
+/* If user selected a custom highlight, tint spinner */
+[data-highlight-custom='true'] .hamburgerBtn :global(.spinnerIcon) {
+  color: var(--highlight-color) !important;
+}
+
+/* Crossfade swap container for icons */
+.iconSwap {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+}
+
+.iconLayer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 150ms ease;
+}
+
+.iconNormal { opacity: 1; }
+.iconSpinner { opacity: 0; }
+.loading .iconNormal { opacity: 0; }
+.loading .iconSpinner { opacity: 1; }
