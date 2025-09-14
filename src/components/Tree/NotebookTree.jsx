@@ -32,6 +32,7 @@ export default function NotebookTree({
   onEdit,
   notebookId,
   loadData,
+  reloadNode,
   manageMode,
   reorderMode = false,
   showArchived = false,
@@ -94,6 +95,7 @@ export default function NotebookTree({
   const subgroupRefs = useRef({});
   const entryRefs = useRef({});
   const editDrawerHideRef = useRef(null);
+  const didInitialManageLoad = useRef(false);
 
   const clearEditDrawerHide = () => {
     if (editDrawerHideRef.current) {
@@ -163,12 +165,34 @@ export default function NotebookTree({
 
   const handleSubgroupToggle = async (sub) => {
     if (manageMode) {
+      const currentGroupId =
+        treeData.find((g) => g.children?.some((s) => s.key === sub.key))?.key || null;
       openDrawerByType('editSubgroup', {
         id: sub.key,
         initialData: sub,
-        currentGroupId: treeData.find((g) => g.children?.some((s) => s.key === sub.key))?.key || null,
+        currentGroupId,
         groupOptions: treeData.map((g) => ({ id: g.key, title: g.title })),
-        onSave: (updated) => handleEntitySave('subgroup', updated),
+        manageMode: true,
+        stayOpenOnSave: true,
+        onSave: async (updated) => {
+          // Optimistically move/update locally, then refresh both groups
+          handleEntitySave('subgroup', updated);
+          const newGroupId = updated.groupId || updated.group?.id || currentGroupId;
+          const fromGroup = treeData.find((g) => g.key === currentGroupId);
+          const toGroup = treeData.find((g) => g.key === newGroupId);
+          const refresher = reloadNode || loadData;
+          if (refresher) {
+            if (fromGroup) await refresher(fromGroup, showArchived);
+            if (toGroup && toGroup !== fromGroup) await refresher(toGroup, showArchived);
+          }
+          setOpenGroupId(newGroupId);
+          setOpenSubgroupId(updated.id);
+          setOpenEntryId(null);
+          // Smooth scroll to the moved subgroup after state updates
+          setTimeout(() => {
+            scrollTo(subgroupRefs, updated.id);
+          }, 0);
+        },
         onDelete: (type, deletedId) => {
           setTreeData((groups) => {
             const newGroups = groups.map((g) => ({ ...g }));
@@ -205,58 +229,31 @@ export default function NotebookTree({
 
   const handleEntryToggle = (entry) => {
     const entryId = typeof entry === 'object' ? entry.id : entry;
-    if (manageMode) {
-      const subs = treeData.flatMap((g) =>
-        (g.children || []).map((s) => ({
-          id: s.key,
-          title: s.title,
-          groupTitle: g.title,
-        }))
-      );
-      openDrawerByType('editEntry', {
-        id: entryId,
-        initialData: entry,
-        subgroupOptions: subs,
-        onSave: (updated) => handleEntitySave('entry', updated),
-        onDelete: (type, deletedId) => {
-          setTreeData((groups) => {
-            const newGroups = groups.map((g) => ({
-              ...g,
-              children: g.children?.map((s) => ({
-                ...s,
-                children: s.children ? [...s.children] : [],
-              })) || [],
-            }));
-            for (const g of newGroups) {
-              for (const s of g.children) {
-                const before = s.children.length;
-                s.children = (s.children || []).filter(
-                  (e) => e.id !== deletedId && e.key !== deletedId
-                );
-                if (before !== s.children.length) {
-                  if (typeof s.entryCount === 'number') {
-                    s.entryCount = Math.max(0, s.entryCount - 1);
-                  } else {
-                    s.entryCount = s.children.filter((e) => !e.archived).length;
-                  }
-                  break;
-                }
-              }
-            }
-            return newGroups;
-          });
-          if (openEntryId === deletedId) setOpenEntryId(null);
-        },
-      });
-      return;
-    }
+    if (manageMode) return; // entries not interactive in manage mode (edit via editor instead)
     setOpenEntryId((prev) => (prev === entryId ? null : entryId));
     setTimeout(() => scrollTo(entryRefs, entryId), 0);
   };
 
   useEffect(() => {
-    if (!manageMode || !loadData) return;
-    async function loadAll() {
+    if (!loadData) return;
+    if (!manageMode) {
+      didInitialManageLoad.current = false;
+      return;
+    }
+    // When entering manage mode, force-close subgroups and entries
+    setOpenSubgroupId(null);
+    setOpenEntryId(null);
+  }, [manageMode]);
+
+  useEffect(() => {
+    if (!loadData) return;
+    if (!manageMode) {
+      didInitialManageLoad.current = false;
+      return;
+    }
+    if (didInitialManageLoad.current) return;
+    didInitialManageLoad.current = true;
+    async function loadAllOnce() {
       for (const group of treeData) {
         await loadData(group, showArchived);
         if (group.children) {
@@ -266,8 +263,9 @@ export default function NotebookTree({
         }
       }
     }
-    loadAll();
-  }, [manageMode, loadData, treeData, showArchived]);
+    loadAllOnce();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manageMode, loadData, showArchived]);
 
   const persistGroupOrder = (items) => {
     const orders = items.map((g, index) => ({ id: g.key, user_sort: index }));
@@ -542,7 +540,7 @@ export default function NotebookTree({
                           disableDrag={subgroupDragDisabled}
                           ref={(el) => (subgroupRefs.current[sub.key] = el)}
                           title={`${sub.title} (${nonArchivedCount})`}
-                          isOpen={manageMode || openSubgroupId === sub.key}
+                          isOpen={openSubgroupId === sub.key}
                           onToggle={() => handleSubgroupToggle(sub)}
                           manageMode={manageMode}
                         >

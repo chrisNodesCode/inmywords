@@ -164,7 +164,10 @@ export default function EntityEditDrawer() {
       const data = await res.json();
       onSave?.(data);
     }
-    handleClose();
+    // In manage mode, keep drawer open to allow chained edits
+    if (!props.manageMode && !props.stayOpenOnSave) {
+      handleClose();
+    }
   };
 
   const handleClose = () => {

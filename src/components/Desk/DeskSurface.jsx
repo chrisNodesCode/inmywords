@@ -278,6 +278,59 @@ export default function DeskSurface({
     return Promise.resolve();
   };
 
+  // Force reload a node's children from server, ignoring cached children
+  const reloadNode = (node, showArch = showArchived) => {
+    if (!node) return Promise.resolve();
+    if (node.type === 'group') {
+      return fetch(`/api/subgroups?groupId=${node.key}`)
+        .then((res) => (res.ok ? res.json() : []))
+        .then((subgroups) => {
+          setTreeData((origin) =>
+            updateTreeData(
+              origin,
+              node.key,
+              subgroups.map((sg) => ({
+                title: sg.name,
+                key: sg.id,
+                type: 'subgroup',
+                groupId: node.key,
+                entryCount: sg.entryCount ?? 0,
+              }))
+            )
+          );
+        })
+        .catch((err) => console.error('Failed to load subgroups', err));
+    }
+    if (node.type === 'subgroup') {
+      return fetch(`/api/entries?subgroupId=${node.key}`)
+        .then((res) => (res.ok ? res.json() : []))
+        .then((entries) => {
+          const nonArchived = entries.filter((e) => !e.archived);
+          const filtered = showArch ? entries : nonArchived;
+          setTreeData((origin) =>
+            updateTreeData(
+              origin,
+              node.key,
+              filtered.map((e) => ({
+                id: e.id,
+                title: e.title,
+                key: e.id,
+                snippet: getPlainTextSnippet(e.content),
+                content: e.content,
+                isLeaf: true,
+                type: 'entry',
+                subgroupId: node.key,
+                groupId: node.groupId,
+              })),
+              { entryCount: nonArchived.length }
+            )
+          );
+        })
+        .catch((err) => console.error('Failed to load entries', err));
+    }
+    return Promise.resolve();
+  };
+
   const reloadEntries = (subgroupId, groupId, showArch = showArchived) => {
     fetch(`/api/entries?subgroupId=${subgroupId}`)
       .then((res) => (res.ok ? res.json() : []))
@@ -632,6 +685,7 @@ export default function DeskSurface({
   const treeProps = {
     showLine: true,
     loadData,
+    reloadNode,
     treeData,
     setTreeData,
     onSelect: handleNodeSelect,

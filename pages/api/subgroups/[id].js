@@ -36,19 +36,34 @@ export default async function handler(req, res) {
         return res.status(200).json(subgroup);
 
       case 'PUT': {
-        // Update subgroup name/description
-        const { name, description } = req.body;
+        // Update subgroup fields; optionally move to a different parent group
+        const { name, description, groupId } = req.body;
         if (name !== undefined && typeof name !== 'string') {
           return res.status(400).json({ error: 'Invalid name' });
         }
         if (description !== undefined && typeof description !== 'string') {
           return res.status(400).json({ error: 'Invalid description' });
         }
+        if (groupId !== undefined && typeof groupId !== 'string') {
+          return res.status(400).json({ error: 'Invalid groupId' });
+        }
+
+        // If moving to a different group, verify target group belongs to the same user
+        if (groupId) {
+          const targetGroup = await prisma.group.findUnique({
+            where: { id: groupId },
+            include: { notebook: true },
+          });
+          if (!targetGroup || targetGroup.notebook.userId !== userId) {
+            return res.status(404).json({ error: 'Target group not found' });
+          }
+        }
         const updated = await prisma.subgroup.update({
           where: { id },
           data: {
             ...(name !== undefined ? { name } : {}),
             ...(description !== undefined ? { description } : {}),
+            ...(groupId !== undefined ? { groupId } : {}),
           }
         });
         return res.status(200).json(updated);
