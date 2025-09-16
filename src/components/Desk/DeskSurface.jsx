@@ -652,9 +652,9 @@ export default function DeskSurface({
     handleCancel(true);
   };
 
-  // Autosave every 30 seconds while the editor is open.
+  // Autosave every 30 seconds while an existing entry is open (edit mode only).
   useEffect(() => {
-    if (!(editorState.isOpen && editorState.type === 'entry')) return;
+    if (!(editorState.isOpen && editorState.type === 'entry' && editorState.mode === 'edit')) return;
     let retries = 0;
     const MAX_RETRIES = 3;
     const interval = setInterval(() => {
@@ -671,7 +671,7 @@ export default function DeskSurface({
     }, 30000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editorState.isOpen, editorState.type, title, content]);
+  }, [editorState.isOpen, editorState.type, editorState.mode, title, content]);
 
 
   const openEntry = (node, item) => {
