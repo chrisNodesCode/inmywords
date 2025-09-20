@@ -40,6 +40,14 @@ function getPlainTextSnippet(html, length = 200) {
   return text.length > length ? `${text.slice(0, length)}...` : text;
 }
 
+const INITIAL_EDITOR_STATE = {
+  isOpen: false,
+  type: null,
+  parent: null,
+  item: null,
+  mode: 'create',
+};
+
 /**
  * DeskSurface
  * Pure layout + lifted state. Holds top-level state/handlers formerly in NotebookDev.jsx
@@ -70,13 +78,7 @@ export default function DeskSurface({
     }
   }, []);
   const [reorderMode, setReorderMode] = useState(false);
-  const [editorState, setEditorState] = useState({
-    isOpen: false,
-    type: null,
-    parent: null,
-    item: null,
-    mode: 'create',
-  });
+  const [editorState, setEditorState] = useState(() => ({ ...INITIAL_EDITOR_STATE }));
 
   // NotebookEditor state
   const [title, setTitle] = useState('');
@@ -177,30 +179,38 @@ export default function DeskSurface({
     []
   );
 
-  // Load available notebooks on first render so tree data can load without
-  // waiting for the controller drawer to mount and trigger selection.
+  // Restore the last opened notebook if the id is still valid.
   useEffect(() => {
-    async function fetchInitialNotebook() {
+    if (typeof window === 'undefined') return;
+    const stored = localStorage.getItem('lastNotebookId');
+    if (!stored) return;
+
+    let cancelled = false;
+
+    const restoreNotebook = async () => {
       try {
-        const res = await fetch('/api/notebooks');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.length) {
-          let initial = data[0].id;
-          if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('lastNotebookId');
-            if (stored && data.some((nb) => nb.id === stored)) {
-              initial = stored;
-            }
-            localStorage.setItem('lastNotebookId', initial);
+        const res = await fetch(`/api/notebooks/${stored}`);
+        if (!res.ok) {
+          if (!cancelled) {
+            localStorage.removeItem('lastNotebookId');
           }
-          setNotebookId(initial);
+          return;
+        }
+        if (!cancelled) {
+          setNotebookId(stored);
         }
       } catch (err) {
-        console.error('Failed to load notebooks', err);
+        if (!cancelled) {
+          console.error('Failed to restore notebook', err);
+        }
       }
-    }
-    fetchInitialNotebook();
+    };
+
+    restoreNotebook();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const fetchGroups = async () => {
@@ -217,6 +227,22 @@ export default function DeskSurface({
   };
 
   useEffect(() => {
+    if (!notebookId) {
+      setTreeData([]);
+      setShowEdits(false);
+      setReorderMode(false);
+      setEditorState(() => ({ ...INITIAL_EDITOR_STATE }));
+      setTitle('');
+      setTitleInput('');
+      setContent('');
+      setLastSaved(null);
+      setPreviewEntry(null);
+      if (fullFocus) {
+        document.exitFullscreen?.();
+      }
+      setFullFocus(false);
+      return;
+    }
     fetchGroups();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notebookId]);
@@ -593,11 +619,12 @@ export default function DeskSurface({
 
   useEffect(() => {
     if (showEdits) {
+      // Entering manage mode: ensure controller is visible and pinned
       setControllerPinned(true);
       openControllerDrawer();
     } else {
-      setControllerPinned(false);
-      closeControllerDrawer();
+      // Exiting manage mode: leave the controller drawer state as-is
+      // (do not auto-close). Users control visibility via the hamburger.
     }
     // openControllerDrawer/closeControllerDrawer change identity when the drawer state
     // updates, so we intentionally omit them from the dependency array to avoid
@@ -795,7 +822,7 @@ export default function DeskSurface({
     onHamburgerClick: handleControllerHamburgerClick,
     onMouseEnter: handleControllerMouseEnter,
     onMouseLeave: handleControllerMouseLeave,
-    onSelect: setNotebookId,
+    onSelect: (id) => setNotebookId(id || null),
     showEdits,
     onToggleEdits: () => setShowEdits((prev) => !prev),
     reorderMode,
@@ -811,6 +838,9 @@ export default function DeskSurface({
         throttleManageHover();
       }
     },
+    disabledControls: notebookId
+      ? undefined
+      : { manage: true, reorder: true, fullFocus: true, showArchived: true },
     ...menuRest,
   };
 

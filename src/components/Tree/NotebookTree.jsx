@@ -61,6 +61,16 @@ export default function NotebookTree({
   const [openSubgroupId, setOpenSubgroupId] = useState(null);
   const [openEntryId, setOpenEntryId] = useState(null);
 
+  useEffect(() => {
+    if (notebookId) return;
+    setNotebookTitle('');
+    setCreatedAt('');
+    setUpdatedAt('');
+    setOpenGroupId(null);
+    setOpenSubgroupId(null);
+    setOpenEntryId(null);
+  }, [notebookId]);
+
   // remember open state when toggling reorder mode
   const prevOpenStateRef = useRef({ group: null, subgroup: null, entry: null });
 
@@ -606,7 +616,7 @@ export default function NotebookTree({
           })}
         </SortableContext>
       </DndContext>
-      {!manageMode && onAddGroup && <AddGroupButton onAddGroup={onAddGroup} />}
+      {!manageMode && onAddGroup && notebookId && <AddGroupButton onAddGroup={onAddGroup} />}
       {editDrawerOpen && (
         <div
           onMouseEnter={handleEditDrawerMouseEnter}

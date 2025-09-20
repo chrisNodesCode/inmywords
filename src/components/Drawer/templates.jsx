@@ -16,6 +16,7 @@ import { ThemeContext } from '../ThemeProvider';
 import HighlightColorPicker from '../HighlightColorPicker';
 import Drawer from './Drawer';
 import { useDrawer } from './DrawerManager';
+import styles from './Drawer.module.css';
 
 /**
  * Template factory functions for Drawer.
@@ -127,6 +128,8 @@ function NotebookControllerContent({
   showArchived,
   onToggleArchived,
   onAddNotebookDrawerChange,
+  disabledControls,
+  autoSelectOnLoad = true,
 }) {
   const [notebooks, setNotebooks] = useState([]);
   const [selected, setSelected] = useState('');
@@ -142,6 +145,14 @@ function NotebookControllerContent({
     closeDrawer: closeNotebookDrawer,
   } = useDrawer('new-notebook');
 
+  const isControlDisabled = (key) => {
+    if (disabledControls === true) return true;
+    if (disabledControls && typeof disabledControls === 'object') {
+      return Boolean(disabledControls[key] || disabledControls.all);
+    }
+    return false;
+  };
+
   useEffect(() => {
     async function fetchNotebooks() {
       try {
@@ -149,31 +160,40 @@ function NotebookControllerContent({
         if (!res.ok) throw new Error('Failed to fetch notebooks');
         const data = await res.json();
         setNotebooks(data);
-        if (data.length) {
-          let initial = data[0].id;
-          if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('lastNotebookId');
-            if (stored && data.some((nb) => nb.id === stored)) {
-              initial = stored;
-            }
-            localStorage.setItem('lastNotebookId', initial);
+
+        let restoredId = '';
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem('lastNotebookId');
+          if (stored && data.some((nb) => nb.id === stored)) {
+            restoredId = stored;
+          } else if (stored) {
+            localStorage.removeItem('lastNotebookId');
           }
-          setSelected(initial);
-          onSelect(initial);
+        }
+
+        if (autoSelectOnLoad && restoredId) {
+          setSelected(restoredId);
+          onSelect(restoredId);
+        } else {
+          setSelected('');
         }
       } catch (err) {
         console.error(err);
       }
     }
     fetchNotebooks();
-  }, [onSelect]);
+  }, [onSelect, autoSelectOnLoad]);
 
   const handleChange = (e) => {
     const id = e.target.value;
     setSelected(id);
     onSelect(id);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('lastNotebookId', id);
+      if (id) {
+        localStorage.setItem('lastNotebookId', id);
+      } else {
+        localStorage.removeItem('lastNotebookId');
+      }
     }
   };
 
@@ -209,6 +229,14 @@ function NotebookControllerContent({
     }
   };
 
+  const handleClearSelection = () => {
+    setSelected('');
+    onSelect(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('lastNotebookId');
+    }
+  };
+
   const handleCreateDrawer = async () => {
     await handleCreate({
       name: newTitle,
@@ -231,6 +259,12 @@ function NotebookControllerContent({
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
       >
+        <Link
+          href="/account"
+          className={`${styles.hamburgerBtn} ${styles.drawerAvatarLink}`}
+        >
+          <Avatar size={28} icon={<UserOutlined />} />
+        </Link>
         <select
           value={selected}
           onChange={handleChange}
@@ -242,6 +276,13 @@ function NotebookControllerContent({
             </option>
           ))}
         </select>
+        <Button
+          onClick={handleClearSelection}
+          style={{ width: '100%' }}
+          disabled={!selected}
+        >
+          Clear Selection
+        </Button>
         <Button onClick={openNotebookDrawer} style={{ width: '100%' }}>
           Add New
         </Button>
@@ -255,15 +296,27 @@ function NotebookControllerContent({
             }
             checked={showEdits}
             onChange={onToggleEdits}
+            size="small"
+            disabled={isControlDisabled('manage')}
           />
           <span>Manage</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Switch checked={reorderMode} onChange={onToggleReorder} />
+          <Switch
+            checked={reorderMode}
+            onChange={onToggleReorder}
+            size="small"
+            disabled={isControlDisabled('reorder')}
+          />
           <span>Re-order</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Switch checked={fullFocus} onChange={onFullFocusToggle} />
+          <Switch
+            checked={fullFocus}
+            onChange={onFullFocusToggle}
+            size="small"
+            disabled={isControlDisabled('fullFocus')}
+          />
           <span>Full Focus Mode</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -271,20 +324,13 @@ function NotebookControllerContent({
             checked={showArchived}
             onChange={onToggleArchived}
             size="small"
+            disabled={isControlDisabled('showArchived')}
           />
           <span>Show Archived</span>
         </div>
-        <Avatar
-          size="large"
-          icon={<UserOutlined />}
-          style={{ alignSelf: 'center' }}
-        />
-        <Link href="/account" style={{ marginBottom: '0.5rem' }}>
-          Account
-        </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span>Dark Mode</span>
-          <Switch checked={darkMode} onChange={toggleTheme} />
+          <Switch checked={darkMode} onChange={toggleTheme} size="small" />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span>Highlight</span>
@@ -356,4 +402,3 @@ export default {
   editor,
   controller,
 };
-

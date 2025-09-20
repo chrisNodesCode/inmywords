@@ -77,16 +77,6 @@ export default function Drawer({
           {...rest}
         >
           <div className={styles.drawerBody}>
-            {/* Invisible placeholder to reserve space equal to the toggle icon */}
-            <div className={styles.toggleRow}>
-              <Button
-                type="text"
-                className={`${styles.hamburgerBtn} ${styles.togglePlaceholder}`}
-                aria-hidden
-                tabIndex={-1}
-                icon={<SidebarToggleIcon placement="right" open={open} />}
-              />
-            </div>
             {sections.header}
             {sections.body}
             {sections.footer}
