@@ -16,6 +16,8 @@
 - Entries may be archived instead of deleted. Archived entries are hidden by
   default but can be shown using the "Show Archived" toggle in the notebook
   controller. Archived items appear greyed out and can be restored later.
+- Entry workflow progress is tracked via a `status` field (`none`,
+  `in_progress`, or `complete`) to support future automation and filtering.
 - Tags: Meta data that relate to entries and are intended to be used to provide global search functionality
 - Pattern: The set of notebook aliases (Title, Description, Groups, Subgroups, Entries) that define the structure of a notebook
 - Model: A notebook instance with at least one group and one subgroup, representing data shaped by a pattern

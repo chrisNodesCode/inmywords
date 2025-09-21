@@ -122,18 +122,21 @@ async function main() {
       content: 'Content for Subgroup A',
       subgroupId: subgroups[0].id,
       tagIds: [tags[0].id, tags[1].id],
+      status: 'in_progress',
     },
     {
       title: 'Entry 1B',
       content: 'Content for Subgroup B',
       subgroupId: subgroups[1].id,
       tagIds: [tags[1].id, tags[2].id],
+      status: 'none',
     },
     {
       title: 'Entry 2C',
       content: 'Content for Subgroup C',
       subgroupId: subgroups[2].id,
       tagIds: [tags[2].id, tags[0].id],
+      status: 'complete',
     },
   ];
   for (const info of entryData) {
@@ -143,6 +146,7 @@ async function main() {
         content: info.content,
         userId: user.id,
         subgroupId: info.subgroupId,
+        status: info.status,
         tags: {
           connect: info.tagIds.map(id => ({ id })),
         },
