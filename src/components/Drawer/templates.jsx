@@ -17,6 +17,7 @@ import HighlightColorPicker from '../HighlightColorPicker';
 import Drawer from './Drawer';
 import { useDrawer } from './DrawerManager';
 import styles from './Drawer.module.css';
+import { ENTRY_STATUS_VALUES } from '@/constants/entryStatus';
 
 /**
  * Template factory functions for Drawer.
@@ -36,6 +37,8 @@ export function editor({
   groups = [],
   selectedSubgroupId,
   onChangeSubgroup,
+  status,
+  onStatusChange,
   onSave,
   onSaveAndClose,
   onDelete,
@@ -77,6 +80,19 @@ export function editor({
           parser={(value) => value.replace('%', '')}
         />
       </div>
+      {type === 'entry' && (
+        <Select
+          value={status}
+          onChange={onStatusChange}
+          options={ENTRY_STATUS_VALUES.map((value) => ({
+            value,
+            label: value
+              .replace(/_/g, ' ')
+              .replace(/\b\w/g, (char) => char.toUpperCase()),
+          }))}
+          size="small"
+        />
+      )}
       {type === 'entry' && groups.length > 0 && (
         <Select
           value={selectedSubgroupId}

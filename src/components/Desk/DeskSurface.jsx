@@ -86,6 +86,7 @@ export default function DeskSurface({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
   const [content, setContent] = useState('');
+  const [status, setStatus] = useState(DEFAULT_ENTRY_STATUS);
   const [lastSaved, setLastSaved] = useState(null);
   const [maxWidth, setMaxWidth] = useState(50);
   const [isSaving, setIsSaving] = useState(false);
@@ -236,6 +237,7 @@ export default function DeskSurface({
       setTitle('');
       setTitleInput('');
       setContent('');
+      setStatus(DEFAULT_ENTRY_STATUS);
       setLastSaved(null);
       setPreviewEntry(null);
       if (fullFocus) {
@@ -424,6 +426,7 @@ export default function DeskSurface({
     openEditorDrawer,
     setEditorPinned,
     setEditorState,
+    setStatus,
   });
 
   const handleAddDrawerClose = () => {
@@ -515,6 +518,7 @@ export default function DeskSurface({
     setTitle('');
     setTitleInput('');
     setContent('');
+    setStatus(DEFAULT_ENTRY_STATUS);
     setLastSaved(null);
     throttleManageHover();
   };
@@ -525,12 +529,18 @@ export default function DeskSurface({
       const subgroupId = data.subgroupId || editorState.parent?.subgroupId;
       const oldSubgroupId = editorState.parent?.initialSubgroupId ?? editorState.parent?.subgroupId;
       const oldGroupId = editorState.parent?.initialGroupId ?? editorState.parent?.groupId;
+      const statusValue = data.status ?? status ?? DEFAULT_ENTRY_STATUS;
       let savedEntry;
       if (editorState.mode === 'edit') {
         const res = await fetch(`/api/entries/${editorState.item.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: data.title, content: data.content, subgroupId }),
+          body: JSON.stringify({
+            title: data.title,
+            content: data.content,
+            subgroupId,
+            status: statusValue,
+          }),
         });
         if (res.ok) {
           savedEntry = await res.json();
@@ -539,11 +549,20 @@ export default function DeskSurface({
         const res = await fetch('/api/entries', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: data.title, content: data.content, subgroupId }),
+          body: JSON.stringify({
+            title: data.title,
+            content: data.content,
+            subgroupId,
+            status: statusValue,
+          }),
         });
         if (res.ok) {
           savedEntry = await res.json();
-          setEditorState((prev) => ({ ...prev, mode: 'edit', item: savedEntry }));
+          setEditorState((prev) => ({
+            ...prev,
+            mode: 'edit',
+            item: savedEntry ? { ...savedEntry, status: savedEntry.status ?? statusValue } : prev.item,
+          }));
         }
       }
       const newGroupId = findGroupIdBySubgroup(subgroupId) ?? editorState.parent.groupId;
@@ -561,7 +580,13 @@ export default function DeskSurface({
           initialSubgroupId: subgroupId,
           initialGroupId: newGroupId,
         },
+        item: savedEntry
+          ? { ...savedEntry, status: savedEntry.status ?? statusValue }
+          : prev.item
+          ? { ...prev.item, status: statusValue }
+          : prev.item,
       }));
+      setStatus(statusValue);
       return savedEntry;
     } catch (err) {
       console.error('Save failed', err);
@@ -645,6 +670,13 @@ export default function DeskSurface({
     });
   };
 
+  const handleStatusChange = (value) => {
+    setStatus(value);
+    setEditorState((prev) =>
+      prev?.item ? { ...prev, item: { ...prev.item, status: value } } : prev
+    );
+  };
+
   const handleDelete = async () => {
     if (!editorState.item?.id) return;
     try {
@@ -672,13 +704,13 @@ export default function DeskSurface({
   };
 
   const handleNotebookSave = async () => {
-    await handleSave({ title, content, subgroupId: editorState.parent?.subgroupId });
+    await handleSave({ title, content, status, subgroupId: editorState.parent?.subgroupId });
     setLastSaved(new Date());
   };
 
 
   const handleNotebookSaveAndClose = async () => {
-    await handleSave({ title, content, subgroupId: editorState.parent?.subgroupId });
+    await handleSave({ title, content, status, subgroupId: editorState.parent?.subgroupId });
     handleCancel(true);
   };
 
@@ -707,6 +739,7 @@ export default function DeskSurface({
   const openEntry = (node, item) => {
     setTitle(item.title || '');
     setContent(item.content || '');
+    setStatus(item.status ?? DEFAULT_ENTRY_STATUS);
     setIsEditingTitle(false);
     setTitleInput('');
     setLastSaved(item?.updatedAt ? new Date(item.updatedAt) : null);
@@ -818,6 +851,8 @@ export default function DeskSurface({
     groups,
     selectedSubgroupId: editorState.parent?.subgroupId,
     onChangeSubgroup: handleChangeSubgroup,
+    status,
+    onStatusChange: handleStatusChange,
     onSave: handleNotebookSave,
     onSaveAndClose: handleNotebookSaveAndClose,
     onDelete: handleDelete,

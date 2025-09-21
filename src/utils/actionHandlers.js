@@ -26,12 +26,14 @@ export const createAddEntryHandler = ({
   openEditorDrawer,
   setEditorPinned,
   setEditorState,
+  setStatus,
 }) => (groupId, subgroupId) => {
   setTitle('');
   setContent('');
   setIsEditingTitle(true);
   setTitleInput('');
   setLastSaved(null);
+  setStatus(DEFAULT_ENTRY_STATUS);
   closeControllerDrawer();
   setControllerPinned(false);
   openEditorDrawer();
