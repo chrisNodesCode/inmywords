@@ -2,6 +2,7 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import { PrismaClient } from '@prisma/client';
+import { ENTRY_STATUS_VALUES } from '@/constants/entryStatus';
 
 const prisma = new PrismaClient();
 
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
 
       case 'PUT': {
         // Parse and validate input
-        const { title, content, subgroupId, tagIds, archived } = req.body;
+        const { title, content, subgroupId, tagIds, archived, status } = req.body;
         if (title !== undefined && typeof title !== 'string') {
           return res.status(400).json({ error: 'Invalid title' });
         }
@@ -49,6 +50,11 @@ export default async function handler(req, res) {
         }
         if (archived !== undefined && typeof archived !== 'boolean') {
           return res.status(400).json({ error: 'Invalid archived flag' });
+        }
+        if (status !== undefined) {
+          if (typeof status !== 'string' || !ENTRY_STATUS_VALUES.includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+          }
         }
 
         // If subgroup change requested, verify new subgroup ownership
@@ -73,6 +79,7 @@ export default async function handler(req, res) {
               ? { tags: { set: tagIds.map(id => ({ id })) } }
               : {}),
             ...(archived !== undefined ? { archived } : {}),
+            ...(status !== undefined ? { status } : {}),
           },
           include: {
             tags: true,

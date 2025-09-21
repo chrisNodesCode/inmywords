@@ -39,6 +39,7 @@ const GroupCard = forwardRef(
         className={classNames('nt-card', styles.card, { [styles.interactive]: !manageMode })}
         role="button"
         tabIndex={0}
+        aria-label={title}
         onClick={onToggle}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {

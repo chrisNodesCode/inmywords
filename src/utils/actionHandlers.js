@@ -1,3 +1,5 @@
+import { DEFAULT_ENTRY_STATUS } from '@/constants/entryStatus';
+
 export const createAddGroupHandler = ({ notebookId, openDrawerByType, closeControllerDrawer, setControllerPinned, setAddDrawerFields }) => () => {
   if (!notebookId) return;
   setAddDrawerFields({ name: '', description: '' });
@@ -47,7 +49,7 @@ export const createEditEntryHandler = (openEntry) => async (entry) => {
   const res = await fetch(`/api/entries/${entry.id}`);
   const item = res.ok
     ? await res.json()
-    : { id: entry.id, title: entry.title, content: '' };
+    : { id: entry.id, title: entry.title, content: '', status: entry.status ?? DEFAULT_ENTRY_STATUS };
   openEntry(entry, item);
 };
 

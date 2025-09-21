@@ -33,7 +33,7 @@ export default function Drawer({
   };
 
   if (template && templates[template]) {
-    sections = templates[template](rest);
+    sections = templates[template]({ ...rest, open });
     rest = {};
   }
 

@@ -253,7 +253,7 @@ export default function NotebookTree({
     // When entering manage mode, force-close subgroups and entries
     setOpenSubgroupId(null);
     setOpenEntryId(null);
-  }, [manageMode]);
+  }, [manageMode, loadData]);
 
   useEffect(() => {
     if (!loadData) return;
@@ -456,6 +456,7 @@ export default function NotebookTree({
               id: updated.id,
               title: updated.title,
               snippet: updated.content?.slice(0, 100) || updated.snippet || '',
+              status: updated.status,
             });
             targetSub.entryCount =
               typeof targetSub.entryCount === 'number'

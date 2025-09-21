@@ -35,6 +35,7 @@ export default function NetworkProvider({ children }) {
   return <NetworkContext.Provider value={value}>{children}</NetworkContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useNetwork() {
   return useContext(NetworkContext);
 }

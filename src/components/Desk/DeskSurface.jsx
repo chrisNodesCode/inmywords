@@ -23,6 +23,7 @@ import {
   createAddEntryHandler,
   createEditEntryHandler,
 } from '@/utils/actionHandlers';
+import { DEFAULT_ENTRY_STATUS } from '@/constants/entryStatus';
 
 function updateTreeData(list, key, children, extra = {}) {
   return list.map((node) => {
@@ -289,6 +290,7 @@ export default function DeskSurface({
                 key: e.id,
                 snippet: getPlainTextSnippet(e.content),
                 content: e.content,
+                status: e.status,
                 isLeaf: true,
                 type: 'entry',
                 subgroupId: node.key,
@@ -373,6 +375,7 @@ export default function DeskSurface({
               key: e.id,
               snippet: getPlainTextSnippet(e.content),
               content: e.content,
+              status: e.status,
               isLeaf: true,
               type: 'entry',
               subgroupId,
@@ -735,7 +738,14 @@ export default function DeskSurface({
       return;
     }
     const res = await fetch(`/api/entries/${node.key}`);
-    const item = res.ok ? await res.json() : { id: node.key, title: node.title, content: '' };
+    const item = res.ok
+      ? await res.json()
+      : {
+          id: node.key,
+          title: node.title,
+          content: '',
+          status: node.status ?? DEFAULT_ENTRY_STATUS,
+        };
     setPreviewEntry({ ...item, groupId: node.groupId, subgroupId: node.subgroupId });
   };
 

@@ -5,6 +5,7 @@ import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { HolderOutlined } from '@ant-design/icons';
+import { DEFAULT_ENTRY_STATUS } from '@/constants/entryStatus';
 import styles from './EntryCard.module.css';
 
 const EntryCard = forwardRef(
@@ -78,6 +79,7 @@ const EntryCard = forwardRef(
         content: data.content,
         subgroupId: data.subgroupId,
         tagIds: data.tags?.map((t) => t.id),
+        status: data.status ?? DEFAULT_ENTRY_STATUS,
       }),
     });
   };
@@ -106,6 +108,7 @@ const EntryCard = forwardRef(
       className={classNames('nt-card', styles.card, { [styles.interactive]: !manageMode })}
       role={actionsDisabled ? undefined : 'button'}
       tabIndex={actionsDisabled ? -1 : 0}
+      aria-label={actionsDisabled ? undefined : entry.title}
       onClick={onToggle}
       onKeyDown={(e) => {
         if (actionsDisabled) return;

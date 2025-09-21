@@ -2,6 +2,7 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import { PrismaClient } from '@prisma/client';
+import { ENTRY_STATUS_VALUES, DEFAULT_ENTRY_STATUS } from '@/constants/entryStatus';
 
 const prisma = new PrismaClient();
 
@@ -47,7 +48,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { title, content, subgroupId, tagIds } = req.body;
+    const { title, content, subgroupId, tagIds, status } = req.body;
 
     // Validate required fields
     if (!title || typeof title !== 'string') {
@@ -62,6 +63,13 @@ export default async function handler(req, res) {
     if (tagIds && (!Array.isArray(tagIds) || !tagIds.every(id => typeof id === 'string'))) {
       return res.status(400).json({ error: 'tagIds must be an array of strings' });
     }
+    if (status !== undefined) {
+      if (typeof status !== 'string' || !ENTRY_STATUS_VALUES.includes(status)) {
+        return res.status(400).json({ error: 'Invalid status' });
+      }
+    }
+
+    const entryStatus = status ?? DEFAULT_ENTRY_STATUS;
 
     try {
       // Verify subgroup ownership
@@ -82,6 +90,7 @@ export default async function handler(req, res) {
           title,
           content,
           userId,
+          status: entryStatus,
           subgroupId,
           user_sort: order,
           tags: tagIds

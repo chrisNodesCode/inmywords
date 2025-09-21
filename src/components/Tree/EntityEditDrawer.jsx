@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Drawer from '@/components/Drawer/Drawer';
 import { useDrawer } from '@/components/Drawer/DrawerManager';
 import { Input, Button, Select, Tag, Modal, message } from 'antd';
+import { ENTRY_STATUS_VALUES, DEFAULT_ENTRY_STATUS } from '@/constants/entryStatus';
 
 /**
  * Drawer for editing a notebook tree entity.
@@ -48,6 +49,7 @@ export default function EntityEditDrawer() {
   const [notebookId, setNotebookId] = useState(
     initialData?.subgroup?.group?.notebookId ?? ''
   );
+  const [status, setStatus] = useState(initialData?.status ?? DEFAULT_ENTRY_STATUS);
   // subgroup specific: parent group selection
   const [parentGroupId, setParentGroupId] = useState(currentGroupId || '');
 
@@ -70,7 +72,8 @@ export default function EntityEditDrawer() {
       ''
     );
     setParentGroupId(currentGroupId || '');
-  }, [initialData, open]);
+    setStatus(initialData?.status ?? DEFAULT_ENTRY_STATUS);
+  }, [initialData, open, currentGroupId]);
 
   // fetch latest data when opening
   useEffect(() => {
@@ -99,6 +102,7 @@ export default function EntityEditDrawer() {
             data.subgroup?.group?.notebook?.id ??
             ''
           );
+          setStatus(data.status ?? DEFAULT_ENTRY_STATUS);
         } else {
           setTitle(data.title ?? data.name ?? '');
           setDescription(data.description ?? '');
@@ -141,6 +145,7 @@ export default function EntityEditDrawer() {
         content,
         subgroupId,
         tagIds: tags.map((t) => t.id),
+        status,
       };
     } else if (type === 'notebook') {
       payload = {
@@ -241,6 +246,19 @@ export default function EntityEditDrawer() {
 
       {type === 'entry' && (
         <>
+          <Select
+            value={status}
+            onChange={setStatus}
+            style={{ width: '100%', marginBottom: '0.5rem' }}
+          >
+            {ENTRY_STATUS_VALUES.map((value) => (
+              <Select.Option key={value} value={value}>
+                {value
+                  .replace(/_/g, ' ')
+                  .replace(/\b\w/g, (char) => char.toUpperCase())}
+              </Select.Option>
+            ))}
+          </Select>
           <Input.TextArea
             placeholder="Content"
             value={content}
@@ -286,7 +304,7 @@ export default function EntityEditDrawer() {
   const footer = (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
       <div>
-        {type !== 'notebook' && id && (
+        {open && type !== 'notebook' && id && (
           <Button
             danger
             onClick={() => {
@@ -310,6 +328,7 @@ export default function EntityEditDrawer() {
                     props.onDelete?.(type, id);
                     handleClose();
                   } catch (err) {
+                    console.error('Failed to delete entity', err);
                     message.error('Failed to delete. Please try again.');
                   }
                 },

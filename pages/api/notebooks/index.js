@@ -2,6 +2,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]";
 import { PrismaClient } from "@prisma/client";
+import { DEFAULT_ENTRY_STATUS, ENTRY_STATUS_VALUES } from "@/constants/entryStatus";
 
 const prisma = new PrismaClient();
 
@@ -63,12 +64,17 @@ export default async function handler(req, res) {
                 });
                 if (Array.isArray(sg.entries)) {
                   for (const e of sg.entries) {
+                    const entryStatus =
+                      typeof e.status === 'string' && ENTRY_STATUS_VALUES.includes(e.status)
+                        ? e.status
+                        : DEFAULT_ENTRY_STATUS;
                     await tx.entry.create({
                       data: {
                         title: e.title || e.id || "Entry",
                         content: e.content || "",
                         userId,
                         subgroupId: subgroup.id,
+                        status: entryStatus,
                       },
                     });
                   }
