@@ -13,6 +13,7 @@ import AddSubgroupButton from './AddSubgroupButton';
 import AddEntryButton from './AddEntryButton';
 import EntityEditDrawer from './EntityEditDrawer';
 import styles from './Tree.module.css';
+import { DEFAULT_ENTRY_STATUS } from '@/constants/entryStatus';
 import { useDrawer, useDrawerByType } from '@/components/Drawer/DrawerManager';
 import { createEntryDeleteHandler } from '@/utils/actionHandlers';
 
@@ -571,6 +572,7 @@ export default function NotebookTree({
                                   openEntryId !== null;
                                 const entryWithContext = {
                                   ...entry,
+                                  status: entry.status ?? DEFAULT_ENTRY_STATUS,
                                   subgroupId: sub.key,
                                   groupId: group.key,
                                 };
@@ -581,7 +583,7 @@ export default function NotebookTree({
                                     disableDrag={entryDragDisabled}
                                     ref={(el) => (entryRefs.current[entryWithContext.id] = el)}
                                     entry={entryWithContext}
-                                    isOpen={openEntryId === entry.id}
+                                    isOpen={openEntryId === entryWithContext.id}
                                     onToggle={() => handleEntryToggle(entryWithContext)}
                                     onEdit={onEdit}
                                     onDelete={handleEntryDelete}

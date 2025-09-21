@@ -24,10 +24,51 @@ body[data-theme="dark"] .card {
   border-color: color-mix(in oklab, var(--ant-colorText, #fff) 14%, transparent);
 }
 
+.card.highlighted .title,
+.card.highlighted .snippet {
+  color: var(--highlight-color);
+}
+
 .interactive {}
 
 .card:hover {
   --scale: 1.003;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--ant-colorBgContainer, #ffffff) 85%, var(--ant-colorText, #000000) 15%);
+  color: inherit;
+  border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+  white-space: nowrap;
+}
+
+.statusHighlighted {
+  color: var(--highlight-color);
+  border-color: var(--highlight-color);
+  background: color-mix(in srgb, var(--highlight-color) 12%, transparent);
 }
 
 .title {

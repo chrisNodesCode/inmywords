@@ -8,6 +8,8 @@ import { HolderOutlined } from '@ant-design/icons';
 import { DEFAULT_ENTRY_STATUS } from '@/constants/entryStatus';
 import styles from './EntryCard.module.css';
 
+const HIGHLIGHT_STATUSES = new Set(['complete']);
+
 const EntryCard = forwardRef(
   (
     {
@@ -43,6 +45,17 @@ const EntryCard = forwardRef(
       },
       [ref, setNodeRef]
     );
+
+    const status = entry?.status ?? DEFAULT_ENTRY_STATUS;
+    const normalizedStatus =
+      typeof status === 'string'
+        ? status.toLowerCase()
+        : String(DEFAULT_ENTRY_STATUS).toLowerCase();
+    const isHighlightedStatus = HIGHLIGHT_STATUSES.has(normalizedStatus);
+    const statusLabel =
+      typeof status === 'string' && status.length > 0
+        ? status.charAt(0).toUpperCase() + status.slice(1)
+        : '';
 
   const handleEdit = (e) => {
     e.stopPropagation();
@@ -105,7 +118,10 @@ const EntryCard = forwardRef(
     <div
       ref={mergedRef}
       style={style}
-      className={classNames('nt-card', styles.card, { [styles.interactive]: !manageMode })}
+      className={classNames('nt-card', styles.card, {
+        [styles.interactive]: !manageMode,
+        [styles.highlighted]: isHighlightedStatus,
+      })}
       role={actionsDisabled ? undefined : 'button'}
       tabIndex={actionsDisabled ? -1 : 0}
       aria-label={actionsDisabled ? undefined : entry.title}
@@ -118,7 +134,7 @@ const EntryCard = forwardRef(
         }
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div className={styles.headerRow}>
         {!disableDrag && (
           <span
             {...attributes}
@@ -129,11 +145,24 @@ const EntryCard = forwardRef(
             <HolderOutlined />
           </span>
         )}
-        <div
-          className={styles.title}
-          style={{ cursor: actionsDisabled ? 'default' : 'pointer' }}
-        >
-          {entry.title}
+        <div className={styles.titleGroup}>
+          {statusLabel && (
+            <span
+              className={classNames(styles.statusPill, {
+                [styles.statusHighlighted]: isHighlightedStatus,
+              })}
+              aria-label={`Status: ${statusLabel}`}
+              title={statusLabel}
+            >
+              {statusLabel}
+            </span>
+          )}
+          <div
+            className={styles.title}
+            style={{ cursor: actionsDisabled ? 'default' : 'pointer' }}
+          >
+            {entry.title}
+          </div>
         </div>
       </div>
       <AnimatePresence initial={false}>
