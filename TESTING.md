@@ -19,3 +19,17 @@ This command runs ESLint with zero warnings allowed and then executes Jest tests
 - **Accessibility.** Query elements by accessible roles and names to mirror how users interact with the UI.
 
 See `src/components/Tree/NotebookTree.test.jsx` for an example of testing a dynamic component.
+
+## Manual QA checklist
+
+Use the following smoke test after deploying UI changes that affect entry
+statuses:
+
+1. Create a new entry and confirm the status pill shows "None" in the tree.
+2. Update the entry to `in_progress` and verify the pill text updates without
+   highlight styling.
+3. Update the entry to `complete` and confirm both the pill and card receive the
+   highlighted styling.
+4. Click the snippet area to ensure the entry editor still opens via `onEdit`.
+5. Attempt to save an entry with an invalid status via the API and verify the
+   response returns `400 Bad Request`.

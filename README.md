@@ -16,8 +16,10 @@
 - Entries may be archived instead of deleted. Archived entries are hidden by
   default but can be shown using the "Show Archived" toggle in the notebook
   controller. Archived items appear greyed out and can be restored later.
-- Entry workflow progress is tracked via a `status` field (`none`,
-  `in_progress`, or `complete`) to support future automation and filtering.
+- Entry workflow progress is tracked via a `status` field to support future
+  automation and filtering. Entries start in the `none` state and can transition
+  to `in_progress` or `complete`. Completed entries render with a highlighted
+  status pill in the tree view so they stand out visually.
 - Tags: Meta data that relate to entries and are intended to be used to provide global search functionality
 - Pattern: The set of notebook aliases (Title, Description, Groups, Subgroups, Entries) that define the structure of a notebook
 - Model: A notebook instance with at least one group and one subgroup, representing data shaped by a pattern
@@ -125,6 +127,16 @@
 - tags
 - - [id].js
 - - index.js
+
+### Entry statuses
+
+- Default status: `none`
+- In progress: `in_progress`
+- Complete: `complete`
+
+The API validates that any `status` provided in POST/PUT requests for entries
+matches one of the above values. Invalid statuses return `400 Bad Request`
+errors, ensuring client code cannot persist unsupported workflow states.
 
 ## Development
 
