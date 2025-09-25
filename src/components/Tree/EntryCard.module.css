@@ -60,9 +60,19 @@ body[data-theme="dark"] .card {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   background: color-mix(in srgb, var(--ant-colorBgContainer, #ffffff) 85%, var(--ant-colorText, #000000) 15%);
-  color: inherit;
+  color: #000000;
   border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
   white-space: nowrap;
+}
+
+body[data-theme="dark"] .statusPill {
+  color: #000000;
+  background: color-mix(
+    in srgb,
+    #ffffff 75%,
+    var(--ant-colorBgContainer, #1f1f1f) 25%
+  );
+  border-color: color-mix(in srgb, #000000 35%, transparent);
 }
 
 .statusHighlighted {
