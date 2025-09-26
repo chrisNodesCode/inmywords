@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import { ENTRY_STATUS_VALUES, DEFAULT_ENTRY_STATUS } from '@/constants/entryStatus';
 import prisma from '@/api/prismaClient';
+import {
+  parsePaginationParams,
+  parseFilterParams,
+  parseProjectionParams,
+} from '@/api/pagination';
 
 export default async function handler(req, res) {
   // Authenticate user
@@ -13,32 +18,136 @@ export default async function handler(req, res) {
   const userId = session.user.id;
 
   if (req.method === 'GET') {
-    const { notebookId, groupId, subgroupId } = req.query;
+    let pagination;
+    let filters;
+    let projection;
+
+    try {
+      pagination = parsePaginationParams(req.query, { defaultTake: 20, maxTake: 100 });
+      filters = parseFilterParams(req.query, {
+        notebookId: { type: 'string' },
+        groupId: { type: 'string' },
+        subgroupId: { type: 'string' },
+        status: { type: 'string', values: ENTRY_STATUS_VALUES },
+      });
+      projection = parseProjectionParams(req.query, {
+        allowedSelectFields: [
+          'id',
+          'title',
+          'content',
+          'status',
+          'archived',
+          'user_sort',
+          'subgroupId',
+          'createdAt',
+          'updatedAt',
+        ],
+        requiredFields: ['id'],
+        defaultSelect: {
+          id: true,
+          title: true,
+          content: true,
+          status: true,
+          archived: true,
+          user_sort: true,
+          subgroupId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        allowedIncludes: {
+          tags: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+            },
+          },
+          subgroup: {
+            select: {
+              id: true,
+              name: true,
+              groupId: true,
+              group: {
+                select: {
+                  id: true,
+                  name: true,
+                  notebookId: true,
+                },
+              },
+            },
+          },
+        },
+        defaultIncludes: ['tags', 'subgroup'],
+      });
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
 
     // Base filter: only entries owned by this user
     const where = { userId };
 
-    // Narrow by subgroup, group, or notebook, if provided
-    if (subgroupId) {
-      where.subgroupId = subgroupId;
-    } else if (groupId) {
-      where.subgroup = { groupId };
-    } else if (notebookId) {
-      where.subgroup = { group: { notebookId } };
+    if (filters.status) {
+      where.status = filters.status;
+    }
+
+    if (filters.subgroupId) {
+      where.subgroupId = filters.subgroupId;
+    } else if (filters.groupId) {
+      where.subgroup = { groupId: filters.groupId };
+    } else if (filters.notebookId) {
+      where.subgroup = { group: { notebookId: filters.notebookId } };
     }
 
     try {
-      const entries = await prisma.entry.findMany({
+      const total = await prisma.entry.count({ where });
+
+      const queryArgs = {
         where,
-        include: {
-          tags: true,
-          subgroup: {
-            include: { group: true },
-          },
-        },
         orderBy: { user_sort: 'asc' },
-      });
-      return res.status(200).json(entries);
+        take: pagination.take + 1,
+        select: projection.select,
+      };
+
+      if (pagination.cursor) {
+        queryArgs.cursor = { id: pagination.cursor };
+        queryArgs.skip = 1;
+      } else if (pagination.skip !== undefined) {
+        queryArgs.skip = pagination.skip;
+      }
+
+      const records = await prisma.entry.findMany(queryArgs);
+
+      let nextCursor = null;
+      if (records.length > pagination.take) {
+        const nextRecord = records.pop();
+        nextCursor = nextRecord?.id ?? null;
+      }
+
+      const data = records;
+      const hasMore = nextCursor !== null
+        ? true
+        : pagination.skip !== undefined
+          ? pagination.skip + data.length < total
+          : data.length < total;
+
+      const meta = {
+        take: pagination.take,
+        count: data.length,
+        total,
+        hasMore,
+      };
+
+      if (pagination.skip !== undefined) {
+        meta.skip = pagination.skip;
+      }
+      if (pagination.cursor) {
+        meta.cursor = pagination.cursor;
+      }
+      if (nextCursor) {
+        meta.nextCursor = nextCursor;
+      }
+
+      return res.status(200).json({ data, meta });
     } catch (error) {
       console.error('GET /api/entries error', error);
       return res.status(500).json({ error: 'Failed to fetch entries' });
