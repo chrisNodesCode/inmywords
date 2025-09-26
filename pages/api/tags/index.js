@@ -1,12 +1,8 @@
 // src/pages/api/tags/index.js
 
-import { PrismaClient } from '@prisma/client';
 import { authOptions } from "../auth/[...nextauth]"; // Ensure this path is correct
 import { getServerSession } from 'next-auth/next';
-
-
-
-const prisma = new PrismaClient();
+import prisma from '@/api/prismaClient';
 
 export default async function handler(req, res) {
   // Authenticate user

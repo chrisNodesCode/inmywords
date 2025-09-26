@@ -1,10 +1,8 @@
 // pages/api/notebooks/index.js
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]";
-import { PrismaClient } from "@prisma/client";
 import { DEFAULT_ENTRY_STATUS, ENTRY_STATUS_VALUES } from "@/constants/entryStatus";
-
-const prisma = new PrismaClient();
+import prisma from "@/api/prismaClient";
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);

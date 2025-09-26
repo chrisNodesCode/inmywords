@@ -21,21 +21,21 @@ Our goal is to provide a single source of truth for client configuration, guard 
 
 ## Proposed Module Structure
 
-Create `lib/prisma.js` with the following shape:
+Create `src/api/prismaClient.js` with the following shape:
 
 ```js
 import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis;
 
-const prisma = globalForPrisma.prisma ?? new PrismaClient({
+const prisma = globalForPrisma.__prismaClient ?? new PrismaClient({
   log: process.env.NODE_ENV === 'development'
     ? ['query', 'error', 'warn']
     : ['error'],
 });
 
 if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
+  globalForPrisma.__prismaClient = prisma;
 }
 
 export default prisma;
@@ -49,19 +49,19 @@ Key details:
 
 ## Usage Patterns
 
-* **API routes / NextAuth**: Replace `new PrismaClient()` with `import prisma from '@/lib/prisma';`. No additional changes required.
+* **API routes / NextAuth**: Replace `new PrismaClient()` with `import prisma from '@/api/prismaClient';`. No additional changes required.
 * **Background jobs & scripts**: Import the same singleton. Long-running scripts that need to exit should `await prisma.$disconnect()` in a `finally` block to close the connection after use. Document this in script templates.
 * **Testing utilities**: Tests can mock the module or instantiate isolated clients by clearing the cache in setup/teardown when needed.
 
 ## Hot Reload Safeguards
 
 * The `globalThis` cache ensures that each HMR cycle reuses the existing client rather than creating a new instance.
-* We will guard against multiple assignments by checking `globalForPrisma.prisma` before creating a new client.
-* For Jest or Vitest environments that reload per test file, test setup can clear `globalForPrisma.prisma` to avoid cross-test bleed.
+* We will guard against multiple assignments by checking `globalForPrisma.__prismaClient` before creating a new client.
+* For Jest or Vitest environments that reload per test file, test setup can clear `globalForPrisma.__prismaClient` to avoid cross-test bleed.
 
 ## Migration Plan
 
-1. **Introduce `lib/prisma.js`** with the shared logic described above.
+1. **Introduce `src/api/prismaClient.js`** with the shared logic described above.
 2. **Codemod imports** across `pages/api/**/*`, `pages/api/auth/[...nextauth].js`, and `prisma/seed.mjs` to use the shared module.
 3. **Update `prisma/seed.mjs`** to disconnect explicitly at the end of the script via `await prisma.$disconnect()`.
 4. **Add documentation** referencing the shared client in `docs/backend/prisma-usage-inventory.md` and developer onboarding materials.

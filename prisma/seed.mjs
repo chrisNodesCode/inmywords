@@ -1,9 +1,7 @@
-import { PrismaClient } from '@prisma/client';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
-const prisma = new PrismaClient();
+import prisma, { disconnectPrisma } from '../src/api/prismaClient.js';
 
 async function main() {
   // 1. Upsert demo user with fixed UUID
@@ -158,10 +156,10 @@ async function main() {
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
+  .catch((error) => {
+    console.error('Seed failed', error);
+    process.exitCode = 1;
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await disconnectPrisma();
   });
