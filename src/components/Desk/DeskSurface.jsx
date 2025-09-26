@@ -1,6 +1,6 @@
 
 
-import React, { useEffect, useState, useRef, useContext } from 'react';
+import React, { useEffect, useState, useRef, useContext, useCallback } from 'react';
 import classNames from 'classnames';
 import styles from './Desk.module.css';
 
@@ -70,6 +70,10 @@ export default function DeskSurface({
   const [treeData, setTreeData] = useState([]);
   const [showEdits, setShowEdits] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const unwrapPayload = useCallback(
+    (payload) => (Array.isArray(payload) ? payload : payload?.data ?? []),
+    [],
+  );
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('showArchived');
@@ -220,7 +224,8 @@ export default function DeskSurface({
     try {
       const res = await fetch(`/api/groups?notebookId=${notebookId}`);
       if (res.ok) {
-        const groups = await res.json();
+        const payload = await res.json();
+        const groups = unwrapPayload(payload);
         setTreeData(groups.map((g) => ({ title: g.name, key: g.id, type: 'group' })));
       }
     } catch (err) {
@@ -258,7 +263,8 @@ export default function DeskSurface({
     if (node.type === 'group') {
       return fetch(`/api/subgroups?groupId=${node.key}`)
         .then((res) => (res.ok ? res.json() : []))
-        .then((subgroups) => {
+        .then((subgroupsPayload) => {
+          const subgroups = unwrapPayload(subgroupsPayload);
           setTreeData((origin) =>
             updateTreeData(
               origin,
@@ -279,7 +285,8 @@ export default function DeskSurface({
     if (node.type === 'subgroup') {
       return fetch(`/api/entries?subgroupId=${node.key}`)
         .then((res) => (res.ok ? res.json() : []))
-        .then((entries) => {
+        .then((entriesPayload) => {
+          const entries = unwrapPayload(entriesPayload);
           const nonArchived = entries.filter((e) => !e.archived);
           const filtered = showArch ? entries : nonArchived;
           setTreeData((origin) =>
@@ -314,7 +321,8 @@ export default function DeskSurface({
     if (node.type === 'group') {
       return fetch(`/api/subgroups?groupId=${node.key}`)
         .then((res) => (res.ok ? res.json() : []))
-        .then((subgroups) => {
+        .then((subgroupsPayload) => {
+          const subgroups = unwrapPayload(subgroupsPayload);
           setTreeData((origin) =>
             updateTreeData(
               origin,
@@ -334,7 +342,8 @@ export default function DeskSurface({
     if (node.type === 'subgroup') {
       return fetch(`/api/entries?subgroupId=${node.key}`)
         .then((res) => (res.ok ? res.json() : []))
-        .then((entries) => {
+        .then((entriesPayload) => {
+          const entries = unwrapPayload(entriesPayload);
           const nonArchived = entries.filter((e) => !e.archived);
           const filtered = showArch ? entries : nonArchived;
           setTreeData((origin) =>
@@ -365,7 +374,8 @@ export default function DeskSurface({
   const reloadEntries = (subgroupId, groupId, showArch = showArchived) => {
     fetch(`/api/entries?subgroupId=${subgroupId}`)
       .then((res) => (res.ok ? res.json() : []))
-      .then((entries) => {
+      .then((entriesPayload) => {
+        const entries = unwrapPayload(entriesPayload);
         const nonArchived = entries.filter((e) => !e.archived);
         const filtered = showArch ? entries : nonArchived;
         setTreeData((origin) =>
@@ -460,7 +470,8 @@ export default function DeskSurface({
         } else if (type === 'subgroup') {
           fetch(`/api/subgroups?groupId=${parentId}`)
             .then((r) => (r.ok ? r.json() : []))
-            .then((subgroups) => {
+            .then((subgroupsPayload) => {
+              const subgroups = unwrapPayload(subgroupsPayload);
               setTreeData((origin) =>
                 updateTreeData(
                   origin,

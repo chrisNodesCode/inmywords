@@ -2,6 +2,11 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import prisma from '@/api/prismaClient';
+import {
+  parsePaginationParams,
+  parseFilterParams,
+  parseProjectionParams,
+} from '@/api/pagination';
 
 export default async function handler(req, res) {
   // Authenticate user
@@ -12,39 +17,138 @@ export default async function handler(req, res) {
   const userId = session.user.id;
 
   if (req.method === 'GET') {
-    const { groupId } = req.query;
-    if (!groupId) {
-      return res.status(400).json({ error: 'Missing groupId query parameter' });
-    }
+    let pagination;
+    let filters;
+    let projection;
+
     try {
-      // Ensure the group belongs to the user and fetch its subgroups
-      const subgroups = await prisma.subgroup.findMany({
-        where: {
-          groupId,
-          group: {
-            notebook: {
-              userId,
-            },
-          },
+      pagination = parsePaginationParams(req.query, { defaultTake: 50, maxTake: 100 });
+      filters = parseFilterParams(req.query, {
+        groupId: { type: 'string' },
+      });
+      projection = parseProjectionParams(req.query, {
+        allowedSelectFields: [
+          'id',
+          'name',
+          'description',
+          'user_sort',
+          'groupId',
+          'createdAt',
+          'updatedAt',
+        ],
+        requiredFields: ['id'],
+        defaultSelect: {
+          id: true,
+          name: true,
+          description: true,
+          user_sort: true,
+          groupId: true,
+          createdAt: true,
+          updatedAt: true,
         },
-        orderBy: { user_sort: 'asc' },
-        include: {
-          _count: {
+        allowedIncludes: {
+          group: {
             select: {
-              entries: {
-                where: { archived: false },
-              },
+              id: true,
+              name: true,
+              notebookId: true,
             },
           },
         },
       });
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
 
-      const withCounts = subgroups.map(({ _count, ...sg }) => ({
-        ...sg,
-        entryCount: _count?.entries ?? 0,
+    if (!filters.groupId) {
+      return res.status(400).json({ error: 'Missing groupId query parameter' });
+    }
+
+    const where = {
+      groupId: filters.groupId,
+      group: {
+        notebook: {
+          userId,
+        },
+      },
+    };
+
+    try {
+      const total = await prisma.subgroup.count({ where });
+
+      const queryArgs = {
+        where,
+        orderBy: { user_sort: 'asc' },
+        take: pagination.take + 1,
+        select: projection.select,
+      };
+
+      if (pagination.cursor) {
+        queryArgs.cursor = { id: pagination.cursor };
+        queryArgs.skip = 1;
+      } else if (pagination.skip !== undefined) {
+        queryArgs.skip = pagination.skip;
+      }
+
+      const records = await prisma.subgroup.findMany(queryArgs);
+
+      let nextCursor = null;
+      if (records.length > pagination.take) {
+        const nextRecord = records.pop();
+        nextCursor = nextRecord?.id ?? null;
+      }
+
+      const data = records;
+
+      const subgroupIds = data.map(subgroup => subgroup.id);
+      let entryCounts = {};
+      if (subgroupIds.length) {
+        const counts = await prisma.entry.groupBy({
+          by: ['subgroupId'],
+          where: {
+            subgroupId: { in: subgroupIds },
+            userId,
+            archived: false,
+          },
+          _count: {
+            _all: true,
+          },
+        });
+        entryCounts = counts.reduce((acc, current) => {
+          acc[current.subgroupId] = current._count?._all ?? 0;
+          return acc;
+        }, {});
+      }
+
+      const enriched = data.map(subgroup => ({
+        ...subgroup,
+        entryCount: entryCounts[subgroup.id] ?? 0,
       }));
 
-      return res.status(200).json(withCounts);
+      const hasMore = nextCursor !== null
+        ? true
+        : pagination.skip !== undefined
+          ? pagination.skip + enriched.length < total
+          : enriched.length < total;
+
+      const meta = {
+        take: pagination.take,
+        count: enriched.length,
+        total,
+        hasMore,
+      };
+
+      if (pagination.skip !== undefined) {
+        meta.skip = pagination.skip;
+      }
+      if (pagination.cursor) {
+        meta.cursor = pagination.cursor;
+      }
+      if (nextCursor) {
+        meta.nextCursor = nextCursor;
+      }
+
+      return res.status(200).json({ data: enriched, meta });
     } catch (error) {
       console.error('GET /api/subgroups error', error);
       return res.status(500).json({ error: 'Failed to fetch subgroups' });
