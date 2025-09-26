@@ -1,7 +1,7 @@
 /* eslint-env node */
 
 import Stripe from 'stripe';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/api/prismaClient';
 
 export const config = {
   api: {
@@ -10,7 +10,6 @@ export const config = {
 };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const prisma = new PrismaClient();
 
 const PRICE_TO_PLAN = {
   [process.env.STRIPE_PRICE_STANDARD]: 'standard',

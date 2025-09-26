@@ -2,11 +2,10 @@
 // pages/api/account/index.js
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import Stripe from 'stripe';
+import prisma from '@/api/prismaClient';
 
-const prisma = new PrismaClient();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
