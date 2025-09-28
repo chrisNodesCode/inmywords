@@ -16,6 +16,16 @@ body {
   color: #000000;
   line-height: 1.6;
   transition: background-color 0.3s ease, color 0.3s ease;
+  --entry-status-pill-color: #000000;
+  --entry-status-pill-bg: color-mix(
+    in srgb,
+    var(--ant-colorBgContainer, #ffffff) 85%,
+    var(--ant-colorText, #000000) 15%
+  );
+  --entry-status-pill-border: color-mix(in srgb, var(--entry-status-pill-color) 40%, transparent);
+  --entry-status-pill-highlight-bg: var(--highlight-color);
+  --entry-status-pill-highlight-border: var(--highlight-color);
+  --entry-status-pill-highlight-color: var(--ant-colorBgBase, #ffffff);
 }
 
 /* Hide scrollbars globally for a consistent experience */
@@ -41,10 +51,14 @@ body {
   border-color: var(--highlight-color) !important;
 }
 
+.nt-children > :first-child {
+  margin-top: 1.5rem;
+}
+
 /* In Manage mode, show dotted outlines on hover for editable cards */
 [data-manage-mode='true'] .nt-card:hover:not(:has(.nt-card:hover)):not(:has(.nt-children:hover)) {
   border-color: var(--highlight-color) !important;
-  border-style: dotted !important;
+  border-style: dashed !important;
   border-width: 2px !important;
 }
 
@@ -81,6 +95,16 @@ body[data-theme='dark'] {
   --btn-bg: #333333;      /* matches editor archive/cancel */
   --btn-bg-hover: #444444;/* matches editor hover */
   --btn-fg: #ffffff;
+  --entry-status-pill-color: #000000;
+  --entry-status-pill-bg: color-mix(
+    in srgb,
+    #ffffff 75%,
+    var(--ant-colorBgContainer, #1f1f1f) 25%
+  );
+  --entry-status-pill-border: color-mix(in srgb, #000000 35%, transparent);
+  --entry-status-pill-highlight-bg: var(--highlight-color);
+  --entry-status-pill-highlight-border: var(--highlight-color);
+  --entry-status-pill-highlight-color: #000000;
 }
 
 body[data-theme='dark'] .ant-drawer-title,
@@ -1095,4 +1119,8 @@ body[data-theme='dark'] .ant-switch .ant-switch-inner .ant-switch-inner-unchecke
 
 body[data-theme='dark'] .ant-switch-checked .ant-switch-inner .ant-switch-inner-checked {
   color: #000;
+}
+
+body[data-theme='dark'] .ant-select-dropdown .ant-select-item-option-selected .ant-select-item-option-content {
+  color: #000000 !important;
 }

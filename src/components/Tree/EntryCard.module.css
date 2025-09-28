@@ -1,6 +1,6 @@
 .card {
   --scale: 1;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
   padding: 0.875rem 1.125rem;
   background: color-mix(in srgb, var(--ant-colorBgContainer, #ffffff) 100%, var(--ant-colorText, #000000) 0%);
   color: var(--ant-colorText);
@@ -33,6 +33,7 @@ body[data-theme="dark"] .card {
 
 .card:hover {
   --scale: 1.003;
+  border-style: dashed;
 }
 
 .headerRow {
@@ -59,26 +60,24 @@ body[data-theme="dark"] .card {
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  background: color-mix(in srgb, var(--ant-colorBgContainer, #ffffff) 85%, var(--ant-colorText, #000000) 15%);
-  color: #000000;
-  border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+  background: var(--entry-status-pill-bg,
+    color-mix(
+      in srgb,
+      var(--ant-colorBgContainer, #ffffff) 85%,
+      var(--ant-colorText, #000000) 15%
+    )
+  );
+  color: var(--entry-status-pill-color, #000000);
+  border: 1px solid var(--entry-status-pill-border,
+    color-mix(in srgb, currentColor 40%, transparent)
+  );
   white-space: nowrap;
 }
 
-body[data-theme="dark"] .statusPill {
-  color: #000000;
-  background: color-mix(
-    in srgb,
-    #ffffff 75%,
-    var(--ant-colorBgContainer, #1f1f1f) 25%
-  );
-  border-color: color-mix(in srgb, #000000 35%, transparent);
-}
-
 .statusHighlighted {
-  color: var(--highlight-color);
-  border-color: var(--highlight-color);
-  background: color-mix(in srgb, var(--highlight-color) 12%, transparent);
+  color: var(--entry-status-pill-highlight-color, var(--ant-colorBgBase, #ffffff));
+  border-color: var(--entry-status-pill-highlight-border, var(--highlight-color));
+  background: var(--entry-status-pill-highlight-bg, color-mix(in srgb, var(--highlight-color) 12%, transparent));
 }
 
 .title {
@@ -104,4 +103,16 @@ body[data-theme="dark"] .statusPill {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+.actions :global(.ant-btn) {
+  color: var(--highlight-color) !important;
+  border-color: var(--highlight-color) !important;
+  background: transparent;
+}
+
+.actions :global(.ant-btn:hover),
+.actions :global(.ant-btn:focus-visible) {
+  color: var(--highlight-color) !important;
+  border-color: var(--highlight-color) !important;
 }

@@ -301,50 +301,54 @@ export default function EntityEditDrawer() {
     </>
   );
 
-  const footer = (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
-      <div>
-        {open && type !== 'notebook' && id && (
-          <Button
-            danger
-            onClick={() => {
-              const isCascade = type === 'group' || type === 'subgroup';
-              const titleTxt = `Delete ${type}?`;
-              const contentTxt = isCascade
-                ? `This will permanently delete this ${type} and everything inside it. If you want to keep any items, click Cancel and move them to another location first.`
-                : `This will permanently delete this ${type}.`;
+  const canDelete = open && type !== 'notebook' && id;
 
-              Modal.confirm({
-                title: titleTxt,
-                content: contentTxt,
-                okText: 'Delete',
-                okButtonProps: { danger: true },
-                cancelText: 'Cancel',
-                maskClosable: false,
-                onOk: async () => {
-                  try {
-                    const res = await fetch(`/api/${type}s/${id}`, { method: 'DELETE' });
-                    if (!res.ok) throw new Error('Delete failed');
-                    props.onDelete?.(type, id);
-                    handleClose();
-                  } catch (err) {
-                    console.error('Failed to delete entity', err);
-                    message.error('Failed to delete. Please try again.');
-                  }
-                },
-              });
-            }}
-          >
-            Delete
-          </Button>
-        )}
-      </div>
-      <div>
-        <Button onClick={handleClose}>Cancel</Button>
-        <Button type="primary" onClick={handleSave}>
-          Save
+  const handleDeleteClick = () => {
+    if (!canDelete) return;
+    const isCascade = type === 'group' || type === 'subgroup';
+    const titleTxt = `Delete ${type}?`;
+    const contentTxt = isCascade
+      ? `This will permanently delete this ${type} and everything inside it. If you want to keep any items, click Cancel and move them to another location first.`
+      : `This will permanently delete this ${type}.`;
+
+    Modal.confirm({
+      title: titleTxt,
+      content: contentTxt,
+      okText: 'Delete',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancel',
+      maskClosable: false,
+      onOk: async () => {
+        try {
+          const res = await fetch(`/api/${type}s/${id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error('Delete failed');
+          props.onDelete?.(type, id);
+          handleClose();
+        } catch (err) {
+          console.error('Failed to delete entity', err);
+          message.error('Failed to delete. Please try again.');
+        }
+      },
+    });
+  };
+
+  const footer = (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'flex-start',
+        gap: '0.75rem',
+      }}
+    >
+      <Button type="primary" onClick={handleSave}>
+        Save
+      </Button>
+      <Button onClick={handleClose}>Cancel</Button>
+      {canDelete && (
+        <Button danger onClick={handleDeleteClick}>
+          Delete
         </Button>
-      </div>
+      )}
     </div>
   );
 

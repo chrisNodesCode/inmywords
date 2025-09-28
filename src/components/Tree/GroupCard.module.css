@@ -28,6 +28,7 @@ body[data-theme="dark"] .card {
 
 .card:hover {
   --scale: 1.005;
+  border-style: dashed;
 }
 
 .title {
