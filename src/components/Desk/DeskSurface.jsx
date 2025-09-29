@@ -733,8 +733,7 @@ export default function DeskSurface({
     const MAX_RETRIES = 3;
     const interval = setInterval(() => {
       const hasTitle = title.trim().length > 0;
-      const hasContent = content.trim().length > 0;
-      if (hasTitle && hasContent) {
+      if (hasTitle) {
         handleNotebookSave();
         retries = 0;
       } else if (retries >= MAX_RETRIES - 1) {

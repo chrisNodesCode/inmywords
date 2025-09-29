@@ -161,8 +161,8 @@ export default async function handler(req, res) {
     if (!title || typeof title !== 'string') {
       return res.status(400).json({ error: 'Title is required and must be a string' });
     }
-    if (!content || typeof content !== 'string') {
-      return res.status(400).json({ error: 'Content is required and must be a string' });
+    if (content !== undefined && typeof content !== 'string') {
+      return res.status(400).json({ error: 'Content must be a string' });
     }
     if (!subgroupId || typeof subgroupId !== 'string') {
       return res.status(400).json({ error: 'subgroupId is required and must be a string' });
@@ -177,6 +177,7 @@ export default async function handler(req, res) {
     }
 
     const entryStatus = status ?? DEFAULT_ENTRY_STATUS;
+    const entryContent = typeof content === 'string' ? content : '';
 
     try {
       // Verify subgroup ownership
@@ -195,7 +196,7 @@ export default async function handler(req, res) {
       const newEntry = await prisma.entry.create({
         data: {
           title,
-          content,
+          content: entryContent,
           userId,
           status: entryStatus,
           subgroupId,
