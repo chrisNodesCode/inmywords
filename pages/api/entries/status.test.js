@@ -123,6 +123,40 @@ describe('POST /api/entries', () => {
     expect(res._getJSON()).toEqual(createdEntry);
   });
 
+  it('allows creating an entry without content', async () => {
+    const subgroupId = 'sub-1';
+    mockSubgroupDelegate.findUnique.mockResolvedValue({
+      id: subgroupId,
+      group: { notebook: { userId: 'user-123' } },
+    });
+    mockEntryDelegate.count.mockResolvedValue(0);
+    const createdEntry = {
+      id: 'entry-3',
+      status: DEFAULT_ENTRY_STATUS,
+      content: '',
+    };
+    mockEntryDelegate.create.mockResolvedValue(createdEntry);
+
+    const req = createRequest({
+      method: 'POST',
+      body: {
+        title: 'New entry',
+        subgroupId,
+      },
+    });
+    const res = createResponse();
+
+    await handlerIndex(req, res);
+
+    expect(res.statusCode).toBe(201);
+    expect(mockEntryDelegate.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ content: '' }),
+      })
+    );
+    expect(res._getJSON()).toEqual(createdEntry);
+  });
+
   it('rejects an invalid status value', async () => {
     const req = createRequest({
       method: 'POST',
