@@ -6,8 +6,8 @@ Introduce asynchronous workflow primitives and shared contracts so that API rout
 ## Task List
 
 ### 1. Introduce Background Job Infrastructure
-- [ ] Evaluate queue options compatible with the current deployment (e.g., BullMQ, Cloud Tasks, or Vercel/Edge-compatible alternatives).
-- [ ] Select a persistence layer for jobs and configure connection management (reuse Prisma DB or dedicated store like Redis).
+- [x] Evaluate queue options compatible with the current deployment (e.g., BullMQ, Cloud Tasks, or Vercel/Edge-compatible alternatives). **Outcome:** Adopt Google Cloud Tasks to align with Vercel deployment constraints while keeping HTTP delivery semantics.
+- [x] Select a persistence layer for jobs and configure connection management (reuse Prisma DB or dedicated store like Redis). **Decision:** Continue to rely on the existing Prisma-managed database for metadata/state; no dedicated Redis cluster is required.
 - [ ] Implement a job runner/bootstrap module with health checks and graceful shutdown handling.
 - [ ] Extract long-running tasks (search indexing, AI enrichment, batch emails) from API routes into discrete jobs.
 - [ ] Add retry, dead-letter, and monitoring hooks for operational visibility.
