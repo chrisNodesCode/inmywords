@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import { ENTRY_STATUS_VALUES, DEFAULT_ENTRY_STATUS } from '@/constants/entryStatus';
 import prisma from '@/api/prismaClient';
+import { enqueueSearchIndexingJob } from '@/server/jobs/searchIndexing';
+import { enqueueAIEnrichmentJob } from '@/server/jobs/aiEnrichment';
 import {
   parsePaginationParams,
   parseFilterParams,
@@ -210,6 +212,23 @@ export default async function handler(req, res) {
           subgroup: { include: { group: true } },
         },
       });
+
+      try {
+        await Promise.all([
+          enqueueSearchIndexingJob({
+            entryId: newEntry.id,
+            userId,
+            operation: 'create',
+          }),
+          enqueueAIEnrichmentJob({
+            entryId: newEntry.id,
+            userId,
+            trigger: 'entry:create',
+          }),
+        ]);
+      } catch (jobError) {
+        console.error('POST /api/entries enqueue error', jobError);
+      }
 
       return res.status(201).json(newEntry);
     } catch (error) {

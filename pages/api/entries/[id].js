@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import { ENTRY_STATUS_VALUES } from '@/constants/entryStatus';
 import prisma from '@/api/prismaClient';
+import { enqueueSearchIndexingJob } from '@/server/jobs/searchIndexing';
+import { enqueueAIEnrichmentJob } from '@/server/jobs/aiEnrichment';
 
 export default async function handler(req, res) {
   // Authenticate user
@@ -84,12 +86,37 @@ export default async function handler(req, res) {
             subgroup: { include: { group: true } },
           },
         });
+        try {
+          await Promise.all([
+            enqueueSearchIndexingJob({
+              entryId: id,
+              userId,
+              operation: 'update',
+            }),
+            enqueueAIEnrichmentJob({
+              entryId: id,
+              userId,
+              trigger: 'entry:update',
+            }),
+          ]);
+        } catch (jobError) {
+          console.error('PUT /api/entries/[id] enqueue error', jobError);
+        }
         return res.status(200).json(updated);
       }
 
       case 'DELETE': {
         // Delete the entry
         await prisma.entry.delete({ where: { id } });
+        try {
+          await enqueueSearchIndexingJob({
+            entryId: id,
+            userId,
+            operation: 'delete',
+          });
+        } catch (jobError) {
+          console.error('DELETE /api/entries/[id] enqueue error', jobError);
+        }
         return res.status(204).end();
       }
 

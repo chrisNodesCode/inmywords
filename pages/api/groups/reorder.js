@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import prisma from '@/api/prismaClient';
+import { enqueueBatchEmailJob } from '@/server/jobs/batchEmail';
 
 export default async function handler(req, res) {
   if (req.method !== 'PATCH') {
@@ -26,6 +27,15 @@ export default async function handler(req, res) {
         })
       )
     );
+    try {
+      await enqueueBatchEmailJob({
+        userId,
+        reason: 'groups-reordered',
+        groupIds: orders.map(order => order.id),
+      });
+    } catch (jobError) {
+      console.error('PATCH /api/groups/reorder enqueue error', jobError);
+    }
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error('PATCH /api/groups/reorder error', error);
