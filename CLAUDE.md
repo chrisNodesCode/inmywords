@@ -24,7 +24,7 @@ contains `nameless-block`. If you are unsure, stop and ask.
 
 | Layer | Choice |
 |---|---|
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
 | Frontend | React + Tailwind CSS + shadcn/ui |
 | Auth | Clerk |
@@ -44,44 +44,78 @@ Clerk redirects unauthenticated requests server-side and runs a client-side SDK 
 a session cookie. SSO providers (Google, GitHub) are additionally blocked because the preview
 panel sandboxes cross-origin OAuth redirects.
 
-**The solution is a two-layer bypass** controlled by a single env flag.
+**The solution is a three-layer bypass** controlled by a single env flag.
 
-### Layer 1 — Middleware
+### Layer 1 — proxy.ts (middleware)
 
-In `middleware.ts` (or `src/proxy.ts` depending on project structure), add this at the top of
-the `clerkMiddleware` callback:
+Do NOT use `clerkMiddleware()` when bypass is active. Even returning `NextResponse.next()`
+from inside `clerkMiddleware()` still adds `x-middleware-rewrite` and `x-clerk-auth-*`
+response headers that cause the preview panel's embedded Chrome browser to abort navigation.
+Use a plain pass-through function instead:
 
 ```typescript
-import { NextResponse } from "next/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
 
-// inside clerkMiddleware(async (auth, request) => { ... }):
-if (process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === 'true') {
-  return NextResponse.next();
-}
+export const proxy =
+  process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true"
+    ? (_request: NextRequest) => NextResponse.next()
+    : clerkMiddleware();
+
+export const config = { matcher: [...] };
 ```
 
 ### Layer 2 — API Routes
 
-For any route that calls `auth()` to get a `userId`, add a mock fallback:
+`auth()` from Clerk throws if `clerkMiddleware()` hasn't run for that request. So the bypass
+check must happen BEFORE calling `auth()` — make `getUserId` async and short-circuit:
 
 ```typescript
-const clerkId = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === 'true'
-  ? 'dev-user-local'
-  : (await auth()).userId;
+async function getUserId(): Promise<string | null> {
+  if (process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true") {
+    return "dev-user-local";   // auth() never called
+  }
+  const { userId } = await auth();
+  return userId;
+}
 ```
 
-Apply this pattern to every API route that uses `auth()`. Do not leave any route relying
-on a real Clerk session while the bypass flag is active or those routes will fail.
+Apply this pattern to every API route. Call `await getUserId()` instead of `getUserId(await auth())`.
 
-### First-Time Login
+### Layer 3 — Layout (ClerkProvider)
 
-The middleware bypass removes server-side redirects, but Clerk's client-side SDK still runs
-in the browser. On first preview load you will see a Clerk sign-in screen.
+In `app/layout.tsx`, skip ClerkProvider entirely when bypass is active. Clerk's client SDK
+detects a missing "dev browser token" and redirects to `clerk.accounts.dev` to acquire one.
+That external redirect is blocked in the preview panel sandbox, aborting the page load.
 
-- Sign in once using **email only** — SSO (Google, GitHub) is permanently blocked in the
-  preview panel due to cross-origin sandboxing
-- The session cookie persists across server restarts for approximately 7 days
-- No re-authentication is needed until the session expires
+```typescript
+const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
+
+export default function RootLayout({ children }) {
+  const body = <html>...</html>;
+  if (devBypass) return body;          // no Clerk client SDK
+  return <ClerkProvider>{body}</ClerkProvider>;
+}
+```
+
+### Private Network Access header (next.config.ts)
+
+Chrome blocks embedded browsers (public origin) from loading localhost (private network)
+unless the server opts in. Add to `next.config.ts`:
+
+```typescript
+async headers() {
+  return [{
+    source: "/(.*)",
+    headers: [{ key: "Access-Control-Allow-Private-Network", value: "true" }],
+  }];
+},
+```
+
+### First-Time Login (Production / Vercel Preview)
+
+When `DEV_BYPASS_AUTH` is not set, Clerk is fully active. Sign in with **email only** —
+SSO (Google, GitHub) may have issues in some sandboxed environments.
 
 ### Env Flag
 
@@ -166,12 +200,13 @@ and basic CRUD. Phase 0 is complete when a journal entry can be created and retr
 and every record in the DB has a `userId` attached.
 
 ### Phase 0 checklist
-- [ ] `prisma db pull` on `nameless-block` — confirm clean state
-- [ ] Clerk dev bypass implemented in `middleware.ts` (both layers)
-- [ ] Prisma `JournalEntry` schema defined and migrated
-- [ ] API routes: POST / GET / GET[id] / PATCH / DELETE `/api/entries`
-- [ ] Basic journal UI: textarea + submit + entry list
-- [ ] Smoke test: entry persists, retrieves, userId is present on record
+- [x] `prisma db pull` on `nameless-block` — confirm clean state
+- [x] Clerk dev bypass implemented (three layers: proxy.ts, API routes, layout.tsx)
+- [x] Prisma `JournalEntry` schema defined and migrated (`20260316155118_init`)
+- [x] API routes: POST / GET / GET[id] / PATCH / DELETE `/api/entries`
+- [x] Basic journal UI: textarea + submit + entry list
+- [x] Smoke test: entry persists, retrieves, userId is present on record
+- [x] Preview panel working end-to-end (create entry from UI, appears in list)
 
 ---
 
