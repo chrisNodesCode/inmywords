@@ -170,15 +170,12 @@ export default function JournalPage() {
 
         {/* Entry composer */}
         <div
-          className={isDeepWrite ? "imw-composer-wrap" : undefined}
           style={isDeepWrite ? {
             background: "transparent",
             border: "none",
             borderRadius: 0,
             padding: "20px 24px",
             marginBottom: 0,
-            maxHeight: "900px",
-            overflowY: "auto",
           } : {
             background: "var(--imw-bg-surface)",
             border: "0.5px solid var(--imw-border-default)",
@@ -188,20 +185,13 @@ export default function JournalPage() {
           }}
         >
           <form onSubmit={handleSubmit}>
-            {/* Composer top bar */}
+            {/* Composer top bar — sits above the scroll area so it never overlaps text */}
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 marginBottom: 12,
-                ...(isDeepWrite && {
-                  position: "sticky",
-                  top: 0,
-                  background: "var(--imw-bg-base)",
-                  zIndex: 1,
-                  paddingBottom: 8,
-                }),
               }}
             >
               <span className="imw-h3 imw-deep-write-chrome" style={{ color: "var(--imw-text-primary)" }}>
@@ -228,6 +218,11 @@ export default function JournalPage() {
               </div>
             </div>
 
+            {/* Editor scroll area — only the editor scrolls, toolbar stays above */}
+            <div
+              className={isDeepWrite ? "imw-composer-wrap" : undefined}
+              style={isDeepWrite ? { maxHeight: "900px", overflowY: "auto" } : {}}
+            >
             <IMWEditor
               initialContent=""
               onChange={setContent}
@@ -243,6 +238,7 @@ export default function JournalPage() {
                 {error}
               </p>
             )}
+            </div>{/* end editor scroll area */}
 
             <div className="imw-deep-write-chrome" style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
               <button
