@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,7 @@ export default function JournalPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
 
+  const router = useRouter();
   const { prefs, setDeepWriteDefault } = useIMWTheme();
   const [isDeepWrite, setIsDeepWrite] = useState(false);
   const resolvedLineWidth =
@@ -83,9 +85,7 @@ export default function JournalPage() {
     fetchEntries();
   }, [fetchEntries]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
+  async function saveEntry() {
     // Validate content: extract plain text from JSON (or raw string) and check non-empty
     let hasText = false;
     try {
@@ -108,15 +108,34 @@ export default function JournalPage() {
 
       if (!res.ok) throw new Error("Failed to save entry");
 
-      setContent("");
-      setMood("");
-      await fetchEntries();
+      const newEntry = await res.json();
+
+      if (isDeepWrite) {
+        exitDeepWrite();
+        router.push(`/entries/${newEntry.id}`);
+      } else {
+        setContent("");
+        setMood("");
+        await fetchEntries();
+      }
     } catch (err) {
       setError("Could not save entry. Please try again.");
       console.error(err);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await saveEntry();
+  }
+
+  function discardDraft() {
+    setContent("");
+    setMood("");
+    editorInstance?.commands.clearContent();
+    setDrawerOpen(false);
   }
 
   function enterDeepWrite() {
@@ -470,6 +489,11 @@ export default function JournalPage() {
         editor={editorInstance}
         mood={mood}
         onMoodChange={setMood}
+        isDeepWrite={isDeepWrite}
+        onSave={saveEntry}
+        onDiscard={discardDraft}
+        submitting={submitting}
+        hasContent={hasContent()}
       />
       {drawerOpen && (
         <div
