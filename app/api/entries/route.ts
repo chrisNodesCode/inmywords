@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { content } = body;
+  const { content, mood } = body;
 
   if (!content || typeof content !== "string" || content.trim() === "") {
     return NextResponse.json({ error: "Content is required" }, { status: 400 });
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
     data: {
       userId,
       content: content.trim(),
+      ...(mood && typeof mood === "string" && { mood }),
     },
   });
 

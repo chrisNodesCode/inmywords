@@ -41,10 +41,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
   const body = await request.json();
-  const { content } = body;
+  const { content, tags, mood } = body;
 
-  if (!content || typeof content !== "string" || content.trim() === "") {
-    return NextResponse.json({ error: "Content is required" }, { status: 400 });
+  if (content !== undefined && (typeof content !== "string" || content.trim() === "")) {
+    return NextResponse.json({ error: "Content must be a non-empty string" }, { status: 400 });
+  }
+  if (mood !== undefined && mood !== null && typeof mood !== "string") {
+    return NextResponse.json({ error: "mood must be a string or null" }, { status: 400 });
   }
 
   // Verify ownership before updating
@@ -58,7 +61,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const entry = await prisma.journalEntry.update({
     where: { id },
-    data: { content: content.trim() },
+    data: {
+      ...(content !== undefined && { content: content.trim() }),
+      ...(Array.isArray(tags) && { tags }),
+      ...(mood !== undefined && { mood: mood ?? null }),
+    },
   });
 
   return NextResponse.json(entry);

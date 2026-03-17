@@ -1,17 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { ThemeProvider } from "next-themes";
+import { IMWThemeProvider } from "@/components/ThemeProvider";
+import Sidebar from "@/components/Sidebar";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "InMyWords",
@@ -26,17 +18,42 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const body = (
-    <html lang="en">
+    // suppressHydrationWarning: next-themes and IMWThemeProvider both set
+    // attributes on <html> client-side, causing expected hydration mismatches.
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Open+Sans:wght@400;500;600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="antialiased"
+        style={{ backgroundColor: "var(--imw-bg-base)", color: "var(--imw-text-primary)" }}
       >
-        {children}
+        {/* next-themes: handles system dark/light detection.
+            attribute="data-mode" aligns with our CSS selectors. */}
+        <ThemeProvider
+          attribute="data-mode"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {/* IMWThemeProvider: fetches user preferences from DB on mount,
+              applies data-accent, data-font, --imw-font-body to <html>. */}
+          <IMWThemeProvider>
+            <div style={{ display: "flex", minHeight: "100vh" }}>
+              <Sidebar />
+              <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
+            </div>
+          </IMWThemeProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
 
-  // Skip ClerkProvider in dev bypass mode — prevents Clerk's client SDK
-  // from running and making external redirects that break the preview panel.
   if (devBypass) return body;
 
   return <ClerkProvider>{body}</ClerkProvider>;

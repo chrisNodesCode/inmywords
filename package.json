@@ -12,10 +12,18 @@
     "@clerk/nextjs": "^7.0.4",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "@tiptap/core": "^2.27.2",
+    "@tiptap/extension-bubble-menu": "^2.27.2",
+    "@tiptap/extension-floating-menu": "^2.27.2",
+    "@tiptap/extension-placeholder": "^2.27.2",
+    "@tiptap/pm": "^2.27.2",
+    "@tiptap/react": "^2.27.2",
+    "@tiptap/starter-kit": "^2.27.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
+    "next-themes": "^0.4.6",
     "pg": "^8.20.0",
     "prisma": "^7.5.0",
     "radix-ui": "^1.4.3",
@@ -35,6 +43,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

@@ -7,11 +7,28 @@ datasource db {
 }
 
 model JournalEntry {
-  id        String   @id @default(cuid())
-  userId    String
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  userId          String
+  content         String
+  mood            String?
+  tags            String[]
+  aiSuggestedTags String[]
+  aiConfirmed     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([userId])
+}
+
+model UserPreferences {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  accent           String   @default("slate")
+  font             String   @default("noto")
+  darkMode         Boolean  @default(false)
+  deepWriteDefault Boolean  @default(false)
+  editorFontSize   Int      @default(17)
+  editorLineWidth  String   @default("mid")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
