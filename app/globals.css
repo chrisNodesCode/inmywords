@@ -654,6 +654,14 @@ aside.imw-deep-write-chrome {
   min-width: 200px;
 }
 
+/* Deep Write: hide scrollbar on composer scroll area */
+.imw-composer-wrap {
+  scrollbar-width: none; /* Firefox */
+}
+.imw-composer-wrap::-webkit-scrollbar {
+  display: none; /* Chrome / Safari */
+}
+
 /* Gutter block-type button */
 .imw-block-gutter {
   width: 28px;

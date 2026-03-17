@@ -162,26 +162,22 @@ export default function JournalPage() {
     <div
       style={{
         minHeight: "100vh",
-        padding: isDeepWrite ? "0 24px" : "40px 24px",
+        padding: isDeepWrite ? "10vh 24px" : "40px 24px",
         backgroundColor: "var(--imw-bg-base)",
-        ...(isDeepWrite && {
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }),
       }}
     >
       <div style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}>
 
         {/* Entry composer */}
         <div
+          className={isDeepWrite ? "imw-composer-wrap" : undefined}
           style={isDeepWrite ? {
             background: "transparent",
             border: "none",
             borderRadius: 0,
             padding: "20px 24px",
             marginBottom: 0,
-            maxHeight: "min(900px, 80vh)",
+            maxHeight: "900px",
             overflowY: "auto",
           } : {
             background: "var(--imw-bg-surface)",
@@ -199,6 +195,13 @@ export default function JournalPage() {
                 justifyContent: "space-between",
                 alignItems: "center",
                 marginBottom: 12,
+                ...(isDeepWrite && {
+                  position: "sticky",
+                  top: 0,
+                  background: "var(--imw-bg-base)",
+                  zIndex: 1,
+                  paddingBottom: 8,
+                }),
               }}
             >
               <span className="imw-h3 imw-deep-write-chrome" style={{ color: "var(--imw-text-primary)" }}>
