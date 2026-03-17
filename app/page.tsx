@@ -162,15 +162,28 @@ export default function JournalPage() {
     <div
       style={{
         minHeight: "100vh",
-        padding: "40px 24px",
+        padding: isDeepWrite ? "0 24px" : "40px 24px",
         backgroundColor: "var(--imw-bg-base)",
+        ...(isDeepWrite && {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }),
       }}
     >
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}>
 
         {/* Entry composer */}
         <div
-          style={{
+          style={isDeepWrite ? {
+            background: "transparent",
+            border: "none",
+            borderRadius: 0,
+            padding: "20px 24px",
+            marginBottom: 0,
+            maxHeight: "min(900px, 80vh)",
+            overflowY: "auto",
+          } : {
             background: "var(--imw-bg-surface)",
             border: "0.5px solid var(--imw-border-default)",
             borderRadius: 12,
@@ -242,7 +255,7 @@ export default function JournalPage() {
         </div>
 
         {/* Entry list */}
-        <div className="imw-deep-write-chrome">
+        <div className="imw-deep-write-chrome" style={isDeepWrite ? { display: "none" } : {}}>
           <p className="imw-label" style={{ marginBottom: 12 }}>Past entries</p>
 
           {/* Search */}
