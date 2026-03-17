@@ -198,27 +198,175 @@ export default function EntryPage() {
       style={{
         minHeight: "100vh",
         backgroundColor: "var(--imw-bg-base)",
-        padding: "40px 24px",
+        padding: "0 24px 40px",
       }}
     >
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
 
-        <Link
-          href="/"
-          className="imw-deep-write-chrome"
+        {/* Sticky header: breadcrumb + date/actions + tags */}
+        <div
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            color: "var(--imw-ac)",
-            textDecoration: "none",
-            fontSize: 13,
-            marginBottom: 32,
+            position: "sticky",
+            top: 0,
+            background: "var(--imw-bg-base)",
+            zIndex: 10,
+            paddingTop: 40,
+            paddingBottom: 16,
+            borderBottom: "0.5px solid var(--imw-border-default)",
+            marginBottom: 24,
           }}
         >
-          <ArrowLeft size={14} />
-          Back to journal
-        </Link>
+          <Link
+            href="/"
+            className="imw-deep-write-chrome"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              color: "var(--imw-ac)",
+              textDecoration: "none",
+              fontSize: 13,
+              marginBottom: 16,
+            }}
+          >
+            <ArrowLeft size={14} />
+            Back to journal
+          </Link>
+
+          {!loading && entry && (
+            <>
+              {/* Header row: date + action buttons */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: 16,
+                }}
+              >
+                <div>
+                  <p className="imw-ui" style={{ color: "var(--imw-text-secondary)" }}>
+                    {formatDate(entry.createdAt)}
+                  </p>
+                  {wasEdited && (
+                    <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)", marginTop: 2 }}>
+                      Last edited {formatShortDate(entry.updatedAt)}
+                    </p>
+                  )}
+                  {entry.mood && (
+                    <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)", marginTop: 4 }}>
+                      mood: {entry.mood}
+                    </p>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    className="imw-btn imw-btn--ghost imw-btn--sm"
+                    onClick={() => setDrawerOpen(true)}
+                    aria-label="Writing controls"
+                  >
+                    <Settings2 size={14} />
+                  </button>
+                  <button
+                    className="imw-btn imw-btn--ghost imw-btn--sm"
+                    onClick={isDeepWrite ? exitDeepWrite : enterDeepWrite}
+                    aria-label={isDeepWrite ? "Exit deep write" : "Deep write"}
+                    title={isDeepWrite ? "Exit deep write" : "Deep write — full focus mode"}
+                  >
+                    {isDeepWrite ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                  </button>
+                  {isEditing ? (
+                    <>
+                      <button
+                        className="imw-btn imw-btn--ghost imw-btn--sm"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setEditorInstance(null);
+                        }}
+                        disabled={saving}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="imw-btn imw-btn--primary imw-btn--sm"
+                        onClick={handleSave}
+                        disabled={saving}
+                        style={{ opacity: saving ? 0.5 : 1 }}
+                      >
+                        {saving ? "Saving…" : "Save"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className="imw-btn imw-btn--ghost imw-btn--sm"
+                        onClick={() => {
+                          setEditContent(entry.content);
+                          setIsEditing(true);
+                        }}
+                        disabled={deleting}
+                      >
+                        Edit
+                      </button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            className="imw-btn imw-btn--ghost imw-btn--sm"
+                            disabled={deleting}
+                          >
+                            {deleting ? "Deleting…" : "Delete"}
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleDelete}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Tag chips — hidden in deep write */}
+              {!isDeepWrite && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 16 }}>
+                  {CATEGORIES.map((cat) => {
+                    const selected = entry.tags.includes(cat);
+                    return (
+                      <Badge
+                        key={cat}
+                        variant={selected ? "default" : "outline"}
+                        className="cursor-pointer select-none"
+                        style={selected ? {
+                          backgroundColor: "var(--imw-ac)",
+                          borderColor: "var(--imw-ac)",
+                          color: "#fff",
+                        } : undefined}
+                        onClick={() => handleTagToggle(cat)}
+                      >
+                        {cat}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {loading && (
           <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>
@@ -236,165 +384,24 @@ export default function EntryPage() {
         )}
 
         {!loading && entry && (
-          <div>
-            {/* Header: date + actions */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "space-between",
-                gap: 16,
-                marginBottom: 24,
-              }}
-            >
-              <div>
-                <p className="imw-ui" style={{ color: "var(--imw-text-secondary)" }}>
-                  {formatDate(entry.createdAt)}
-                </p>
-                {wasEdited && (
-                  <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)", marginTop: 2 }}>
-                    Last edited {formatShortDate(entry.updatedAt)}
-                  </p>
-                )}
-                {entry.mood && (
-                  <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)", marginTop: 4 }}>
-                    mood: {entry.mood}
-                  </p>
-                )}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                <button
-                  type="button"
-                  className="imw-btn imw-btn--ghost imw-btn--sm"
-                  onClick={() => setDrawerOpen(true)}
-                  aria-label="Writing controls"
-                >
-                  <Settings2 size={14} />
-                </button>
-                <button
-                  className="imw-btn imw-btn--ghost imw-btn--sm"
-                  onClick={isDeepWrite ? exitDeepWrite : enterDeepWrite}
-                  aria-label={isDeepWrite ? "Exit deep write" : "Deep write"}
-                  title={isDeepWrite ? "Exit deep write" : "Deep write — full focus mode"}
-                >
-                  {isDeepWrite ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                </button>
-                <button
-                  className="imw-btn imw-btn--ghost imw-btn--sm"
-                  onClick={() => {
-                    setEditContent(entry.content);
-                    setIsEditing(true);
-                  }}
-                  disabled={isEditing || deleting}
-                >
-                  Edit
-                </button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <button
-                      className="imw-btn imw-btn--ghost imw-btn--sm"
-                      disabled={isEditing || deleting}
-                    >
-                      {deleting ? "Deleting…" : "Delete"}
-                    </button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDelete}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-
-            {/* Tag chips — hidden in deep write (conditional render avoids layout ghost) */}
-            {!isDeepWrite && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 24 }}>
-                {CATEGORIES.map((cat) => {
-                  const selected = entry.tags.includes(cat);
-                  return (
-                    <Badge
-                      key={cat}
-                      variant={selected ? "default" : "outline"}
-                      className="cursor-pointer select-none"
-                      style={selected ? {
-                        backgroundColor: "var(--imw-ac)",
-                        borderColor: "var(--imw-ac)",
-                        color: "#fff",
-                      } : undefined}
-                      onClick={() => handleTagToggle(cat)}
-                    >
-                      {cat}
-                    </Badge>
-                  );
-                })}
-              </div>
+          <div style={{ paddingTop: 8 }}>
+            {isEditing ? (
+              <IMWEditor
+                initialContent={entry.content}
+                onChange={setEditContent}
+                onEditorReady={setEditorInstance}
+                fontSize={prefs.editorFontSize}
+                lineWidth={resolvedLineWidth}
+                disabled={saving}
+                autoFocus
+              />
+            ) : (
+              <IMWReadView
+                content={entry.content}
+                fontSize={prefs.editorFontSize}
+                lineWidth={resolvedLineWidth}
+              />
             )}
-
-            {/* Entry content */}
-            <div style={{ borderTop: "0.5px solid var(--imw-border-default)", paddingTop: 24 }}>
-              {isEditing ? (
-                <div>
-                  <IMWEditor
-                    initialContent={entry.content}
-                    onChange={setEditContent}
-                    onEditorReady={setEditorInstance}
-                    fontSize={prefs.editorFontSize}
-                    lineWidth={resolvedLineWidth}
-                    disabled={saving}
-                    autoFocus
-                  />
-
-                  <div
-                    className="imw-deep-write-chrome"
-                    style={{
-                      display: "flex",
-                      gap: 8,
-                      justifyContent: "flex-end",
-                      marginTop: 16,
-                    }}
-                  >
-                    <button
-                      onClick={() => {
-                        setIsEditing(false);
-                        setEditorInstance(null);
-                      }}
-                      disabled={saving}
-                      className="imw-btn imw-btn--ghost"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="imw-btn imw-btn--primary"
-                      style={{ opacity: saving ? 0.5 : 1 }}
-                    >
-                      {saving ? "Saving…" : "Save"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                // View mode — rich content renderer
-                <IMWReadView
-                  content={entry.content}
-                  fontSize={prefs.editorFontSize}
-                  lineWidth={resolvedLineWidth}
-                />
-              )}
-            </div>
           </div>
         )}
       </div>
