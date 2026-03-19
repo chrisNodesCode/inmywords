@@ -41,13 +41,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
   const body = await request.json();
-  const { content, tags, mood } = body;
+  const { content, tags, mood, title } = body;
 
   if (content !== undefined && (typeof content !== "string" || content.trim() === "")) {
     return NextResponse.json({ error: "Content must be a non-empty string" }, { status: 400 });
   }
   if (mood !== undefined && mood !== null && typeof mood !== "string") {
     return NextResponse.json({ error: "mood must be a string or null" }, { status: 400 });
+  }
+  if (title !== undefined && title !== null && typeof title !== "string") {
+    return NextResponse.json({ error: "title must be a string or null" }, { status: 400 });
   }
 
   // Verify ownership before updating
@@ -65,6 +68,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       ...(content !== undefined && { content: content.trim() }),
       ...(Array.isArray(tags) && { tags }),
       ...(mood !== undefined && { mood: mood ?? null }),
+      ...(title !== undefined && { title: title ? title.trim() : null }),
     },
   });
 

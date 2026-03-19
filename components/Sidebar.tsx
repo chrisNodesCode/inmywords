@@ -9,6 +9,57 @@ import FontPicker from "@/components/FontPicker";
 
 const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
 
+function AutoAnalyzeToggle() {
+  const { prefs, setAutoAnalyze } = useIMWTheme();
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span className="imw-label">ai analysis</span>
+      <button
+        onClick={() => setAutoAnalyze(!prefs.autoAnalyze)}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          padding: 0,
+        }}
+        aria-label={`Auto-analyze is ${prefs.autoAnalyze ? "on" : "off"}`}
+      >
+        <span
+          style={{
+            width: 28,
+            height: 16,
+            borderRadius: 8,
+            background: prefs.autoAnalyze ? "var(--imw-ac)" : "var(--imw-border-medium)",
+            position: "relative",
+            transition: "background 0.2s",
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              position: "absolute",
+              top: 2,
+              left: prefs.autoAnalyze ? 14 : 2,
+              width: 12,
+              height: 12,
+              borderRadius: "50%",
+              background: "#fff",
+              transition: "left 0.2s",
+            }}
+          />
+        </span>
+        <span className="imw-ui-small" style={{ color: "var(--imw-text-secondary)" }}>
+          auto on save
+        </span>
+      </button>
+    </div>
+  );
+}
+
 const NAV_ITEMS = [
   { label: "journal", href: "/" },
   { label: "export", href: "/export", disabled: true },
@@ -145,6 +196,9 @@ export default function Sidebar() {
         <div>
           <FontPicker />
         </div>
+
+        {/* Auto-analyze toggle */}
+        <AutoAnalyzeToggle />
       </div>
 
       {/* Bottom: user button */}

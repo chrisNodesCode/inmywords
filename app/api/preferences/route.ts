@@ -54,7 +54,7 @@ export async function PUT(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { accent, font, darkMode, deepWriteDefault, editorFontSize, editorLineWidth } = body;
+  const { accent, font, darkMode, deepWriteDefault, editorFontSize, editorLineWidth, autoAnalyze } = body;
 
   // Validate fields that are present
   if (accent !== undefined && !VALID_ACCENTS.includes(accent)) {
@@ -75,6 +75,9 @@ export async function PUT(request: NextRequest) {
   if (editorLineWidth !== undefined && !VALID_LINE_WIDTHS.includes(editorLineWidth)) {
     return NextResponse.json({ error: "Invalid editorLineWidth value" }, { status: 400 });
   }
+  if (autoAnalyze !== undefined && typeof autoAnalyze !== "boolean") {
+    return NextResponse.json({ error: "autoAnalyze must be boolean" }, { status: 400 });
+  }
 
   const updateData: Record<string, unknown> = {};
   if (accent !== undefined) updateData.accent = accent;
@@ -83,6 +86,7 @@ export async function PUT(request: NextRequest) {
   if (deepWriteDefault !== undefined) updateData.deepWriteDefault = deepWriteDefault;
   if (editorFontSize !== undefined) updateData.editorFontSize = editorFontSize;
   if (editorLineWidth !== undefined) updateData.editorLineWidth = editorLineWidth;
+  if (autoAnalyze !== undefined) updateData.autoAnalyze = autoAnalyze;
 
   const prefs = await prisma.userPreferences.upsert({
     where: { userId },

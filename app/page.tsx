@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 type JournalEntry = {
   id: string;
   content: string;
+  title?: string | null;
   mood?: string | null;
   tags: string[];
   createdAt: string;
@@ -50,8 +51,16 @@ function getPreviewText(raw: string): string {
   }
 }
 
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
 export default function JournalPage() {
   const [content, setContent] = useState("");
+  const [title, setTitle] = useState("");
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [titleIsAI, setTitleIsAI] = useState(false);
+  const [titleGenerating, setTitleGenerating] = useState(false);
   const [mood, setMood] = useState("");
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +75,11 @@ export default function JournalPage() {
   const [isDeepWrite, setIsDeepWrite] = useState(false);
   const resolvedLineWidth =
     LINE_WIDTH_VALUES[prefs.editorLineWidth as keyof typeof LINE_WIDTH_VALUES] ?? "640px";
+
+  // Debounce timer ref for auto-title generation
+  const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track whether we've already auto-generated at this session to avoid re-firing
+  const titleGeneratedRef = useRef(false);
 
   const fetchEntries = useCallback(async () => {
     try {
@@ -85,8 +99,49 @@ export default function JournalPage() {
     fetchEntries();
   }, [fetchEntries]);
 
+  // Auto-trigger title generation at 30-word threshold (debounced)
+  useEffect(() => {
+    if (titleTouched) return; // User typed a custom title — never auto-fill
+    if (titleGeneratedRef.current) return; // Already generated once this session
+
+    const plainText = getPreviewText(content);
+    const wordCount = countWords(plainText);
+
+    if (wordCount < 30) return;
+
+    if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+
+    titleDebounceRef.current = setTimeout(async () => {
+      if (titleTouched || titleGeneratedRef.current) return;
+      setTitleGenerating(true);
+      try {
+        const res = await fetch("/api/entries/new/generate-title", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: plainText }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.title && !titleTouched) {
+            setTitle(data.title);
+            setTitleIsAI(true);
+            titleGeneratedRef.current = true;
+          }
+        }
+      } catch {
+        // Silent fail — title generation is non-blocking
+      } finally {
+        setTitleGenerating(false);
+      }
+    }, 1500);
+
+    return () => {
+      if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, titleTouched]);
+
   async function saveEntry() {
-    // Validate content: extract plain text from JSON (or raw string) and check non-empty
     let hasText = false;
     try {
       const parsed = parseEntryContent(content);
@@ -103,7 +158,11 @@ export default function JournalPage() {
       const res = await fetch("/api/entries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, mood: mood || undefined }),
+        body: JSON.stringify({
+          content,
+          mood: mood || undefined,
+          title: title.trim() || undefined,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to save entry");
@@ -115,6 +174,10 @@ export default function JournalPage() {
         router.push(`/entries/${newEntry.id}`);
       } else {
         setContent("");
+        setTitle("");
+        setTitleTouched(false);
+        setTitleIsAI(false);
+        titleGeneratedRef.current = false;
         setMood("");
         await fetchEntries();
       }
@@ -133,6 +196,10 @@ export default function JournalPage() {
 
   function discardDraft() {
     setContent("");
+    setTitle("");
+    setTitleTouched(false);
+    setTitleIsAI(false);
+    titleGeneratedRef.current = false;
     setMood("");
     editorInstance?.commands.clearContent();
     setDrawerOpen(false);
@@ -141,9 +208,7 @@ export default function JournalPage() {
   function enterDeepWrite() {
     setIsDeepWrite(true);
     document.documentElement.classList.add("imw-deep-write-active");
-    document.documentElement.requestFullscreen().catch(() => {
-      // Fullscreen may be blocked in embedded/sandboxed environments — CSS-only still applies
-    });
+    document.documentElement.requestFullscreen().catch(() => {});
     setDeepWriteDefault(true);
   }
 
@@ -156,7 +221,6 @@ export default function JournalPage() {
     setDeepWriteDefault(false);
   }
 
-  // Sync state when user exits fullscreen via browser (Escape key)
   useEffect(() => {
     function handleFullscreenChange() {
       if (!document.fullscreenElement && isDeepWrite) {
@@ -168,7 +232,6 @@ export default function JournalPage() {
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, [isDeepWrite]);
 
-  // Determine if editor has actual text content (for button disabled state)
   function hasContent(): boolean {
     try {
       return extractPlainText(parseEntryContent(content)).trim().length > 0;
@@ -204,7 +267,7 @@ export default function JournalPage() {
           }}
         >
           <form onSubmit={handleSubmit}>
-            {/* Composer top bar — sits above the scroll area so it never overlaps text */}
+            {/* Composer top bar */}
             <div
               style={{
                 display: "flex",
@@ -237,27 +300,73 @@ export default function JournalPage() {
               </div>
             </div>
 
-            {/* Editor scroll area — only the editor scrolls, toolbar stays above */}
+            {/* Title input — above the editor */}
+            <div style={{ marginBottom: 8, position: "relative" }}>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setTitleTouched(true);
+                  setTitleIsAI(false);
+                }}
+                placeholder="Untitled entry"
+                disabled={submitting}
+                style={{
+                  width: "100%",
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  fontFamily: "var(--imw-font-body)",
+                  fontSize: 20,
+                  fontWeight: 400,
+                  color: title ? "var(--imw-text-primary)" : "var(--imw-text-tertiary)",
+                  padding: "4px 0",
+                  caretColor: "var(--imw-ac)",
+                }}
+              />
+              {(titleIsAI || titleGenerating) && (
+                <span
+                  className="imw-caption"
+                  style={{
+                    color: "var(--imw-ac)",
+                    position: "absolute",
+                    right: 0,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    fontStyle: "italic",
+                    pointerEvents: "none",
+                  }}
+                >
+                  {titleGenerating ? "suggesting…" : "AI suggested"}
+                </span>
+              )}
+            </div>
+
+            {/* Thin divider between title and editor */}
+            <div className="imw-divider" style={{ marginBottom: 12 }} />
+
+            {/* Editor scroll area */}
             <div
               className={isDeepWrite ? "imw-composer-wrap" : undefined}
               style={isDeepWrite ? { maxHeight: "900px", overflowY: "auto" } : {}}
             >
-            <IMWEditor
-              initialContent=""
-              onChange={setContent}
-              onEditorReady={setEditorInstance}
-              placeholder="What happened? What did you notice?"
-              fontSize={prefs.editorFontSize}
-              lineWidth={resolvedLineWidth}
-              disabled={submitting}
-            />
+              <IMWEditor
+                initialContent=""
+                onChange={setContent}
+                onEditorReady={setEditorInstance}
+                placeholder="What happened? What did you notice?"
+                fontSize={prefs.editorFontSize}
+                lineWidth={resolvedLineWidth}
+                disabled={submitting}
+              />
 
-            {error && (
-              <p className="imw-caption" style={{ color: "var(--imw-text-destructive)", marginTop: 8 }}>
-                {error}
-              </p>
-            )}
-            </div>{/* end editor scroll area */}
+              {error && (
+                <p className="imw-caption" style={{ color: "var(--imw-text-destructive)", marginTop: 8 }}>
+                  {error}
+                </p>
+              )}
+            </div>
 
             <div className="imw-deep-write-chrome" style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
               <button
@@ -308,7 +417,6 @@ export default function JournalPage() {
             <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>
           )}
 
-          {/* Empty state — IMW-53 */}
           {!loading && entries.length === 0 && (
             <div
               style={{
@@ -320,7 +428,6 @@ export default function JournalPage() {
                 gap: 24,
               }}
             >
-              {/* Accent icon */}
               <div
                 style={{
                   width: 56,
@@ -354,7 +461,6 @@ export default function JournalPage() {
                 Write an entry
               </button>
 
-              {/* Prompt divider */}
               <div
                 style={{
                   display: "flex",
@@ -369,7 +475,6 @@ export default function JournalPage() {
                 <div className="imw-divider" style={{ flex: 1 }} />
               </div>
 
-              {/* Starter prompt chips */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 360 }}>
                 {STARTER_PROMPTS.map((prompt) => (
                   <button
@@ -383,13 +488,11 @@ export default function JournalPage() {
                       padding: "9px 14px",
                     }}
                     onClick={() => {
-                      // Set content to a TipTap doc with the prompt pre-filled
                       const doc = JSON.stringify({
                         type: "doc",
                         content: [{ type: "paragraph", content: [{ type: "text", text: prompt }] }],
                       });
                       setContent(doc);
-                      // Focus the editor and move cursor to end
                       if (editorInstance) {
                         editorInstance.commands.setContent({
                           type: "doc",
@@ -408,7 +511,8 @@ export default function JournalPage() {
 
           {!loading && entries.length > 0 && searchQuery && entries.filter((e) => {
             const preview = getPreviewText(e.content);
-            return preview.toLowerCase().includes(searchQuery.toLowerCase());
+            const q = searchQuery.toLowerCase();
+            return preview.toLowerCase().includes(q) || (e.title ?? "").toLowerCase().includes(q);
           }).length === 0 && (
             <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>
               No entries match your search.
@@ -419,7 +523,8 @@ export default function JournalPage() {
             const filtered = entries.filter((e) => {
               if (!searchQuery) return true;
               const preview = getPreviewText(e.content);
-              return preview.toLowerCase().includes(searchQuery.toLowerCase());
+              const q = searchQuery.toLowerCase();
+              return preview.toLowerCase().includes(q) || (e.title ?? "").toLowerCase().includes(q);
             });
 
             const groups = new Map<string, JournalEntry[]>();
@@ -470,9 +575,21 @@ export default function JournalPage() {
                           {entry.id.slice(-6)}
                         </Badge>
                       </div>
-                      <p className="imw-body" style={{ color: "var(--imw-text-secondary)" }}>
-                        {truncate(getPreviewText(entry.content))}
-                      </p>
+                      {/* Title as primary label, content snippet as fallback */}
+                      {entry.title ? (
+                        <>
+                          <p className="imw-ui" style={{ color: "var(--imw-text-primary)", marginBottom: 3, fontWeight: 500 }}>
+                            {entry.title}
+                          </p>
+                          <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)" }}>
+                            {truncate(getPreviewText(entry.content), 80)}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="imw-body" style={{ color: "var(--imw-text-secondary)" }}>
+                          {truncate(getPreviewText(entry.content))}
+                        </p>
+                      )}
                     </div>
                   </Link>
                 ))}
@@ -482,7 +599,6 @@ export default function JournalPage() {
         </div>
       </div>
 
-      {/* Writing controls drawer — IMW-49 */}
       <WriteControlsDrawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}

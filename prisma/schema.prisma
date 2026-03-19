@@ -10,9 +10,11 @@ model JournalEntry {
   id              String   @id @default(cuid())
   userId          String
   content         String
+  title           String?
   mood            String?
   tags            String[]
   aiSuggestedTags String[]
+  aiSuggestions   Json?
   aiConfirmed     Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -29,6 +31,7 @@ model UserPreferences {
   deepWriteDefault Boolean  @default(false)
   editorFontSize   Int      @default(17)
   editorLineWidth  String   @default("mid")
+  autoAnalyze      Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }

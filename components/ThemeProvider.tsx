@@ -22,6 +22,7 @@ interface Preferences {
   deepWriteDefault: boolean;
   editorFontSize: number;
   editorLineWidth: string;
+  autoAnalyze: boolean;
 }
 
 interface ThemeContextValue {
@@ -32,6 +33,7 @@ interface ThemeContextValue {
   setDeepWriteDefault: (val: boolean) => void;
   setEditorFontSize: (size: number) => void;
   setEditorLineWidth: (width: string) => void;
+  setAutoAnalyze: (val: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -68,6 +70,7 @@ const DEFAULT_PREFS: Preferences = {
   deepWriteDefault: false,
   editorFontSize: USER_PREFERENCE_DEFAULTS.editorFontSize,
   editorLineWidth: USER_PREFERENCE_DEFAULTS.editorLineWidth,
+  autoAnalyze: false,
 };
 
 export function IMWThemeProvider({ children }: { children: React.ReactNode }) {
@@ -128,6 +131,10 @@ export function IMWThemeProvider({ children }: { children: React.ReactNode }) {
     (width: string) => updatePref("editorLineWidth", width),
     [updatePref]
   );
+  const setAutoAnalyze = useCallback(
+    (val: boolean) => updatePref("autoAnalyze", val),
+    [updatePref]
+  );
 
   return (
     <ThemeContext.Provider
@@ -139,6 +146,7 @@ export function IMWThemeProvider({ children }: { children: React.ReactNode }) {
         setDeepWriteDefault,
         setEditorFontSize,
         setEditorLineWidth,
+        setAutoAnalyze,
       }}
     >
       {children}

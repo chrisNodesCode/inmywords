@@ -6,9 +6,18 @@ import { useIMWTheme } from "@/components/ThemeProvider";
 interface AnnotationTagProps {
   category: CategoryId;
   state: "confirmed" | "ai-suggested" | "unconfirmed";
+  rationale?: string;
+  onConfirm?: () => void;
+  onDismiss?: () => void;
 }
 
-export default function AnnotationTag({ category, state }: AnnotationTagProps) {
+export default function AnnotationTag({
+  category,
+  state,
+  rationale,
+  onConfirm,
+  onDismiss,
+}: AnnotationTagProps) {
   const { prefs } = useIMWTheme();
   const cat = CATEGORIES.find((c) => c.id === category);
   if (!cat) return null;
@@ -25,14 +34,56 @@ export default function AnnotationTag({ category, state }: AnnotationTagProps) {
   } else if (state === "ai-suggested") {
     baseStyle.color = colors.color;
   }
-  // unconfirmed: dashed border overrides everything via .imw-ann--unconfirmed
 
   return (
     <span
       className={`imw-ann imw-ann--${state === "ai-suggested" ? "suggested" : state}`}
-      style={baseStyle}
+      style={{ ...baseStyle, display: "inline-flex", alignItems: "center", gap: 4 }}
+      title={rationale}
     >
       {cat.label}
+      {state === "ai-suggested" && (
+        <>
+          {onConfirm && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onConfirm(); }}
+              aria-label={`Confirm ${cat.label}`}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "0 1px",
+                fontSize: 10,
+                color: colors.color,
+                lineHeight: 1,
+                opacity: 0.7,
+              }}
+              title="Confirm this category"
+            >
+              ✓
+            </button>
+          )}
+          {onDismiss && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDismiss(); }}
+              aria-label={`Dismiss ${cat.label}`}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "0 1px",
+                fontSize: 10,
+                color: "var(--imw-text-tertiary)",
+                lineHeight: 1,
+                opacity: 0.7,
+              }}
+              title="Dismiss this suggestion"
+            >
+              ×
+            </button>
+          )}
+        </>
+      )}
     </span>
   );
 }
