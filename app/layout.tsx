@@ -8,6 +8,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "InMyWords",
   description: "A neurodivergent self-advocacy journaling tool",
+  robots: { index: false, follow: false },
 };
 
 const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
