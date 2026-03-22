@@ -21,12 +21,7 @@ import AnnotationTag from "@/components/AnnotationTag";
 import { useIMWTheme } from "@/components/ThemeProvider";
 import { LINE_WIDTH_VALUES, CATEGORIES, type CategoryId } from "@/lib/theme";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
-
-type AISuggestion = {
-  category: string;
-  confidence: number;
-  rationale: string;
-};
+import type { AISuggestion, AIAnalysisResult } from "@/lib/types";
 
 type JournalEntry = {
   id: string;
@@ -34,7 +29,9 @@ type JournalEntry = {
   title?: string | null;
   mood?: string | null;
   tags: string[];
-  aiSuggestions?: AISuggestion[] | null;
+  aiSuggestions?: AIAnalysisResult | null;
+  isChildhoodMemory: boolean;
+  isFunctionalImpairment: boolean;
   createdAt: string;
   updatedAt: string;
   userId: string;
@@ -99,10 +96,9 @@ export default function EntryPage() {
       setEditMood(data.mood ?? "");
       setEditTitle(data.title ?? "");
       // Restore saved AI suggestions if present
-      if (Array.isArray(data.aiSuggestions) && data.aiSuggestions.length > 0) {
-        // Only restore suggestions not already in confirmed tags
-        const notYetConfirmed = data.aiSuggestions.filter(
-          (s: AISuggestion) => !data.tags.includes(s.category)
+      if (data.aiSuggestions?.livedExperience?.length > 0) {
+        const notYetConfirmed = (data.aiSuggestions.livedExperience as AISuggestion[]).filter(
+          (s) => !data.tags.includes(s.category)
         );
         setAiSuggestions(notYetConfirmed);
       }
@@ -200,14 +196,15 @@ export default function EntryPage() {
       const res = await fetch(`/api/entries/${id}/analyze`, { method: "POST" });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.suggestions)) {
+        const result: AIAnalysisResult | null = data.suggestions ?? null;
+        if (result?.livedExperience) {
           // Exclude any categories already confirmed
           const confirmedTags = entry.tags;
-          const fresh = data.suggestions.filter(
-            (s: AISuggestion) => !confirmedTags.includes(s.category)
+          const fresh = result.livedExperience.filter(
+            (s) => !confirmedTags.includes(s.category)
           );
           setAiSuggestions(fresh);
-          // Refresh entry to get updated aiSuggestions from DB
+          // Refresh entry to get updated aiSuggestions + boolean flags from DB
           const refreshed = await fetch(`/api/entries/${id}`);
           if (refreshed.ok) setEntry(await refreshed.json());
         }
@@ -229,6 +226,17 @@ export default function EntryPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tags: newTags }),
+    });
+  }
+
+  async function handleQualifierToggle(field: "isChildhoodMemory" | "isFunctionalImpairment") {
+    if (!entry) return;
+    const newValue = !entry[field];
+    setEntry({ ...entry, [field]: newValue });
+    await fetch(`/api/entries/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: newValue }),
     });
   }
 
@@ -439,6 +447,44 @@ export default function EntryPage() {
                       );
                     })}
 
+                    {/* C/D qualifier badges — read-only, toggles below */}
+                    {entry.isChildhoodMemory && (
+                      <span
+                        title="Criterion C: Symptoms present since early childhood"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          padding: "2px 6px",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          borderRadius: 3,
+                          border: "0.5px solid var(--imw-border-medium)",
+                          color: "var(--imw-text-secondary)",
+                          letterSpacing: "0.04em",
+                        }}
+                      >
+                        C
+                      </span>
+                    )}
+                    {entry.isFunctionalImpairment && (
+                      <span
+                        title="Criterion D: Symptoms cause clinically significant impairment"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          padding: "2px 6px",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          borderRadius: 3,
+                          border: "0.5px solid var(--imw-border-medium)",
+                          color: "var(--imw-text-secondary)",
+                          letterSpacing: "0.04em",
+                        }}
+                      >
+                        D
+                      </span>
+                    )}
+
                     {/* AI suggested tags (not yet confirmed) */}
                     {aiSuggestions.map((s) => (
                       CATEGORIES.some((c) => c.id === s.category) && (
@@ -513,6 +559,51 @@ export default function EntryPage() {
                       <Sparkles size={11} />
                       {analyzing ? "analyzing…" : "analyze"}
                     </button>
+                  </div>
+
+                  {/* Qualifier toggles — Criterion C and D */}
+                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                    {(["isChildhoodMemory", "isFunctionalImpairment"] as const).map((field) => {
+                      const isOn = entry[field];
+                      const label = field === "isChildhoodMemory" ? "childhood memory" : "affected my functioning";
+                      const tip = field === "isChildhoodMemory"
+                        ? "Criterion C: Symptoms present since early childhood"
+                        : "Criterion D: Symptoms cause clinically significant impairment";
+                      return (
+                        <button
+                          key={field}
+                          onClick={() => handleQualifierToggle(field)}
+                          title={tip}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            fontSize: 11,
+                            padding: "3px 8px",
+                            borderRadius: 3,
+                            border: `0.5px solid ${isOn ? "var(--imw-ac)" : "var(--imw-border-medium)"}`,
+                            background: isOn ? "color-mix(in srgb, var(--imw-ac) 10%, transparent)" : "transparent",
+                            color: isOn ? "var(--imw-ac)" : "var(--imw-text-tertiary)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <span style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 2,
+                            border: `1.5px solid ${isOn ? "var(--imw-ac)" : "var(--imw-border-medium)"}`,
+                            background: isOn ? "var(--imw-ac)" : "transparent",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}>
+                            {isOn && <span style={{ color: "#fff", fontSize: 7, lineHeight: 1 }}>✓</span>}
+                          </span>
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

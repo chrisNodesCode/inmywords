@@ -41,7 +41,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
   const body = await request.json();
-  const { content, tags, mood, title } = body;
+  const { content, tags, mood, title, isChildhoodMemory, isFunctionalImpairment } = body;
 
   if (content !== undefined && (typeof content !== "string" || content.trim() === "")) {
     return NextResponse.json({ error: "Content must be a non-empty string" }, { status: 400 });
@@ -51,6 +51,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
   if (title !== undefined && title !== null && typeof title !== "string") {
     return NextResponse.json({ error: "title must be a string or null" }, { status: 400 });
+  }
+  if (isChildhoodMemory !== undefined && typeof isChildhoodMemory !== "boolean") {
+    return NextResponse.json({ error: "isChildhoodMemory must be a boolean" }, { status: 400 });
+  }
+  if (isFunctionalImpairment !== undefined && typeof isFunctionalImpairment !== "boolean") {
+    return NextResponse.json({ error: "isFunctionalImpairment must be a boolean" }, { status: 400 });
   }
 
   // Verify ownership before updating
@@ -69,6 +75,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       ...(Array.isArray(tags) && { tags }),
       ...(mood !== undefined && { mood: mood ?? null }),
       ...(title !== undefined && { title: title ? title.trim() : null }),
+      ...(isChildhoodMemory !== undefined && { isChildhoodMemory }),
+      ...(isFunctionalImpairment !== undefined && { isFunctionalImpairment }),
     },
   });
 

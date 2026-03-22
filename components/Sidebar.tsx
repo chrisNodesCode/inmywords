@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
+import { Search } from "lucide-react";
 import { useIMWTheme } from "@/components/ThemeProvider";
 import AccentPicker from "@/components/AccentPicker";
 import FontPicker from "@/components/FontPicker";
@@ -62,6 +63,8 @@ function AutoAnalyzeToggle() {
 
 const NAV_ITEMS = [
   { label: "journal", href: "/" },
+  { label: "in my words", href: "/in-my-words" },
+  { label: "profile", href: "/profile" },
   { label: "export", href: "/export", disabled: true },
 ];
 
@@ -123,7 +126,7 @@ export default function Sidebar() {
       }}
     >
       {/* Wordmark */}
-      <div style={{ padding: "20px 16px 12px" }}>
+      <div style={{ padding: "20px 16px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Link
           href="/"
           style={{
@@ -136,6 +139,14 @@ export default function Sidebar() {
         >
           InMyWords
         </Link>
+        <button
+          type="button"
+          className="imw-btn imw-btn--ghost imw-btn--sm"
+          onClick={() => window.dispatchEvent(new CustomEvent("imw:open-search"))}
+          aria-label="Search entries"
+        >
+          <Search size={14} />
+        </button>
       </div>
 
       {/* Nav items */}

@@ -4,8 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { BookOpen, Settings2, Maximize2, Minimize2 } from "lucide-react";
+import { BookOpen, Settings2, Maximize2, Minimize2, X } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import { IMWEditor, WriteControlsDrawer } from "@/components/editor";
 import { useIMWTheme } from "@/components/ThemeProvider";
@@ -68,6 +67,7 @@ export default function JournalPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
 
   const router = useRouter();
@@ -232,6 +232,21 @@ export default function JournalPage() {
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, [isDeepWrite]);
 
+  useEffect(() => {
+    if (!searchOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" || e.key === "Enter") setSearchOpen(false);
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    function handleOpenSearch() { setSearchOpen(true); }
+    window.addEventListener("imw:open-search", handleOpenSearch);
+    return () => window.removeEventListener("imw:open-search", handleOpenSearch);
+  }, []);
+
   function hasContent(): boolean {
     try {
       return extractPlainText(parseEntryContent(content)).trim().length > 0;
@@ -276,10 +291,47 @@ export default function JournalPage() {
                 marginBottom: 12,
               }}
             >
-              <span className="imw-h3 imw-deep-write-chrome" style={{ color: "var(--imw-text-primary)" }}>
-                New entry
-              </span>
-              <div style={{ display: "flex", gap: 4 }}>
+              <div style={{ flex: 1, position: "relative" }}>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    setTitleTouched(true);
+                    setTitleIsAI(false);
+                  }}
+                  disabled={submitting}
+                  style={{
+                    width: "100%",
+                    background: "transparent",
+                    border: "none",
+                    outline: "none",
+                    fontFamily: "var(--imw-font-body)",
+                    fontSize: 20,
+                    fontWeight: 400,
+                    color: title ? "var(--imw-text-primary)" : "var(--imw-text-tertiary)",
+                    padding: "4px 0",
+                    caretColor: "var(--imw-ac)",
+                  }}
+                />
+                {(titleIsAI || titleGenerating) && (
+                  <span
+                    className="imw-caption"
+                    style={{
+                      color: "var(--imw-ac)",
+                      position: "absolute",
+                      right: 0,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      fontStyle: "italic",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    {titleGenerating ? "suggesting…" : "AI suggested"}
+                  </span>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 <button
                   type="button"
                   className="imw-btn imw-btn--ghost imw-btn--sm"
@@ -298,49 +350,6 @@ export default function JournalPage() {
                   <Settings2 size={14} />
                 </button>
               </div>
-            </div>
-
-            {/* Title input — above the editor */}
-            <div style={{ marginBottom: 8, position: "relative" }}>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value);
-                  setTitleTouched(true);
-                  setTitleIsAI(false);
-                }}
-                placeholder="Untitled entry"
-                disabled={submitting}
-                style={{
-                  width: "100%",
-                  background: "transparent",
-                  border: "none",
-                  outline: "none",
-                  fontFamily: "var(--imw-font-body)",
-                  fontSize: 20,
-                  fontWeight: 400,
-                  color: title ? "var(--imw-text-primary)" : "var(--imw-text-tertiary)",
-                  padding: "4px 0",
-                  caretColor: "var(--imw-ac)",
-                }}
-              />
-              {(titleIsAI || titleGenerating) && (
-                <span
-                  className="imw-caption"
-                  style={{
-                    color: "var(--imw-ac)",
-                    position: "absolute",
-                    right: 0,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    fontStyle: "italic",
-                    pointerEvents: "none",
-                  }}
-                >
-                  {titleGenerating ? "suggesting…" : "AI suggested"}
-                </span>
-              )}
             </div>
 
             {/* Thin divider between title and editor */}
@@ -383,36 +392,6 @@ export default function JournalPage() {
 
         {/* Entry list */}
         <div className="imw-deep-write-chrome" style={isDeepWrite ? { display: "none" } : {}}>
-          <p className="imw-label" style={{ marginBottom: 12 }}>Past entries</p>
-
-          {/* Search */}
-          <div style={{ position: "relative", marginBottom: 16 }}>
-            <Input
-              placeholder="Search entries…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                style={{
-                  position: "absolute",
-                  right: 12,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "var(--imw-text-tertiary)",
-                  fontSize: 14,
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-                aria-label="Clear search"
-              >
-                ×
-              </button>
-            )}
-          </div>
-
           {loading && (
             <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>
           )}
@@ -598,6 +577,87 @@ export default function JournalPage() {
           })()}
         </div>
       </div>
+
+      {/* Search modal */}
+      {searchOpen && (
+        <>
+          <div
+            onClick={() => setSearchOpen(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 50,
+              background: "rgba(0,0,0,0.4)",
+            }}
+            aria-hidden="true"
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "30%",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "min(480px, 90vw)",
+              background: "var(--imw-bg-surface)",
+              border: "0.5px solid var(--imw-border-default)",
+              borderRadius: 12,
+              padding: 20,
+              zIndex: 51,
+            }}
+          >
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <input
+                autoFocus
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  background: "transparent",
+                  border: "none",
+                  outline: "none",
+                  fontFamily: "var(--imw-font-body)",
+                  fontSize: 16,
+                  color: "var(--imw-text-primary)",
+                  caretColor: "var(--imw-ac)",
+                  padding: "4px 0",
+                }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--imw-text-tertiary)",
+                    padding: 0,
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            {searchQuery && (() => {
+              const count = entries.filter((e) => {
+                const preview = getPreviewText(e.content);
+                const q = searchQuery.toLowerCase();
+                return preview.toLowerCase().includes(q) || (e.title ?? "").toLowerCase().includes(q);
+              }).length;
+              return (
+                <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)", marginTop: 8 }}>
+                  {count} {count === 1 ? "entry" : "entries"} match
+                </p>
+              );
+            })()}
+          </div>
+        </>
+      )}
 
       <WriteControlsDrawer
         isOpen={drawerOpen}
