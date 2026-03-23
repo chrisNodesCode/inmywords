@@ -492,7 +492,11 @@ export default function InMyWordsPage() {
         {/* Page header */}
         <div style={{ paddingTop: 40, marginBottom: 32 }}>
           <h1 className="imw-h1" style={{ marginBottom: 6 }}>
-            In My Words
+            {devBypass
+              ? "your words"
+              : firstName
+              ? `${firstName}'s words`
+              : "In My Words"}
           </h1>
           <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)" }}>
             Your words, organized by pattern. Only a qualified clinician can diagnose.

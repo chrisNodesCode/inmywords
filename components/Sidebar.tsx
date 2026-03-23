@@ -2,13 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { Search } from "lucide-react";
 import { useIMWTheme } from "@/components/ThemeProvider";
 import AccentPicker from "@/components/AccentPicker";
 import FontPicker from "@/components/FontPicker";
 
 const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
+
+// Only rendered when ClerkProvider is active (not in dev bypass)
+function WordmarkText() {
+  const { user } = useUser();
+  const name = user?.firstName ?? user?.username;
+  return <>{name ? `${name}'s words` : "InMyWords"}</>;
+}
 
 function AutoAnalyzeToggle() {
   const { prefs, setAutoAnalyze } = useIMWTheme();
@@ -64,8 +71,6 @@ function AutoAnalyzeToggle() {
 const NAV_ITEMS = [
   { label: "journal", href: "/" },
   { label: "in my words", href: "/in-my-words" },
-  { label: "profile", href: "/profile" },
-  { label: "export", href: "/export", disabled: true },
 ];
 
 function DarkModeToggle() {
@@ -88,7 +93,7 @@ function DarkModeToggle() {
             onClick={() => setDarkMode(mode === "dark")}
             style={{
               padding: "4px 10px",
-              fontSize: "11px",
+              fontSize: "13px",
               fontWeight: isActive ? 500 : 400,
               background: isActive ? "var(--imw-ac)" : "transparent",
               color: isActive ? "#ffffff" : "var(--imw-text-tertiary)",
@@ -137,7 +142,7 @@ export default function Sidebar() {
             textDecoration: "none",
           }}
         >
-          InMyWords
+          {devBypass ? "your words" : <WordmarkText />}
         </Link>
         <button
           type="button"
@@ -150,29 +155,9 @@ export default function Sidebar() {
       </div>
 
       {/* Nav items */}
-      <nav style={{ padding: "0 8px" }}>
+      <nav style={{ padding: "0 8px", marginBottom: 8 }}>
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href && !item.disabled;
-          const content = (
-            <>
-              <span className={`imw-nav-dot${isActive ? "" : ""}`} />
-              {item.label}
-            </>
-          );
-
-          if (item.disabled) {
-            return (
-              <div
-                key={item.label}
-                className="imw-nav-item"
-                style={{ opacity: 0.4, cursor: "not-allowed" }}
-              >
-                <span className="imw-nav-dot" />
-                {item.label}
-              </div>
-            );
-          }
-
+          const isActive = pathname === item.href;
           return (
             <Link
               key={item.label}
@@ -180,35 +165,38 @@ export default function Sidebar() {
               className={`imw-nav-item${isActive ? " imw-nav-item--active" : ""}`}
               style={{ textDecoration: "none" }}
             >
-              {content}
+              <span className="imw-nav-dot" />
+              {item.label}
             </Link>
           );
         })}
       </nav>
 
       {/* Divider */}
-      <div className="imw-divider" style={{ margin: "10px 12px" }} />
+      <div className="imw-divider" style={{ margin: "12px 12px" }} />
 
-      {/* Appearance controls */}
-      <div style={{ padding: "4px 12px", display: "flex", flexDirection: "column", gap: "14px" }}>
+      {/* Appearance section */}
+      <div style={{ padding: "4px 12px", display: "flex", flexDirection: "column", gap: "14px", marginBottom: 8 }}>
         <span className="imw-label">appearance</span>
 
-        {/* Dark mode toggle */}
         <div>
           <DarkModeToggle />
         </div>
 
-        {/* Accent swatches */}
         <div>
           <AccentPicker />
         </div>
 
-        {/* Font chips */}
         <div>
           <FontPicker />
         </div>
+      </div>
 
-        {/* Auto-analyze toggle */}
+      {/* Divider */}
+      <div className="imw-divider" style={{ margin: "12px 12px" }} />
+
+      {/* AI analysis section */}
+      <div style={{ padding: "4px 12px" }}>
         <AutoAnalyzeToggle />
       </div>
 
