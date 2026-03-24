@@ -22,6 +22,7 @@ import { useIMWTheme } from "@/components/ThemeProvider";
 import { LINE_WIDTH_VALUES, CATEGORIES, type CategoryId } from "@/lib/theme";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import type { AISuggestion, AIAnalysisResult } from "@/lib/types";
+import { useMobile } from "@/hooks/useMobile";
 
 type JournalEntry = {
   id: string;
@@ -83,6 +84,7 @@ export default function EntryPage() {
 
   const { prefs, setDeepWriteDefault } = useIMWTheme();
   const [isDeepWrite, setIsDeepWrite] = useState(false);
+  const isMobile = useMobile();
   const resolvedLineWidth =
     LINE_WIDTH_VALUES[prefs.editorLineWidth as keyof typeof LINE_WIDTH_VALUES] ?? "640px";
 
@@ -265,7 +267,7 @@ export default function EntryPage() {
       style={{
         minHeight: "100vh",
         backgroundColor: "var(--imw-bg-base)",
-        padding: "0 24px 40px",
+        padding: isMobile ? "0 16px 40px" : "0 24px 40px",
       }}
     >
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
@@ -277,7 +279,7 @@ export default function EntryPage() {
             top: 0,
             background: "var(--imw-bg-base)",
             zIndex: 10,
-            paddingTop: 40,
+            paddingTop: isMobile ? 68 : 40,
             paddingBottom: 16,
             borderBottom: "0.5px solid var(--imw-border-default)",
             marginBottom: 24,

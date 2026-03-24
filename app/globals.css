@@ -825,3 +825,70 @@ aside.imw-deep-write-chrome {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
 }
+
+/* =============================================================================
+   MOBILE RESPONSIVE (< 640px)
+   ============================================================================= */
+@media (max-width: 639px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Fixed top bar shown on mobile in place of sidebar */
+  .imw-mobile-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    background: var(--imw-bg-sidebar);
+    border-bottom: 0.5px solid var(--imw-border-default);
+  }
+
+  /* Sidebar drawer — base state (always fixed, slides in/out) */
+  .imw-sidebar-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    min-width: 260px;
+    z-index: 100;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+    transition: transform 0.25s ease;
+  }
+
+  .imw-sidebar-mobile-open {
+    transform: translateX(0);
+  }
+
+  .imw-sidebar-mobile-closed {
+    transform: translateX(-100%);
+  }
+
+  /* Backdrop behind mobile sidebar drawer */
+  .imw-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 99;
+  }
+
+  /* Editor gutter — reduce left padding on mobile so content isn't squeezed */
+  .imw-editor-content .ProseMirror {
+    padding-left: 4px !important;
+  }
+}
+
+/* Deep Write: also fade the mobile top bar */
+.imw-deep-write-active .imw-mobile-topbar {
+  opacity: 0;
+  pointer-events: none;
+}
+.imw-deep-write-active .imw-mobile-topbar:hover {
+  opacity: 1;
+  pointer-events: all;
+}

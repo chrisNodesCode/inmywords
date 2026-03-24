@@ -10,6 +10,7 @@ import { IMWEditor, WriteControlsDrawer } from "@/components/editor";
 import { useIMWTheme } from "@/components/ThemeProvider";
 import { LINE_WIDTH_VALUES } from "@/lib/theme";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
+import { useMobile } from "@/hooks/useMobile";
 
 type JournalEntry = {
   id: string;
@@ -71,6 +72,7 @@ export default function JournalPage() {
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
 
   const router = useRouter();
+  const isMobile = useMobile();
   const { prefs, setDeepWriteDefault } = useIMWTheme();
   const [isDeepWrite, setIsDeepWrite] = useState(false);
   const resolvedLineWidth =
@@ -259,7 +261,7 @@ export default function JournalPage() {
     <div
       style={{
         minHeight: "100vh",
-        padding: isDeepWrite ? "10vh 24px" : "40px 24px",
+        padding: isDeepWrite ? "10vh 24px" : isMobile ? "72px 16px 40px" : "40px 24px",
         backgroundColor: "var(--imw-bg-base)",
       }}
     >
@@ -271,13 +273,13 @@ export default function JournalPage() {
             background: "transparent",
             border: "none",
             borderRadius: 0,
-            padding: "20px 24px",
+            padding: isMobile ? "16px" : "20px 24px",
             marginBottom: 0,
           } : {
             background: "var(--imw-bg-surface)",
             border: "0.5px solid var(--imw-border-default)",
             borderRadius: 12,
-            padding: "20px 24px",
+            padding: isMobile ? "16px" : "20px 24px",
             marginBottom: 32,
           }}
         >
@@ -307,7 +309,7 @@ export default function JournalPage() {
                     border: "none",
                     outline: "none",
                     fontFamily: "var(--imw-font-body)",
-                    fontSize: 20,
+                    fontSize: isMobile ? 18 : 20,
                     fontWeight: 400,
                     color: title ? "var(--imw-text-primary)" : "var(--imw-text-tertiary)",
                     padding: "4px 0",
