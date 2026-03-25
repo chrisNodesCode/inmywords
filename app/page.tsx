@@ -348,7 +348,7 @@ export default function JournalPage() {
                       setTitleTouched(true);
                       setTitleIsAI(false);
                     }}
-                    placeholder="Title (optional)"
+                    placeholder=""
                     disabled={submitting}
                     style={{
                       width: "100%",
