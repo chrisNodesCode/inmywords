@@ -62,7 +62,7 @@ export const DEFAULT_ACCENT: AccentId = 'slate'
 
 // ── Font Options ──────────────────────────────────────────────────────────────
 
-export type FontId = 'noto' | 'pt' | 'open' | 'deju'
+export type FontId = 'default' | 'noto' | 'pt' | 'open' | 'deju'
 
 export interface FontOption {
   id:     FontId
@@ -73,6 +73,11 @@ export interface FontOption {
 }
 
 export const FONT_OPTIONS: FontOption[] = [
+  {
+    id: 'default', name: 'Default', label: 'default',
+    family: '"IBM Plex Sans", Helvetica, sans-serif',
+    isSerif: false,
+  },
   {
     id: 'noto', name: 'Noto Serif', label: 'noto',
     family: '"Noto Serif", Georgia, serif',
@@ -95,7 +100,7 @@ export const FONT_OPTIONS: FontOption[] = [
   },
 ]
 
-export const DEFAULT_FONT: FontId = 'noto'
+export const DEFAULT_FONT: FontId = 'default'
 
 // ── Category Taxonomy ─────────────────────────────────────────────────────────
 

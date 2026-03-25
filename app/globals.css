@@ -249,24 +249,33 @@ html { font-size: 18px; }
 /* =============================================================================
    FONT FAMILIES
    Applied via data-font attribute on <html> or a parent element
-   Fallback: Noto Serif (default)
+   Default: design system fonts (Fraunces display + IBM Plex Sans UI/body)
+   Custom fonts override all three variables — every text surface changes
    ============================================================================= */
 :root {
   --imw-font-display: 'Fraunces', Georgia, serif;
   --imw-font-ui: 'IBM Plex Sans', Helvetica, sans-serif;
+  --imw-font-body: 'IBM Plex Sans', Helvetica, sans-serif; /* default — also set by JS */
 }
-:root,
 [data-font="noto"] {
   --imw-font-body: 'Noto Serif', Georgia, serif;
+  --imw-font-display: 'Noto Serif', Georgia, serif;
+  --imw-font-ui: 'Noto Serif', Georgia, serif;
 }
 [data-font="pt"] {
   --imw-font-body: 'PT Serif', Georgia, serif;
+  --imw-font-display: 'PT Serif', Georgia, serif;
+  --imw-font-ui: 'PT Serif', Georgia, serif;
 }
 [data-font="open"] {
   --imw-font-body: 'Open Sans', Arial, sans-serif;
+  --imw-font-display: 'Open Sans', Arial, sans-serif;
+  --imw-font-ui: 'Open Sans', Arial, sans-serif;
 }
 [data-font="deju"] {
   --imw-font-body: 'DejaVu Sans', Arial, sans-serif;
+  --imw-font-display: 'DejaVu Sans', Arial, sans-serif;
+  --imw-font-ui: 'DejaVu Sans', Arial, sans-serif;
 }
 
 /* =============================================================================
@@ -904,6 +913,14 @@ aside.imw-deep-write-chrome {
   display: flex;
   gap: 5px;
   flex-wrap: wrap;
+}
+
+@keyframes imw-feed-entry-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.imw-feed-row--new {
+  animation: imw-feed-entry-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 /* =============================================================================

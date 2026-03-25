@@ -308,6 +308,14 @@ export default function EntryPage() {
               {isEditing ? (
                 <>
                   <button
+                    type="button"
+                    className="imw-btn imw-btn--ghost imw-btn--sm"
+                    onClick={isDeepWrite ? exitDeepWrite : enterDeepWrite}
+                    aria-label={isDeepWrite ? "Exit Deep Write" : "Enter Deep Write"}
+                  >
+                    {isDeepWrite ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+                  </button>
+                  <button
                     className="imw-btn imw-btn--ghost imw-btn--sm"
                     onClick={() => { setIsEditing(false); setEditorInstance(null); setEditTitle(entry.title ?? ""); }}
                     disabled={saving}

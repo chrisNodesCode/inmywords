@@ -67,6 +67,7 @@ export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [newEntryId, setNewEntryId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -177,13 +178,18 @@ export default function JournalPage() {
         exitDeepWrite();
         router.push(`/entries/${newEntry.id}`);
       } else {
+        // Clear the TipTap editor content directly
+        editorInstance?.commands.clearContent(true);
         setContent("");
         setTitle("");
         setTitleTouched(false);
         setTitleIsAI(false);
         titleGeneratedRef.current = false;
         setMood("");
+        setNewEntryId(newEntry.id);
         await fetchEntries();
+        // Clear the animation class after it completes
+        setTimeout(() => setNewEntryId(null), 800);
       }
     } catch (err) {
       setError("Could not save entry. Please try again.");
@@ -337,9 +343,35 @@ export default function JournalPage() {
             }}
           >
             <form onSubmit={handleSubmit}>
-              {/* Title row */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <div style={{ flex: 1, position: "relative" }}>
+              {/* Mobile controls — always visible */}
+              {isMobile && (
+                <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", marginBottom: 8 }}>
+                  <button
+                    type="button"
+                    className="imw-btn imw-btn--ghost imw-btn--sm"
+                    onClick={isDeepWrite ? exitDeepWrite : enterDeepWrite}
+                  >
+                    {isDeepWrite ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                  </button>
+                  <button
+                    type="button"
+                    className="imw-btn imw-btn--ghost imw-btn--sm"
+                    onClick={() => setDrawerOpen(true)}
+                  >
+                    <Settings2 size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Title row — hidden until AI suggests or user types */}
+              <div style={{
+                maxHeight: title ? "72px" : "0px",
+                opacity: title ? 1 : 0,
+                overflow: "hidden",
+                marginBottom: title ? 14 : 0,
+                transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease, margin-bottom 0.4s ease",
+              }}>
+                <div style={{ position: "relative" }}>
                   <input
                     type="text"
                     value={title}
@@ -358,7 +390,7 @@ export default function JournalPage() {
                       fontFamily: "var(--imw-font-body)",
                       fontSize: 22,
                       fontWeight: 400,
-                      color: title ? "var(--imw-text-primary)" : "var(--imw-text-tertiary)",
+                      color: "var(--imw-text-primary)",
                       padding: "4px 0",
                       caretColor: "var(--imw-ac)",
                     }}
@@ -380,27 +412,9 @@ export default function JournalPage() {
                     </span>
                   )}
                 </div>
-                {isMobile && (
-                  <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                    <button
-                      type="button"
-                      className="imw-btn imw-btn--ghost imw-btn--sm"
-                      onClick={isDeepWrite ? exitDeepWrite : enterDeepWrite}
-                    >
-                      {isDeepWrite ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                    </button>
-                    <button
-                      type="button"
-                      className="imw-btn imw-btn--ghost imw-btn--sm"
-                      onClick={() => setDrawerOpen(true)}
-                    >
-                      <Settings2 size={14} />
-                    </button>
-                  </div>
-                )}
               </div>
 
-              {/* Divider between title and editor */}
+              {/* Divider — always visible */}
               <div className="imw-divider" style={{ marginBottom: 12 }} />
 
               {/* Editor scroll area */}
@@ -543,7 +557,7 @@ export default function JournalPage() {
                       href={`/entries/${entry.id}`}
                       style={{ display: "block", textDecoration: "none" }}
                     >
-                      <div className={`imw-feed-row${idx === 0 ? ' imw-feed-row--first' : ''}`}>
+                      <div className={`imw-feed-row${idx === 0 ? ' imw-feed-row--first' : ''}${entry.id === newEntryId ? ' imw-feed-row--new' : ''}`}>
                         <div className="imw-feed-meta">{formatDate(entry.createdAt)}</div>
                         <div className="imw-feed-title">
                           {entry.title ?? truncate(getPreviewText(entry.content), 60)}
