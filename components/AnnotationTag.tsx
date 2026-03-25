@@ -31,6 +31,7 @@ export default function AnnotationTag({
   if (state === "confirmed") {
     baseStyle.backgroundColor = colors.bg;
     baseStyle.color = colors.color;
+    baseStyle.borderLeftWidth = 2;
   } else if (state === "ai-suggested") {
     baseStyle.color = colors.color;
   }
@@ -48,16 +49,7 @@ export default function AnnotationTag({
             <button
               onClick={(e) => { e.stopPropagation(); onConfirm(); }}
               aria-label={`Confirm ${cat.label}`}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "0 1px",
-                fontSize: 10,
-                color: colors.color,
-                lineHeight: 1,
-                opacity: 0.7,
-              }}
+              style={{ fontSize: "0.6rem", padding: "1px 5px", border: "1px solid currentColor", background: "none", cursor: "pointer", borderRadius: 0, color: "inherit", marginLeft: 3 }}
               title="Confirm this category"
             >
               ✓
@@ -67,16 +59,7 @@ export default function AnnotationTag({
             <button
               onClick={(e) => { e.stopPropagation(); onDismiss(); }}
               aria-label={`Dismiss ${cat.label}`}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "0 1px",
-                fontSize: 10,
-                color: "var(--imw-text-tertiary)",
-                lineHeight: 1,
-                opacity: 0.7,
-              }}
+              style={{ fontSize: "0.6rem", padding: "1px 4px", border: "none", background: "none", cursor: "pointer", color: "var(--imw-text-tertiary)", borderRadius: 0 }}
               title="Dismiss this suggestion"
             >
               ×

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Settings2, Maximize2, Minimize2, Sparkles } from "lucide-react";
+import { ArrowLeft, Settings2, Maximize2, Minimize2, Sparkles, Pencil, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +23,8 @@ import { LINE_WIDTH_VALUES, CATEGORIES, type CategoryId } from "@/lib/theme";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import type { AISuggestion, AIAnalysisResult } from "@/lib/types";
 import { useMobile } from "@/hooks/useMobile";
+
+const MOODS = ["overwhelmed", "drained", "okay", "grounded", "good", "uncertain"];
 
 type JournalEntry = {
   id: string;
@@ -261,345 +263,227 @@ export default function EntryPage() {
   }
 
   const wasEdited = entry && entry.updatedAt !== entry.createdAt;
+  const confirmedCount = entry?.tags?.length ?? 0;
+  const pendingCount = aiSuggestions.length;
+
+  const moodChipStyle = (m: string) => ({
+    fontSize: '0.65rem',
+    fontWeight: 600 as const,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.04em',
+    padding: '3px 9px',
+    border: `1.5px solid ${editMood === m ? 'var(--imw-ac-b)' : 'var(--imw-border-medium)'}`,
+    background: editMood === m ? 'var(--imw-ac-l)' : 'none',
+    color: editMood === m ? 'var(--imw-ac-d)' : 'var(--imw-text-secondary)',
+    cursor: 'pointer',
+    borderRadius: 0,
+    fontFamily: 'var(--imw-font-ui)',
+  });
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "var(--imw-bg-base)",
-        padding: isMobile ? "0 16px 40px" : "0 24px 40px",
-      }}
-    >
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "var(--imw-bg-base)", display: "flex", flexDirection: "column" }}>
 
-        {/* Sticky header */}
-        <div
-          style={{
-            position: "sticky",
-            top: 0,
-            background: "var(--imw-bg-base)",
-            zIndex: 10,
-            paddingTop: isMobile ? 68 : 40,
-            paddingBottom: 16,
-            borderBottom: "0.5px solid var(--imw-border-default)",
-            marginBottom: 24,
-          }}
-        >
-          <Link
-            href="/"
-            className="imw-deep-write-chrome"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              color: "var(--imw-ac)",
-              textDecoration: "none",
-              fontSize: 13,
-              marginBottom: 16,
-            }}
+      {/* ── Top bar (UI-05) ── */}
+      {!isDeepWrite && !isMobile && (
+        <div className="imw-top-bar imw-deep-write-chrome">
+          {/* Left: breadcrumb */}
+          <button
+            onClick={() => router.push("/")}
+            style={{ background: "none", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "var(--imw-font-ui)", fontSize: "0.75rem", color: "var(--imw-text-secondary)" }}
           >
-            <ArrowLeft size={14} />
-            Back to journal
-          </Link>
+            <ArrowLeft size={12} />
+            Journal{entry?.title ? ` / ${entry.title}` : ""}
+          </button>
+          {/* Right: actions */}
+          {!loading && entry && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                type="button"
+                className="imw-btn imw-btn--ghost imw-btn--sm"
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Writing controls"
+              >
+                <Settings2 size={13} />
+              </button>
+              {isEditing ? (
+                <>
+                  <button
+                    className="imw-btn imw-btn--ghost imw-btn--sm"
+                    onClick={() => { setIsEditing(false); setEditorInstance(null); setEditTitle(entry.title ?? ""); }}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="imw-btn imw-btn--primary imw-btn--sm"
+                    onClick={handleSave}
+                    disabled={saving}
+                    style={{ opacity: saving ? 0.5 : 1 }}
+                  >
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className="imw-btn imw-btn--ghost imw-btn--sm"
+                    onClick={() => { setEditContent(entry.content); setEditTitle(entry.title ?? ""); setIsEditing(true); }}
+                    disabled={deleting}
+                  >
+                    <Pencil size={12} />
+                    Edit
+                  </button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button className="imw-btn imw-btn--ghost imw-btn--sm" disabled={deleting}>
+                        <Trash2 size={12} />
+                        {deleting ? "Deleting…" : "Delete"}
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+                        <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Scrollable content ── */}
+      <div style={{ flex: 1, padding: isMobile ? "72px 16px 120px" : "32px 24px 120px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ width: "100%", maxWidth: 720 }}>
+
+          {loading && <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>}
+
+          {!loading && notFound && (
+            <div>
+              <p className="imw-body" style={{ color: "var(--imw-text-tertiary)", marginBottom: 8 }}>Entry not found.</p>
+              <Link href="/" className="imw-body" style={{ color: "var(--imw-ac)", textDecoration: "underline" }}>Return to journal</Link>
+            </div>
+          )}
+
+          {/* Mobile header (only on mobile) */}
+          {isMobile && !loading && entry && (
+            <div style={{ marginBottom: 16 }}>
+              <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--imw-ac)", textDecoration: "none", fontSize: "0.75rem", marginBottom: 12 }}>
+                <ArrowLeft size={12} />
+                Back
+              </Link>
+            </div>
+          )}
 
           {!loading && entry && (
             <>
-              {/* Header row: title (or date) + action buttons */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  gap: 16,
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {/* Entry title — prominent in header */}
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      placeholder="Untitled entry"
-                      style={{
-                        background: "transparent",
-                        border: "none",
-                        outline: "none",
-                        fontFamily: "var(--imw-font-body)",
-                        fontSize: 22,
-                        fontWeight: 400,
-                        color: editTitle ? "var(--imw-text-primary)" : "var(--imw-text-tertiary)",
-                        padding: "0 0 4px",
-                        caretColor: "var(--imw-ac)",
-                        width: "100%",
-                      }}
-                    />
-                  ) : entry.title ? (
-                    <p className="imw-h1" style={{ marginBottom: 4 }}>{entry.title}</p>
-                  ) : null}
-                  <p className="imw-ui" style={{ color: "var(--imw-text-secondary)" }}>
-                    {formatDate(entry.createdAt)}
-                  </p>
-                  {wasEdited && (
-                    <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)", marginTop: 2 }}>
-                      Last edited {formatShortDate(entry.updatedAt)}
-                    </p>
-                  )}
-                  {entry.mood && (
-                    <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)", marginTop: 4 }}>
-                      mood: {entry.mood}
-                    </p>
-                  )}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                  <button
-                    type="button"
-                    className="imw-btn imw-btn--ghost imw-btn--sm"
-                    onClick={() => setDrawerOpen(true)}
-                    aria-label="Writing controls"
-                  >
-                    <Settings2 size={14} />
-                  </button>
-                  <button
-                    className="imw-btn imw-btn--ghost imw-btn--sm"
-                    onClick={isDeepWrite ? exitDeepWrite : enterDeepWrite}
-                    aria-label={isDeepWrite ? "Exit deep write" : "Deep write"}
-                  >
-                    {isDeepWrite ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                  </button>
-                  {isEditing ? (
-                    <>
-                      <button
-                        className="imw-btn imw-btn--ghost imw-btn--sm"
-                        onClick={() => {
-                          setIsEditing(false);
-                          setEditorInstance(null);
-                          setEditTitle(entry.title ?? "");
-                        }}
-                        disabled={saving}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className="imw-btn imw-btn--primary imw-btn--sm"
-                        onClick={handleSave}
-                        disabled={saving}
-                        style={{ opacity: saving ? 0.5 : 1 }}
-                      >
-                        {saving ? "Saving…" : "Save"}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        className="imw-btn imw-btn--ghost imw-btn--sm"
-                        onClick={() => {
-                          setEditContent(entry.content);
-                          setEditTitle(entry.title ?? "");
-                          setIsEditing(true);
-                        }}
-                        disabled={deleting}
-                      >
-                        Edit
-                      </button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button className="imw-btn imw-btn--ghost imw-btn--sm" disabled={deleting}>
-                            {deleting ? "Deleting…" : "Delete"}
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
-                            <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={handleDelete}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </>
-                  )}
-                </div>
-              </div>
+              {/* Entry title (UI-09) */}
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Untitled entry"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    outline: "none",
+                    fontFamily: "var(--imw-font-display)",
+                    fontSize: '1.7rem',
+                    fontWeight: 900,
+                    lineHeight: 1.1,
+                    color: editTitle ? "var(--imw-text-primary)" : "var(--imw-text-tertiary)",
+                    padding: "0 0 8px",
+                    caretColor: "var(--imw-ac)",
+                    width: "100%",
+                    marginBottom: 8,
+                  }}
+                />
+              ) : entry.title ? (
+                <h1 style={{ fontFamily: 'var(--imw-font-display)', fontWeight: 900, fontSize: '1.7rem', lineHeight: 1.1, color: 'var(--imw-text-primary)', marginBottom: 12 }}>
+                  {entry.title}
+                </h1>
+              ) : null}
 
-              {/* Category tags + AI suggestions — hidden in deep write */}
+              {/* Date line */}
+              <p style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--imw-text-tertiary)', marginBottom: 4 }}>
+                {formatDate(entry.createdAt)}
+              </p>
+              {wasEdited && (
+                <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)", marginBottom: 4 }}>
+                  Last edited {formatShortDate(entry.updatedAt)}
+                </p>
+              )}
+              {/* Mood (read view) */}
+              {entry.mood && !isEditing && (
+                <p style={{ fontSize: '0.65rem', color: 'var(--imw-text-tertiary)', marginBottom: 4 }}>
+                  mood: {entry.mood}
+                </p>
+              )}
+
+              {/* Divider before annotation chips */}
               {!isDeepWrite && (
-                <div style={{ marginTop: 16 }}>
-                  {/* Confirmed tags */}
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <div className="imw-divider" style={{ marginTop: 14, marginBottom: 22 }} />
+              )}
+
+              {/* Category tags + qualifier toggles (below divider) */}
+              {!isDeepWrite && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                     {CATEGORIES.map((cat) => {
                       const isConfirmed = entry.tags.includes(cat.id);
                       if (!isConfirmed) return null;
                       return (
-                        <button
-                          key={cat.id}
-                          onClick={() => handleTagToggle(cat.id)}
-                          style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                          title="Click to remove"
-                        >
+                        <button key={cat.id} onClick={() => handleTagToggle(cat.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }} title="Click to remove">
                           <AnnotationTag category={cat.id as CategoryId} state="confirmed" />
                         </button>
                       );
                     })}
-
-                    {/* C/D qualifier badges — read-only, toggles below */}
                     {entry.isChildhoodMemory && (
-                      <span
-                        title="Criterion C: Symptoms present since early childhood"
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          padding: "2px 6px",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          borderRadius: 3,
-                          border: "0.5px solid var(--imw-border-medium)",
-                          color: "var(--imw-text-secondary)",
-                          letterSpacing: "0.04em",
-                        }}
-                      >
-                        C
-                      </span>
+                      <span title="Criterion C" style={{ display: "inline-flex", alignItems: "center", padding: "2px 6px", fontSize: '0.65rem', fontWeight: 600, borderRadius: 0, border: "0.5px solid var(--imw-border-medium)", color: "var(--imw-text-secondary)", letterSpacing: "0.04em" }}>C</span>
                     )}
                     {entry.isFunctionalImpairment && (
-                      <span
-                        title="Criterion D: Symptoms cause clinically significant impairment"
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          padding: "2px 6px",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          borderRadius: 3,
-                          border: "0.5px solid var(--imw-border-medium)",
-                          color: "var(--imw-text-secondary)",
-                          letterSpacing: "0.04em",
-                        }}
-                      >
-                        D
-                      </span>
+                      <span title="Criterion D" style={{ display: "inline-flex", alignItems: "center", padding: "2px 6px", fontSize: '0.65rem', fontWeight: 600, borderRadius: 0, border: "0.5px solid var(--imw-border-medium)", color: "var(--imw-text-secondary)", letterSpacing: "0.04em" }}>D</span>
                     )}
-
-                    {/* AI suggested tags (not yet confirmed) */}
                     {aiSuggestions.map((s) => (
                       CATEGORIES.some((c) => c.id === s.category) && (
-                        <AnnotationTag
-                          key={s.category}
-                          category={s.category as CategoryId}
-                          state="ai-suggested"
-                          rationale={s.rationale}
-                          onConfirm={() => confirmSuggestion(s)}
-                          onDismiss={() => dismissSuggestion(s.category)}
-                        />
+                        <AnnotationTag key={s.category} category={s.category as CategoryId} state="ai-suggested" rationale={s.rationale} onConfirm={() => confirmSuggestion(s)} onDismiss={() => dismissSuggestion(s.category)} />
                       )
                     ))}
-
-                    {/* Loading skeleton */}
-                    {analyzing && (
-                      <span
-                        className="imw-ann imw-ann--unconfirmed"
-                        style={{ fontStyle: "italic", opacity: 0.6 }}
+                    {analyzing && <span className="imw-ann imw-ann--unconfirmed" style={{ fontStyle: "italic", opacity: 0.6 }}>analyzing…</span>}
+                    {CATEGORIES.filter((c) => !entry.tags.includes(c.id) && !aiSuggestions.some((s) => s.category === c.id)).length > 0 && (
+                      <select
+                        onChange={(e) => { if (e.target.value) handleTagToggle(e.target.value); e.target.value = ""; }}
+                        style={{ fontSize: '0.65rem', padding: "3px 8px", borderRadius: 0, border: "0.5px dashed var(--imw-border-medium)", background: "transparent", color: "var(--imw-text-tertiary)", cursor: "pointer" }}
+                        defaultValue=""
                       >
-                        analyzing…
-                      </span>
+                        <option value="" disabled>+ add tag</option>
+                        {CATEGORIES.filter((c) => !entry.tags.includes(c.id) && !aiSuggestions.some((s) => s.category === c.id)).map((c) => (
+                          <option key={c.id} value={c.id}>{c.label}</option>
+                        ))}
+                      </select>
                     )}
-
-                    {/* Manually add category button */}
-                    {CATEGORIES.filter(
-                      (c) =>
-                        !entry.tags.includes(c.id) &&
-                        !aiSuggestions.some((s) => s.category === c.id)
-                    ).length > 0 && (
-                      <div style={{ position: "relative" }}>
-                        <select
-                          onChange={(e) => {
-                            if (e.target.value) handleTagToggle(e.target.value);
-                            e.target.value = "";
-                          }}
-                          style={{
-                            fontSize: 11,
-                            padding: "3px 8px",
-                            borderRadius: 3,
-                            border: "0.5px dashed var(--imw-border-medium)",
-                            background: "transparent",
-                            color: "var(--imw-text-tertiary)",
-                            cursor: "pointer",
-                          }}
-                          defaultValue=""
-                        >
-                          <option value="" disabled>+ add tag</option>
-                          {CATEGORIES
-                            .filter((c) => !entry.tags.includes(c.id) && !aiSuggestions.some((s) => s.category === c.id))
-                            .map((c) => (
-                              <option key={c.id} value={c.id}>{c.label}</option>
-                            ))
-                          }
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Re-analyze button (subtle) */}
-                    <button
-                      onClick={triggerAnalysis}
-                      disabled={analyzing}
-                      className="imw-btn imw-btn--ghost imw-btn--sm"
-                      style={{
-                        fontSize: 11,
-                        padding: "3px 7px",
-                        opacity: analyzing ? 0.5 : 0.8,
-                        gap: 4,
-                      }}
-                      title="Re-analyze entry for category suggestions"
-                    >
+                    <button onClick={triggerAnalysis} disabled={analyzing} className="imw-btn imw-btn--ghost imw-btn--sm" style={{ fontSize: '0.65rem', padding: "3px 7px", opacity: analyzing ? 0.5 : 0.8, gap: 4 }} title="Re-analyze">
                       <Sparkles size={11} />
                       {analyzing ? "analyzing…" : "analyze"}
                     </button>
                   </div>
-
-                  {/* Qualifier toggles — Criterion C and D */}
-                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                  {/* Qualifier toggles */}
+                  <div style={{ display: "flex", gap: 6 }}>
                     {(["isChildhoodMemory", "isFunctionalImpairment"] as const).map((field) => {
                       const isOn = entry[field];
                       const label = field === "isChildhoodMemory" ? "childhood memory" : "affected my functioning";
-                      const tip = field === "isChildhoodMemory"
-                        ? "Criterion C: Symptoms present since early childhood"
-                        : "Criterion D: Symptoms cause clinically significant impairment";
                       return (
-                        <button
-                          key={field}
-                          onClick={() => handleQualifierToggle(field)}
-                          title={tip}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                            fontSize: 11,
-                            padding: "3px 8px",
-                            borderRadius: 3,
-                            border: `0.5px solid ${isOn ? "var(--imw-ac)" : "var(--imw-border-medium)"}`,
-                            background: isOn ? "color-mix(in srgb, var(--imw-ac) 10%, transparent)" : "transparent",
-                            color: isOn ? "var(--imw-ac)" : "var(--imw-text-tertiary)",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <span style={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: 2,
-                            border: `1.5px solid ${isOn ? "var(--imw-ac)" : "var(--imw-border-medium)"}`,
-                            background: isOn ? "var(--imw-ac)" : "transparent",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                          }}>
+                        <button key={field} onClick={() => handleQualifierToggle(field)} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: '0.65rem', padding: "3px 8px", borderRadius: 0, border: `0.5px solid ${isOn ? "var(--imw-ac)" : "var(--imw-border-medium)"}`, background: isOn ? "color-mix(in srgb, var(--imw-ac) 10%, transparent)" : "transparent", color: isOn ? "var(--imw-ac)" : "var(--imw-text-tertiary)", cursor: "pointer" }}>
+                          <span style={{ width: 10, height: 10, borderRadius: 2, border: `1.5px solid ${isOn ? "var(--imw-ac)" : "var(--imw-border-medium)"}`, background: isOn ? "var(--imw-ac)" : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             {isOn && <span style={{ color: "#fff", fontSize: 7, lineHeight: 1 }}>✓</span>}
                           </span>
                           {label}
@@ -609,47 +493,55 @@ export default function EntryPage() {
                   </div>
                 </div>
               )}
+
+              {/* Edit mode mood chips */}
+              {isEditing && (
+                <div style={{ marginBottom: 16 }}>
+                  <p style={{ fontFamily: 'var(--imw-font-ui)', fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--imw-text-tertiary)', marginBottom: 6 }}>Mood</p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                    {MOODS.map((m) => (
+                      <button key={m} type="button" onClick={() => setEditMood(editMood === m ? "" : m)} style={moodChipStyle(m)}>{m}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Body text (UI-09) */}
+              <div style={{ fontSize: '1rem', lineHeight: 1.85 }}>
+                {isEditing ? (
+                  <IMWEditor
+                    initialContent={entry.content}
+                    onChange={setEditContent}
+                    onEditorReady={setEditorInstance}
+                    fontSize={prefs.editorFontSize}
+                    lineWidth={resolvedLineWidth}
+                    disabled={saving}
+                    autoFocus
+                  />
+                ) : (
+                  <IMWReadView
+                    content={entry.content}
+                    fontSize={prefs.editorFontSize}
+                    lineWidth={resolvedLineWidth}
+                  />
+                )}
+              </div>
             </>
           )}
         </div>
-
-        {loading && (
-          <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>
-        )}
-
-        {!loading && notFound && (
-          <div>
-            <p className="imw-body" style={{ color: "var(--imw-text-tertiary)", marginBottom: 8 }}>
-              Entry not found.
-            </p>
-            <Link href="/" className="imw-body" style={{ color: "var(--imw-ac)", textDecoration: "underline" }}>
-              Return to journal
-            </Link>
-          </div>
-        )}
-
-        {!loading && entry && (
-          <div style={{ paddingTop: 8 }}>
-            {isEditing ? (
-              <IMWEditor
-                initialContent={entry.content}
-                onChange={setEditContent}
-                onEditorReady={setEditorInstance}
-                fontSize={prefs.editorFontSize}
-                lineWidth={resolvedLineWidth}
-                disabled={saving}
-                autoFocus
-              />
-            ) : (
-              <IMWReadView
-                content={entry.content}
-                fontSize={prefs.editorFontSize}
-                lineWidth={resolvedLineWidth}
-              />
-            )}
-          </div>
-        )}
       </div>
+
+      {/* ── Sticky footer bar (UI-09) ── */}
+      {!loading && entry && !isEditing && (
+        <div style={{ position: "sticky", bottom: 0, background: "var(--imw-bg-surface)", borderTop: "1.5px solid var(--imw-border-medium)", padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
+          <span style={{ fontSize: '0.65rem', color: 'var(--imw-text-tertiary)', fontFamily: 'var(--imw-font-ui)' }}>
+            {confirmedCount} confirmed · {pendingCount} pending
+          </span>
+          {pendingCount > 0 && (
+            <button className="imw-btn imw-btn--ghost imw-btn--sm">Mark Reviewed</button>
+          )}
+        </div>
+      )}
 
       <WriteControlsDrawer
         isOpen={drawerOpen}
@@ -659,11 +551,7 @@ export default function EntryPage() {
         onMoodChange={setEditMood}
       />
       {drawerOpen && (
-        <div
-          className="imw-drawer-backdrop"
-          onClick={() => setDrawerOpen(false)}
-          aria-hidden="true"
-        />
+        <div className="imw-drawer-backdrop" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
       )}
     </div>
   );

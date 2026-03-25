@@ -3,14 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { BookOpen, Settings2, Maximize2, Minimize2, X } from "lucide-react";
+import { BookOpen, Settings2, Maximize2, Minimize2, X, Sparkles } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import { IMWEditor, WriteControlsDrawer } from "@/components/editor";
 import { useIMWTheme } from "@/components/ThemeProvider";
-import { LINE_WIDTH_VALUES } from "@/lib/theme";
+import AnnotationTag from "@/components/AnnotationTag";
+import { LINE_WIDTH_VALUES, type CategoryId } from "@/lib/theme";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useMobile } from "@/hooks/useMobile";
+
+const MOODS = ["overwhelmed", "drained", "okay", "grounded", "good", "uncertain"];
 
 type JournalEntry = {
   id: string;
@@ -257,326 +259,314 @@ export default function JournalPage() {
     }
   }
 
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        padding: isDeepWrite ? "10vh 24px" : isMobile ? "72px 16px 40px" : "40px 24px",
-        backgroundColor: "var(--imw-bg-base)",
-      }}
-    >
-      <div style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}>
+  const moodChipStyle = (m: string) => ({
+    fontSize: '0.65rem',
+    fontWeight: 600 as const,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.04em',
+    padding: '3px 9px',
+    border: `1.5px solid ${mood === m ? 'var(--imw-ac-b)' : 'var(--imw-border-medium)'}`,
+    background: mood === m ? 'var(--imw-ac-l)' : 'none',
+    color: mood === m ? 'var(--imw-ac-d)' : 'var(--imw-text-secondary)',
+    cursor: 'pointer',
+    borderRadius: 0,
+    fontFamily: 'var(--imw-font-ui)',
+  });
 
-        {/* Entry composer */}
-        <div
-          style={isDeepWrite ? {
-            background: "transparent",
-            border: "none",
-            borderRadius: 0,
-            padding: isMobile ? "16px" : "20px 24px",
-            marginBottom: 0,
-          } : {
-            background: "var(--imw-bg-surface)",
-            border: "0.5px solid var(--imw-border-default)",
-            borderRadius: 12,
-            padding: isMobile ? "16px" : "20px 24px",
-            marginBottom: 32,
-          }}
-        >
-          <form onSubmit={handleSubmit}>
-            {/* Composer top bar */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-              }}
+  return (
+    <div style={{ minHeight: "100vh", backgroundColor: "var(--imw-bg-base)", display: "flex", flexDirection: "column" }}>
+
+      {/* ── Top bar (UI-05) ── */}
+      {!isDeepWrite && !isMobile && (
+        <div className="imw-top-bar imw-deep-write-chrome">
+          <span style={{ fontFamily: 'var(--imw-font-ui)', fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--imw-text-tertiary)' }}>
+            Journal
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {prefs.autoAnalyze && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.6rem', fontWeight: 600, color: 'var(--imw-ac)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--imw-ac)', animation: 'imw-blink 1.4s ease infinite' }} />
+                AI Ready
+              </span>
+            )}
+            <button
+              type="button"
+              className="imw-btn imw-btn--ghost imw-btn--sm"
+              onClick={isDeepWrite ? exitDeepWrite : enterDeepWrite}
+              title="Deep write — full focus mode"
             >
-              <div style={{ flex: 1, position: "relative" }}>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                    setTitleTouched(true);
-                    setTitleIsAI(false);
-                  }}
-                  disabled={submitting}
-                  style={{
-                    width: "100%",
-                    background: "transparent",
-                    border: "none",
-                    outline: "none",
-                    fontFamily: "var(--imw-font-body)",
-                    fontSize: isMobile ? 18 : 20,
-                    fontWeight: 400,
-                    color: title ? "var(--imw-text-primary)" : "var(--imw-text-tertiary)",
-                    padding: "4px 0",
-                    caretColor: "var(--imw-ac)",
-                  }}
-                />
-                {(titleIsAI || titleGenerating) && (
-                  <span
-                    className="imw-caption"
-                    style={{
-                      color: "var(--imw-ac)",
-                      position: "absolute",
-                      right: 0,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      fontStyle: "italic",
-                      pointerEvents: "none",
+              {isDeepWrite ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+              <span style={{ marginLeft: 3 }}>Deep Write</span>
+            </button>
+            <button
+              type="button"
+              className="imw-btn imw-btn--ghost imw-btn--sm"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Writing controls"
+            >
+              <Settings2 size={13} />
+            </button>
+            <DarkModeTopBarToggle />
+          </div>
+        </div>
+      )}
+
+      {/* ── Scrollable content (UI-04: centered 720px well) ── */}
+      <div
+        style={{
+          flex: 1,
+          padding: isDeepWrite ? "10vh 24px" : isMobile ? "72px 16px 40px" : "32px 24px 60px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ width: "100%", maxWidth: 720 }}>
+
+          {/* ── Composer (UI-06: borderless) ── */}
+          <div
+            style={isDeepWrite ? {
+              background: "transparent",
+              border: "none",
+              padding: isMobile ? "16px 0" : "20px 0",
+              marginBottom: 0,
+            } : {
+              borderBottom: "1.5px solid var(--imw-border-medium)",
+              padding: isMobile ? "16px 0" : "20px 0",
+              marginBottom: 28,
+            }}
+          >
+            <form onSubmit={handleSubmit}>
+              {/* Title row */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div style={{ flex: 1, position: "relative" }}>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      setTitleTouched(true);
+                      setTitleIsAI(false);
                     }}
-                  >
-                    {titleGenerating ? "suggesting…" : "AI suggested"}
-                  </span>
+                    placeholder="Title (optional)"
+                    disabled={submitting}
+                    style={{
+                      width: "100%",
+                      background: "transparent",
+                      border: "none",
+                      outline: "none",
+                      fontFamily: "var(--imw-font-body)",
+                      fontSize: 22,
+                      fontWeight: 400,
+                      color: title ? "var(--imw-text-primary)" : "var(--imw-text-tertiary)",
+                      padding: "4px 0",
+                      caretColor: "var(--imw-ac)",
+                    }}
+                  />
+                  {(titleIsAI || titleGenerating) && (
+                    <span
+                      className="imw-caption"
+                      style={{
+                        color: "var(--imw-ac)",
+                        position: "absolute",
+                        right: 0,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        fontStyle: "italic",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      {titleGenerating ? "suggesting…" : "AI suggested"}
+                    </span>
+                  )}
+                </div>
+                {isMobile && (
+                  <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      className="imw-btn imw-btn--ghost imw-btn--sm"
+                      onClick={isDeepWrite ? exitDeepWrite : enterDeepWrite}
+                    >
+                      {isDeepWrite ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                    </button>
+                    <button
+                      type="button"
+                      className="imw-btn imw-btn--ghost imw-btn--sm"
+                      onClick={() => setDrawerOpen(true)}
+                    >
+                      <Settings2 size={14} />
+                    </button>
+                  </div>
                 )}
               </div>
-              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                <button
-                  type="button"
-                  className="imw-btn imw-btn--ghost imw-btn--sm"
-                  onClick={isDeepWrite ? exitDeepWrite : enterDeepWrite}
-                  aria-label={isDeepWrite ? "Exit deep write" : "Deep write"}
-                  title={isDeepWrite ? "Exit deep write" : "Deep write — full focus mode"}
-                >
-                  {isDeepWrite ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                </button>
-                <button
-                  type="button"
-                  className="imw-btn imw-btn--ghost imw-btn--sm"
-                  onClick={() => setDrawerOpen(true)}
-                  aria-label="Writing controls"
-                >
-                  <Settings2 size={14} />
-                </button>
-              </div>
-            </div>
 
-            {/* Thin divider between title and editor */}
-            <div className="imw-divider" style={{ marginBottom: 12 }} />
+              {/* Divider between title and editor */}
+              <div className="imw-divider" style={{ marginBottom: 12 }} />
 
-            {/* Editor scroll area */}
-            <div
-              className={isDeepWrite ? "imw-composer-wrap" : undefined}
-              style={isDeepWrite ? { maxHeight: "900px", overflowY: "auto" } : {}}
-            >
-              <IMWEditor
-                initialContent=""
-                onChange={setContent}
-                onEditorReady={setEditorInstance}
-                placeholder="What happened? What did you notice?"
-                fontSize={prefs.editorFontSize}
-                lineWidth={resolvedLineWidth}
-                disabled={submitting}
-              />
-
-              {error && (
-                <p className="imw-caption" style={{ color: "var(--imw-text-destructive)", marginTop: 8 }}>
-                  {error}
-                </p>
-              )}
-            </div>
-
-            <div className="imw-deep-write-chrome" style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-              <button
-                type="submit"
-                disabled={submitting || !hasContent()}
-                className="imw-btn imw-btn--primary"
-                style={{ opacity: submitting || !hasContent() ? 0.5 : 1 }}
-              >
-                {submitting ? "Saving…" : "Save entry"}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Entry list */}
-        <div className="imw-deep-write-chrome" style={isDeepWrite ? { display: "none" } : {}}>
-          {loading && (
-            <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>
-          )}
-
-          {!loading && entries.length === 0 && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                textAlign: "center",
-                padding: "64px 24px",
-                gap: 24,
-              }}
-            >
+              {/* Editor scroll area */}
               <div
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: "50%",
-                  background: "var(--imw-ac-l)",
-                  border: "1.5px solid var(--imw-ac-b)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--imw-ac)",
-                }}
+                className={isDeepWrite ? "imw-composer-wrap" : undefined}
+                style={isDeepWrite ? { maxHeight: "900px", overflowY: "auto" } : {}}
               >
-                <BookOpen size={24} />
+                <IMWEditor
+                  initialContent=""
+                  onChange={setContent}
+                  onEditorReady={setEditorInstance}
+                  placeholder="What happened? What did you notice?"
+                  fontSize={prefs.editorFontSize}
+                  lineWidth={resolvedLineWidth}
+                  disabled={submitting}
+                />
+                {error && (
+                  <p className="imw-caption" style={{ color: "var(--imw-error-text)", marginTop: 8 }}>
+                    {error}
+                  </p>
+                )}
               </div>
 
-              <div style={{ maxWidth: 380 }}>
-                <p className="imw-h2" style={{ color: "var(--imw-text-primary)", marginBottom: 8 }}>
-                  This is yours. No right way to begin.
-                </p>
-                <p className="imw-body" style={{ color: "var(--imw-text-secondary)" }}>
-                  Write what happened, what you felt, or what&apos;s hard to say out loud.
-                  InMyWords holds it — and helps you use it later.
-                </p>
-              </div>
-
-              <button
-                className="imw-btn imw-btn--primary"
-                onClick={() => editorInstance?.commands.focus("end")}
-              >
-                Write an entry
-              </button>
-
+              {/* Footer (UI-07: mood chips + save) */}
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  width: "100%",
-                  maxWidth: 360,
-                }}
+                className="imw-deep-write-chrome"
+                style={{ borderTop: "1px solid var(--imw-border-default)", marginTop: 12, paddingTop: 10 }}
               >
-                <div className="imw-divider" style={{ flex: 1 }} />
-                <span className="imw-label">or start with a prompt</span>
-                <div className="imw-divider" style={{ flex: 1 }} />
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 360 }}>
-                {STARTER_PROMPTS.map((prompt) => (
+                {/* Mood chips */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
+                  {MOODS.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setMood(mood === m ? "" : m)}
+                      style={moodChipStyle(m)}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                {/* Save button */}
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <button
-                    key={prompt}
-                    className="imw-btn imw-btn--secondary"
-                    style={{
-                      justifyContent: "flex-start",
-                      textAlign: "left",
-                      whiteSpace: "normal",
-                      height: "auto",
-                      padding: "9px 14px",
-                    }}
-                    onClick={() => {
-                      const doc = JSON.stringify({
-                        type: "doc",
-                        content: [{ type: "paragraph", content: [{ type: "text", text: prompt }] }],
-                      });
-                      setContent(doc);
-                      if (editorInstance) {
-                        editorInstance.commands.setContent({
-                          type: "doc",
-                          content: [{ type: "paragraph", content: [{ type: "text", text: prompt }] }],
-                        });
-                        editorInstance.commands.focus("end");
-                      }
-                    }}
+                    type="submit"
+                    disabled={submitting || !hasContent()}
+                    className="imw-btn imw-btn--primary"
+                    style={{ opacity: submitting || !hasContent() ? 0.5 : 1 }}
                   >
-                    {prompt}
+                    {submitting ? "Saving…" : "Save entry"}
                   </button>
-                ))}
+                </div>
               </div>
-            </div>
-          )}
+            </form>
+          </div>
 
-          {!loading && entries.length > 0 && searchQuery && entries.filter((e) => {
-            const preview = getPreviewText(e.content);
-            const q = searchQuery.toLowerCase();
-            return preview.toLowerCase().includes(q) || (e.title ?? "").toLowerCase().includes(q);
-          }).length === 0 && (
-            <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>
-              No entries match your search.
-            </p>
-          )}
+          {/* ── Entry list (UI-08: editorial rows) ── */}
+          <div className="imw-deep-write-chrome" style={isDeepWrite ? { display: "none" } : {}}>
+            {loading && (
+              <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>
+            )}
 
-          {(() => {
-            const filtered = entries.filter((e) => {
-              if (!searchQuery) return true;
+            {!loading && entries.length === 0 && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "64px 24px", gap: 24 }}>
+                <div style={{ width: 56, height: 56, background: "var(--imw-ac-l)", border: "1.5px solid var(--imw-ac-b)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--imw-ac)" }}>
+                  <BookOpen size={24} />
+                </div>
+                <div style={{ maxWidth: 380 }}>
+                  <p className="imw-h2" style={{ color: "var(--imw-text-primary)", marginBottom: 8 }}>
+                    This is yours. No right way to begin.
+                  </p>
+                  <p className="imw-body" style={{ color: "var(--imw-text-secondary)" }}>
+                    Write what happened, what you felt, or what&apos;s hard to say out loud.
+                    InMyWords holds it — and helps you use it later.
+                  </p>
+                </div>
+                <button className="imw-btn imw-btn--primary" onClick={() => editorInstance?.commands.focus("end")}>
+                  Write an entry
+                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", maxWidth: 360 }}>
+                  <div className="imw-divider" style={{ flex: 1 }} />
+                  <span className="imw-label">or start with a prompt</span>
+                  <div className="imw-divider" style={{ flex: 1 }} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 360 }}>
+                  {STARTER_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      className="imw-btn imw-btn--secondary"
+                      style={{ justifyContent: "flex-start", textAlign: "left", whiteSpace: "normal", height: "auto", padding: "9px 14px" }}
+                      onClick={() => {
+                        const doc = JSON.stringify({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: prompt }] }] });
+                        setContent(doc);
+                        if (editorInstance) {
+                          editorInstance.commands.setContent({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: prompt }] }] });
+                          editorInstance.commands.focus("end");
+                        }
+                      }}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!loading && entries.length > 0 && searchQuery && entries.filter((e) => {
               const preview = getPreviewText(e.content);
               const q = searchQuery.toLowerCase();
               return preview.toLowerCase().includes(q) || (e.title ?? "").toLowerCase().includes(q);
-            });
+            }).length === 0 && (
+              <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>No entries match your search.</p>
+            )}
 
-            const groups = new Map<string, JournalEntry[]>();
-            for (const entry of filtered) {
-              const label = new Date(entry.createdAt).toLocaleString("en-US", {
-                month: "long",
-                year: "numeric",
+            {(() => {
+              const filtered = entries.filter((e) => {
+                if (!searchQuery) return true;
+                const preview = getPreviewText(e.content);
+                const q = searchQuery.toLowerCase();
+                return preview.toLowerCase().includes(q) || (e.title ?? "").toLowerCase().includes(q);
               });
-              if (!groups.has(label)) groups.set(label, []);
-              groups.get(label)!.push(entry);
-            }
 
-            return Array.from(groups.entries()).map(([label, groupEntries]) => (
-              <div key={label} style={{ marginBottom: 24 }}>
-                <p
-                  className="imw-label"
-                  style={{ color: "var(--imw-text-tertiary)", marginBottom: 8, paddingTop: 8 }}
-                >
-                  {label}
-                </p>
-                {groupEntries.map((entry) => (
-                  <Link
-                    key={entry.id}
-                    href={`/entries/${entry.id}`}
-                    style={{ display: "block", textDecoration: "none", marginBottom: 8 }}
-                    className="imw-entry-card"
-                  >
-                    <div
-                      style={{
-                        background: "var(--imw-bg-surface)",
-                        border: "0.5px solid var(--imw-border-default)",
-                        borderRadius: 10,
-                        padding: "14px 16px",
-                      }}
+              const groups = new Map<string, JournalEntry[]>();
+              for (const entry of filtered) {
+                const label = new Date(entry.createdAt).toLocaleString("en-US", { month: "long", year: "numeric" });
+                if (!groups.has(label)) groups.set(label, []);
+                groups.get(label)!.push(entry);
+              }
+
+              return Array.from(groups.entries()).map(([label, groupEntries]) => (
+                <div key={label}>
+                  {/* Month group label */}
+                  <p style={{ fontFamily: 'var(--imw-font-ui)', fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--imw-text-tertiary)', padding: '14px 0 6px' }}>
+                    {label}
+                  </p>
+                  {/* Editorial rows */}
+                  {groupEntries.map((entry, idx) => (
+                    <Link
+                      key={entry.id}
+                      href={`/entries/${entry.id}`}
+                      style={{ display: "block", textDecoration: "none" }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: 6,
-                        }}
-                      >
-                        <span className="imw-caption" style={{ color: "var(--imw-text-tertiary)" }}>
-                          {formatDate(entry.createdAt)}
-                        </span>
-                        <Badge variant="secondary" className="text-xs font-mono">
-                          {entry.id.slice(-6)}
-                        </Badge>
+                      <div className={`imw-feed-row${idx === 0 ? ' imw-feed-row--first' : ''}`}>
+                        <div className="imw-feed-meta">{formatDate(entry.createdAt)}</div>
+                        <div className="imw-feed-title">
+                          {entry.title ?? truncate(getPreviewText(entry.content), 60)}
+                        </div>
+                        {entry.title && (
+                          <div className="imw-feed-excerpt">
+                            {truncate(getPreviewText(entry.content), 100)}
+                          </div>
+                        )}
+                        {entry.tags && entry.tags.length > 0 && (
+                          <div className="imw-feed-tags">
+                            {entry.tags.map((tag) => (
+                              <AnnotationTag key={tag} category={tag as CategoryId} state="confirmed" />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      {/* Title as primary label, content snippet as fallback */}
-                      {entry.title ? (
-                        <>
-                          <p className="imw-ui" style={{ color: "var(--imw-text-primary)", marginBottom: 3, fontWeight: 500 }}>
-                            {entry.title}
-                          </p>
-                          <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)" }}>
-                            {truncate(getPreviewText(entry.content), 80)}
-                          </p>
-                        </>
-                      ) : (
-                        <p className="imw-body" style={{ color: "var(--imw-text-secondary)" }}>
-                          {truncate(getPreviewText(entry.content))}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ));
-          })()}
+                    </Link>
+                  ))}
+                </div>
+              ));
+            })()}
+          </div>
         </div>
       </div>
 
@@ -585,12 +575,7 @@ export default function JournalPage() {
         <>
           <div
             onClick={() => setSearchOpen(false)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 50,
-              background: "rgba(0,0,0,0.4)",
-            }}
+            style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.4)" }}
             aria-hidden="true"
           />
           <div
@@ -602,7 +587,6 @@ export default function JournalPage() {
               width: "min(480px, 90vw)",
               background: "var(--imw-bg-surface)",
               border: "0.5px solid var(--imw-border-default)",
-              borderRadius: 12,
               padding: 20,
               zIndex: 51,
             }}
@@ -619,7 +603,7 @@ export default function JournalPage() {
                   border: "none",
                   outline: "none",
                   fontFamily: "var(--imw-font-body)",
-                  fontSize: 16,
+                  fontSize: '1rem',
                   color: "var(--imw-text-primary)",
                   caretColor: "var(--imw-ac)",
                   padding: "4px 0",
@@ -629,16 +613,7 @@ export default function JournalPage() {
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--imw-text-tertiary)",
-                    padding: 0,
-                    flexShrink: 0,
-                    display: "flex",
-                    alignItems: "center",
-                  }}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--imw-text-tertiary)", padding: 0, flexShrink: 0, display: "flex", alignItems: "center" }}
                   aria-label="Clear search"
                 >
                   <X size={14} />
@@ -674,12 +649,41 @@ export default function JournalPage() {
         hasContent={hasContent()}
       />
       {drawerOpen && (
-        <div
-          className="imw-drawer-backdrop"
-          onClick={() => setDrawerOpen(false)}
-          aria-hidden="true"
-        />
+        <div className="imw-drawer-backdrop" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
       )}
+    </div>
+  );
+}
+
+// Inline dark/light toggle for top bar
+function DarkModeTopBarToggle() {
+  const { prefs, setDarkMode } = useIMWTheme();
+  return (
+    <div style={{ display: "inline-flex", border: "0.5px solid var(--imw-border-medium)" }}>
+      {(["light", "dark"] as const).map((mode) => {
+        const isActive = mode === "dark" ? prefs.darkMode : !prefs.darkMode;
+        return (
+          <button
+            key={mode}
+            onClick={() => setDarkMode(mode === "dark")}
+            style={{
+              padding: "4px 10px",
+              fontSize: "0.6rem",
+              fontWeight: isActive ? 600 : 400,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              background: isActive ? "var(--imw-ac)" : "transparent",
+              color: isActive ? "#fff" : "var(--imw-text-tertiary)",
+              border: "none",
+              borderRadius: 0,
+              cursor: "pointer",
+              transition: "background 0.15s, color 0.15s",
+            }}
+          >
+            {mode === "light" ? "☀ Light" : "☾ Dark"}
+          </button>
+        );
+      })}
     </div>
   );
 }

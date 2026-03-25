@@ -83,7 +83,7 @@ function QualifierBadge({ label }: { label: string }) {
         display: "inline-flex",
         alignItems: "center",
         padding: "1px 5px",
-        fontSize: 10,
+        fontSize: '0.6rem',
         fontWeight: 600,
         borderRadius: 3,
         border: "0.5px solid var(--imw-border-medium)",
@@ -133,7 +133,7 @@ function StoplightRollup({
             >
               <span
                 className="imw-label"
-                style={{ color: "var(--imw-text-secondary)", fontSize: 11 }}
+                style={{ color: "var(--imw-text-secondary)", fontSize: '0.65rem' }}
               >
                 {c}
               </span>
@@ -185,8 +185,8 @@ function EntryCard({
             padding: "0 0 0 10px",
             borderLeft: "2px solid var(--imw-border-medium)",
             fontFamily,
-            fontSize: 14,
-            lineHeight: 1.55,
+            fontSize: '1rem',
+            lineHeight: 1.65,
             color: "var(--imw-text-primary)",
             fontStyle: "italic",
           }}
@@ -197,8 +197,7 @@ function EntryCard({
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
         <Link
           href={`/entries/${entry.id}`}
-          className="imw-ui-small"
-          style={{ color: "var(--imw-ac)", textDecoration: "none" }}
+          style={{ fontFamily: "var(--imw-font-ui)", fontSize: "0.7rem", fontWeight: 600, color: "var(--imw-ac-d)", textDecoration: "none" }}
         >
           {displayTitle}
         </Link>
@@ -274,7 +273,7 @@ function CriteriaAccordion({ entries, fontFamily }: { entries: EntryRow[]; fontF
               <span
                 style={{
                   color: "var(--imw-text-tertiary)",
-                  fontSize: 12,
+                  fontSize: '0.7rem',
                   transform: isOpen ? "rotate(180deg)" : "none",
                   transition: "transform 0.15s",
                   flexShrink: 0,
@@ -351,7 +350,7 @@ function CoverageMatrix({ entries }: { entries: EntryRow[] }) {
           borderCollapse: "collapse",
           width: "100%",
           minWidth: 520,
-          fontSize: 12,
+          fontSize: '0.7rem',
         }}
       >
         <thead>
@@ -417,7 +416,7 @@ function CoverageMatrix({ entries }: { entries: EntryRow[] }) {
                     style={{
                       color: "var(--imw-ac)",
                       textDecoration: "none",
-                      fontSize: 12,
+                      fontSize: '0.7rem',
                     }}
                     title={displayTitle}
                   >
@@ -453,7 +452,7 @@ export default function InMyWordsPage() {
   const [entries, setEntries] = useState<EntryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState<string | null>(null);
-  const { prefs } = useIMWTheme();
+  const { prefs, setDarkMode } = useIMWTheme();
 
   const fontFamily =
     prefs.font === "noto"
@@ -479,66 +478,132 @@ export default function InMyWordsPage() {
     fetchEntries();
   }, []);
 
+  // Stats for the header row
+  const analyzedCount = entries.filter((e) => (e.aiSuggestions?.dsmCriteria?.length ?? 0) > 0).length;
+  const criteriaCovered = new Set(
+    entries.flatMap((e) => e.aiSuggestions?.dsmCriteria?.map((s) => s.category) ?? [])
+  ).size;
+  const pendingReview = entries.filter((e) => !e.aiSuggestions).length;
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "var(--imw-bg-base)",
-        padding: "0 24px 60px",
-      }}
-    >
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: "var(--imw-bg-base)" }}>
+      {/* Top bar */}
+      <div className="imw-top-bar imw-deep-write-chrome">
+        <span style={{ fontSize: "0.6rem", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--imw-text-tertiary)", fontFamily: "var(--imw-font-ui)" }}>
+          In My Words
+        </span>
+        <button
+          onClick={() => setDarkMode(!prefs.darkMode)}
+          className="imw-btn imw-btn--ghost imw-btn--sm"
+          style={{ fontFamily: "var(--imw-font-ui)", fontSize: "0.7rem" }}
+        >
+          {prefs.darkMode ? "☀ Light" : "☾ Dark"}
+        </button>
+      </div>
 
-        {/* Page header */}
-        <div style={{ paddingTop: 40, marginBottom: 32 }}>
-          <h1 className="imw-h1" style={{ marginBottom: 6 }}>
-            {devBypass
-              ? "your words"
-              : firstName
-              ? `${firstName}'s words`
-              : "In My Words"}
-          </h1>
-          <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)" }}>
-            Your words, organized by pattern. Only a qualified clinician can diagnose.
-          </p>
+      {/* Content well */}
+      <div style={{ padding: "0 24px 60px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ width: "100%", maxWidth: 720 }}>
+
+          {/* Page header */}
+          <div style={{ paddingTop: 36, marginBottom: 32 }}>
+            <span style={{ display: "block", fontSize: "0.6rem", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--imw-text-tertiary)", fontFamily: "var(--imw-font-ui)", marginBottom: 8 }}>
+              Eval Prep · {devBypass ? "your words" : firstName ? `${firstName}'s words` : "In My Words"}
+            </span>
+            <h1 style={{ fontFamily: "var(--imw-font-display)", fontWeight: 900, fontSize: "1.55rem", lineHeight: 1.1, color: "var(--imw-text-primary)", margin: "0 0 10px" }}>
+              {devBypass ? "Your Words" : firstName ? `${firstName}'s Words` : "In My Words"}
+            </h1>
+            <p style={{ fontFamily: "var(--imw-font-ui)", fontSize: "0.85rem", color: "var(--imw-text-secondary)", margin: "0 0 20px", lineHeight: 1.5 }}>
+              Your journal, organized by pattern. Only a qualified clinician can diagnose.
+            </p>
+
+            {/* Stats row */}
+            {!loading && (
+              <div style={{ display: "flex", borderTop: "2px solid var(--imw-text-primary)", paddingTop: 16 }}>
+                {[
+                  { value: entries.length, label: "Entries" },
+                  { value: analyzedCount, label: "Analyzed" },
+                  { value: criteriaCovered, label: "Criteria covered" },
+                  { value: pendingReview, label: "Pending review" },
+                ].map((stat, i, arr) => (
+                  <div
+                    key={stat.label}
+                    style={{
+                      flex: 1,
+                      paddingRight: 20,
+                      borderRight: i < arr.length - 1 ? "1px solid var(--imw-border-medium)" : "none",
+                      paddingLeft: i > 0 ? 20 : 0,
+                    }}
+                  >
+                    <div style={{ fontFamily: "var(--imw-font-display)", fontWeight: 900, fontSize: "1.4rem", color: "var(--imw-text-primary)", lineHeight: 1.1, marginBottom: 4 }}>
+                      {stat.value}
+                    </div>
+                    <div style={{ fontFamily: "var(--imw-font-ui)", fontSize: "0.6rem", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--imw-text-tertiary)" }}>
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {loading ? (
+            <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>
+          ) : (
+            <>
+              {/* Stoplight rollup */}
+              <section style={{ marginBottom: 32 }}>
+                {devBypass ? (
+                  <StoplightRollup entries={entries} firstName={null} />
+                ) : (
+                  <StoplightWithClerk entries={entries} onFirstName={setFirstName} />
+                )}
+              </section>
+
+              {/* Criteria accordion */}
+              <section style={{ marginBottom: 32 }}>
+                <h2
+                  style={{
+                    fontFamily: "var(--imw-font-display)",
+                    fontWeight: 900,
+                    fontSize: "0.8rem",
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: "var(--imw-text-primary)",
+                    paddingBottom: 8,
+                    borderBottom: "2px solid var(--imw-text-primary)",
+                    marginTop: 0,
+                    marginBottom: 14,
+                  }}
+                >
+                  By Criterion
+                </h2>
+                <CriteriaAccordion entries={entries} fontFamily={fontFamily} />
+              </section>
+
+              {/* Coverage matrix */}
+              <section>
+                <h2
+                  style={{
+                    fontFamily: "var(--imw-font-display)",
+                    fontWeight: 900,
+                    fontSize: "0.8rem",
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: "var(--imw-text-primary)",
+                    paddingBottom: 8,
+                    borderBottom: "2px solid var(--imw-text-primary)",
+                    marginTop: 0,
+                    marginBottom: 14,
+                  }}
+                >
+                  Coverage Matrix
+                </h2>
+                <CoverageMatrix entries={entries} />
+              </section>
+            </>
+          )}
         </div>
-
-        {loading ? (
-          <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>
-        ) : (
-          <>
-            {/* IMW-45 — Stoplight rollup */}
-            <section style={{ marginBottom: 32 }}>
-              {devBypass ? (
-                <StoplightRollup entries={entries} firstName={null} />
-              ) : (
-                <StoplightWithClerk entries={entries} onFirstName={setFirstName} />
-              )}
-            </section>
-
-            {/* IMW-46 — Criteria accordion */}
-            <section style={{ marginBottom: 32 }}>
-              <h2
-                className="imw-label"
-                style={{ color: "var(--imw-text-tertiary)", marginBottom: 10 }}
-              >
-                by criterion
-              </h2>
-              <CriteriaAccordion entries={entries} fontFamily={fontFamily} />
-            </section>
-
-            {/* IMW-47 — Coverage matrix */}
-            <section>
-              <h2
-                className="imw-label"
-                style={{ color: "var(--imw-text-tertiary)", marginBottom: 10 }}
-              >
-                coverage matrix
-              </h2>
-              <CoverageMatrix entries={entries} />
-            </section>
-          </>
-        )}
       </div>
     </div>
   );

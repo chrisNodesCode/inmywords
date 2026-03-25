@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { Menu, Search, X } from "lucide-react";
 import { useIMWTheme } from "@/components/ThemeProvider";
@@ -79,14 +79,7 @@ function DarkModeToggle() {
   const { prefs, setDarkMode } = useIMWTheme();
 
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        borderRadius: "20px",
-        border: "0.5px solid var(--imw-border-medium)",
-        overflow: "hidden",
-      }}
-    >
+    <div style={{ display: "inline-flex", border: "0.5px solid var(--imw-border-medium)" }}>
       {(["light", "dark"] as const).map((mode) => {
         const isActive = mode === "dark" ? prefs.darkMode : !prefs.darkMode;
         return (
@@ -95,11 +88,12 @@ function DarkModeToggle() {
             onClick={() => setDarkMode(mode === "dark")}
             style={{
               padding: "4px 10px",
-              fontSize: "13px",
-              fontWeight: isActive ? 500 : 400,
+              fontSize: "0.75rem",
+              fontWeight: isActive ? 600 : 400,
               background: isActive ? "var(--imw-ac)" : "transparent",
               color: isActive ? "#ffffff" : "var(--imw-text-tertiary)",
               border: "none",
+              borderRadius: 0,
               cursor: "pointer",
               transition: "background 0.15s, color 0.15s",
             }}
@@ -112,7 +106,7 @@ function DarkModeToggle() {
   );
 }
 
-function SidebarContents({ onNavClick }: { onNavClick?: () => void }) {
+function SidebarContents({ onNavClick, onCollapse }: { onNavClick?: () => void; onCollapse?: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -123,7 +117,7 @@ function SidebarContents({ onNavClick }: { onNavClick?: () => void }) {
           href="/"
           onClick={onNavClick}
           style={{
-            fontSize: "15px",
+            fontSize: "0.85rem",
             fontWeight: 600,
             color: "var(--imw-text-primary)",
             letterSpacing: "-0.01em",
@@ -132,17 +126,31 @@ function SidebarContents({ onNavClick }: { onNavClick?: () => void }) {
         >
           {devBypass ? "your words" : <WordmarkText />}
         </Link>
-        <button
-          type="button"
-          className="imw-btn imw-btn--ghost imw-btn--sm"
-          onClick={() => {
-            onNavClick?.();
-            window.dispatchEvent(new CustomEvent("imw:open-search"));
-          }}
-          aria-label="Search entries"
-        >
-          <Search size={14} />
-        </button>
+        <div style={{ display: "flex", gap: 2 }}>
+          <button
+            type="button"
+            className="imw-btn imw-btn--ghost imw-btn--sm"
+            onClick={() => {
+              onNavClick?.();
+              window.dispatchEvent(new CustomEvent("imw:open-search"));
+            }}
+            aria-label="Search entries"
+          >
+            <Search size={14} />
+          </button>
+          {onCollapse && (
+            <button
+              type="button"
+              className="imw-btn imw-btn--ghost imw-btn--sm"
+              onClick={onCollapse}
+              aria-label="Collapse sidebar"
+              title="Hide sidebar"
+              style={{ fontSize: "0.65rem" }}
+            >
+              ←
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Nav items */}
@@ -205,6 +213,18 @@ function SidebarContents({ onNavClick }: { onNavClick?: () => void }) {
 export default function Sidebar() {
   const isMobile = useMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("imw-sidebar-collapsed") === "true";
+    }
+    return false;
+  });
+  const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    localStorage.setItem("imw-sidebar-collapsed", String(collapsed));
+  }, [collapsed]);
 
   if (isMobile) {
     return (
@@ -223,7 +243,7 @@ export default function Sidebar() {
           <Link
             href="/"
             style={{
-              fontSize: "15px",
+              fontSize: "0.85rem",
               fontWeight: 600,
               color: "var(--imw-text-primary)",
               letterSpacing: "-0.01em",
@@ -256,7 +276,7 @@ export default function Sidebar() {
         <aside
           className={`imw-sidebar-mobile ${mobileMenuOpen ? "imw-sidebar-mobile-open" : "imw-sidebar-mobile-closed"}`}
           style={{
-            background: "var(--imw-bg-sidebar)",
+            background: "var(--imw-bg-surface)",
             borderRight: "0.5px solid var(--imw-border-default)",
             display: "flex",
             flexDirection: "column",
@@ -281,6 +301,70 @@ export default function Sidebar() {
     );
   }
 
+  // Desktop: collapsed rail
+  if (collapsed) {
+    const isJournal = pathname === "/" || pathname.startsWith("/entries");
+    const isWords = pathname === "/in-my-words";
+    const railBtnStyle = {
+      background: "none",
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "var(--imw-font-display)",
+      fontWeight: 900 as const,
+      fontSize: "0.65rem",
+      padding: "8px 0",
+      width: "100%",
+      textAlign: "center" as const,
+      transition: "color 0.15s",
+    };
+    return (
+      <div
+        className="imw-deep-write-chrome"
+        style={{
+          width: 40,
+          minWidth: 40,
+          height: "100vh",
+          position: "sticky",
+          top: 0,
+          alignSelf: "flex-start",
+          background: "var(--imw-bg-surface)",
+          borderRight: "2px solid var(--imw-text-primary)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          paddingTop: 10,
+          gap: 4,
+          flexShrink: 0,
+        }}
+      >
+        <button
+          onClick={() => setCollapsed(false)}
+          aria-label="Expand sidebar"
+          style={{ ...railBtnStyle, color: "var(--imw-text-tertiary)", marginBottom: 4 }}
+        >
+          →
+        </button>
+        <button
+          onClick={() => router.push("/")}
+          aria-label="Journal"
+          title="Journal"
+          style={{ ...railBtnStyle, color: isJournal ? "var(--imw-ac)" : "var(--imw-text-tertiary)" }}
+        >
+          J
+        </button>
+        <button
+          onClick={() => router.push("/in-my-words")}
+          aria-label="In My Words"
+          title="In My Words"
+          style={{ ...railBtnStyle, color: isWords ? "var(--imw-ac)" : "var(--imw-text-tertiary)" }}
+        >
+          W
+        </button>
+      </div>
+    );
+  }
+
+  // Desktop: expanded sidebar
   return (
     <aside
       className="imw-deep-write-chrome"
@@ -288,7 +372,7 @@ export default function Sidebar() {
         width: "200px",
         minWidth: "200px",
         minHeight: "100vh",
-        background: "var(--imw-bg-sidebar)",
+        background: "var(--imw-bg-surface)",
         borderRight: "0.5px solid var(--imw-border-default)",
         display: "flex",
         flexDirection: "column",
@@ -296,9 +380,11 @@ export default function Sidebar() {
         top: 0,
         alignSelf: "flex-start",
         height: "100vh",
+        transition: "width 0.22s, min-width 0.22s",
+        overflow: "hidden",
       }}
     >
-      <SidebarContents />
+      <SidebarContents onCollapse={() => setCollapsed(true)} />
     </aside>
   );
 }
