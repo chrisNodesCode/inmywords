@@ -944,6 +944,33 @@ aside.imw-deep-write-chrome {
   50%       { opacity: 0; }
 }
 
+/* Title pulse — subtle pulsing border when title field is empty after first generation */
+@keyframes imw-title-pulse {
+  0%, 100% { border-bottom-color: var(--imw-ac); opacity: 1; }
+  50%       { border-bottom-color: transparent; opacity: 0.6; }
+}
+.imw-title-pulse {
+  border-bottom: 1.5px solid var(--imw-ac) !important;
+  animation: imw-title-pulse 1.8s ease-in-out infinite;
+}
+
+/* Inline spinner for async status indicators */
+@keyframes imw-spin {
+  to { transform: rotate(360deg); }
+}
+.imw-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--imw-ac-l);
+  border-top-color: var(--imw-ac);
+  border-radius: 50%;
+  animation: imw-spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 5px;
+  flex-shrink: 0;
+}
+
 /* =============================================================================
    MOBILE RESPONSIVE (< 640px)
    ============================================================================= */

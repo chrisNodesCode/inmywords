@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, Settings2, Maximize2, Minimize2, X, Sparkles } from "lucide-react";
+import { BookOpen, Settings2, Maximize2, Minimize2, X, Sparkles, RefreshCw, RotateCcw } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import { IMWEditor, WriteControlsDrawer } from "@/components/editor";
 import { useIMWTheme } from "@/components/ThemeProvider";
 import AnnotationTag from "@/components/AnnotationTag";
-import { LINE_WIDTH_VALUES, type CategoryId } from "@/lib/theme";
+import { LINE_WIDTH_VALUES, CATEGORIES, type CategoryId } from "@/lib/theme";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
+import type { AISuggestion } from "@/lib/types";
 import { useMobile } from "@/hooks/useMobile";
 
 const MOODS = ["overwhelmed", "drained", "okay", "grounded", "good", "uncertain"];
@@ -63,6 +64,7 @@ export default function JournalPage() {
   const [titleTouched, setTitleTouched] = useState(false);
   const [titleIsAI, setTitleIsAI] = useState(false);
   const [titleGenerating, setTitleGenerating] = useState(false);
+  const [titleEverShown, setTitleEverShown] = useState(false);
   const [mood, setMood] = useState("");
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +74,13 @@ export default function JournalPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  // Composer analyze state (inline tags panel)
+  const [showDetails, setShowDetails] = useState(false);
+  const [composerAiSuggestions, setComposerAiSuggestions] = useState<AISuggestion[]>([]);
+  const [composerAnalyzing, setComposerAnalyzing] = useState(false);
+  const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
+  const [composerTags, setComposerTags] = useState<string[]>([]);
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
 
   const router = useRouter();
@@ -85,6 +94,8 @@ export default function JournalPage() {
   const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Track whether we've already auto-generated at this session to avoid re-firing
   const titleGeneratedRef = useRef(false);
+  // Ref for auto-resizing title textarea
+  const titleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const fetchEntries = useCallback(async () => {
     try {
@@ -112,7 +123,11 @@ export default function JournalPage() {
     const plainText = getPreviewText(content);
     const wordCount = countWords(plainText);
 
-    if (wordCount < 30) return;
+    // Threshold rationale: ND users tend to front-load context and can feel pressure
+    // to "beat" the API call before their thought is complete. The extra runway lets a
+    // more complete, representative sentence form before the title generates.
+    // Old value: 30 words. New value: 40 words (~25–35 additional characters of content).
+    if (wordCount < 40) return;
 
     if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
 
@@ -130,6 +145,7 @@ export default function JournalPage() {
           if (data.title && !titleTouched) {
             setTitle(data.title);
             setTitleIsAI(true);
+            setTitleEverShown(true);
             titleGeneratedRef.current = true;
           }
         }
@@ -184,6 +200,7 @@ export default function JournalPage() {
         setTitle("");
         setTitleTouched(false);
         setTitleIsAI(false);
+        setTitleEverShown(false);
         titleGeneratedRef.current = false;
         setMood("");
         setNewEntryId(newEntry.id);
@@ -209,10 +226,97 @@ export default function JournalPage() {
     setTitle("");
     setTitleTouched(false);
     setTitleIsAI(false);
+    setTitleEverShown(false);
     titleGeneratedRef.current = false;
     setMood("");
     editorInstance?.commands.clearContent();
     setDrawerOpen(false);
+    setIsResetting(false);
+    setShowDetails(false);
+    setComposerAiSuggestions([]);
+    setSavedEntryId(null);
+    setComposerTags([]);
+  }
+
+  async function retryTitleGeneration() {
+    const plainText = getPreviewText(content);
+    const wordCount = countWords(plainText);
+    // Increase threshold by ~10 words vs auto-trigger — only retry if enough content
+    if (wordCount < 40) return;
+    titleGeneratedRef.current = false;
+    setTitleIsAI(false);
+    setTitleGenerating(true);
+    try {
+      const res = await fetch("/api/entries/new/generate-title", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: plainText }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.title) {
+          setTitle(data.title);
+          setTitleIsAI(true);
+          setTitleEverShown(true);
+          titleGeneratedRef.current = true;
+        }
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setTitleGenerating(false);
+    }
+  }
+
+  /** Save the current entry silently (no editor clear), return the entry ID. */
+  async function saveSilentForAnalysis(): Promise<string | null> {
+    // If already saved this draft, return the existing ID
+    if (savedEntryId) return savedEntryId;
+    let hasText = false;
+    try {
+      const parsed = parseEntryContent(content);
+      hasText = extractPlainText(parsed).trim().length > 0;
+    } catch {
+      hasText = content.trim().length > 0;
+    }
+    if (!hasText) return null;
+    try {
+      const res = await fetch("/api/entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content,
+          mood: mood || undefined,
+          title: title.trim() || undefined,
+        }),
+      });
+      if (!res.ok) return null;
+      const newEntry = await res.json();
+      setSavedEntryId(newEntry.id);
+      return newEntry.id;
+    } catch {
+      return null;
+    }
+  }
+
+  async function analyzeComposerEntry() {
+    setComposerAnalyzing(true);
+    try {
+      const entryId = await saveSilentForAnalysis();
+      if (!entryId) return;
+      const res = await fetch(`/api/entries/${entryId}/analyze`, { method: "POST" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const suggestions: AISuggestion[] = [
+        ...(data.livedExperience ?? []),
+      ];
+      setComposerAiSuggestions(suggestions);
+      setShowDetails(true);
+    } catch {
+      // Silent fail
+    } finally {
+      setComposerAnalyzing(false);
+    }
   }
 
   function enterDeepWrite() {
@@ -283,7 +387,7 @@ export default function JournalPage() {
     <div style={{ minHeight: "100vh", backgroundColor: "var(--imw-bg-base)", display: "flex", flexDirection: "column" }}>
 
       {/* ── Top bar (UI-05) ── */}
-      {!isDeepWrite && !isMobile && (
+      {!isMobile && (
         <div className="imw-top-bar imw-deep-write-chrome">
           <span style={{ fontFamily: 'var(--imw-font-ui)', fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--imw-text-tertiary)' }}>
             Journal
@@ -321,7 +425,14 @@ export default function JournalPage() {
       <div
         style={{
           flex: 1,
-          padding: isDeepWrite ? "10vh 24px" : isMobile ? "72px 16px 40px" : "32px 24px 60px",
+          ...(isDeepWrite ? {
+            paddingTop: "calc(10vh - 50px)",
+            paddingRight: "24px",
+            paddingBottom: "5vh",
+            paddingLeft: "24px",
+          } : {
+            padding: isMobile ? "72px 16px 40px" : "48px 24px 60px",
+          }),
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -331,15 +442,11 @@ export default function JournalPage() {
 
           {/* ── Composer (UI-06: borderless) ── */}
           <div
-            style={isDeepWrite ? {
+            style={{
               background: "transparent",
               border: "none",
               padding: isMobile ? "16px 0" : "20px 0",
-              marginBottom: 0,
-            } : {
-              borderBottom: "1.5px solid var(--imw-border-medium)",
-              padding: isMobile ? "16px 0" : "20px 0",
-              marginBottom: 28,
+              marginBottom: isDeepWrite ? 0 : 28,
             }}
           >
             <form onSubmit={handleSubmit}>
@@ -365,62 +472,117 @@ export default function JournalPage() {
 
               {/* Title row — hidden until AI suggests or user types */}
               <div style={{
-                maxHeight: title ? "72px" : "0px",
-                opacity: title ? 1 : 0,
+                maxHeight: (title || titleEverShown) ? "200px" : "0px",
+                opacity: (title || titleEverShown) ? 1 : 0,
                 overflow: "hidden",
-                marginBottom: title ? 14 : 0,
+                marginBottom: (title || titleEverShown) ? 14 : 0,
+                paddingBottom: (title || titleEverShown) ? 4 : 0,
                 transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease, margin-bottom 0.4s ease",
               }}>
                 <div style={{ position: "relative" }}>
-                  <input
-                    type="text"
+                  <textarea
+                    ref={titleTextareaRef}
                     value={title}
+                    rows={1}
                     onChange={(e) => {
                       setTitle(e.target.value);
                       setTitleTouched(true);
                       setTitleIsAI(false);
+                      setTitleEverShown(true);
+                      // Auto-resize
+                      e.target.style.height = "auto";
+                      e.target.style.height = e.target.scrollHeight + "px";
                     }}
                     placeholder=""
                     disabled={submitting}
+                    className={titleEverShown && !title ? "imw-title-pulse" : ""}
                     style={{
                       width: "100%",
                       background: "transparent",
                       border: "none",
+                      borderBottom: titleEverShown && !title ? undefined : "none",
                       outline: "none",
                       fontFamily: "var(--imw-font-body)",
                       fontSize: 22,
                       fontWeight: 400,
                       color: "var(--imw-text-primary)",
-                      padding: "4px 0",
+                      padding: "4px 110px 8px 44px",
                       caretColor: "var(--imw-ac)",
+                      resize: "none",
+                      overflow: "hidden",
+                      overflowWrap: "break-word",
+                      wordBreak: "break-word",
+                      lineHeight: 1.3,
+                      display: "block",
                     }}
                   />
-                  {(titleIsAI || titleGenerating) && (
-                    <span
-                      className="imw-caption"
-                      style={{
-                        color: "var(--imw-ac)",
-                        position: "absolute",
-                        right: 0,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        fontStyle: "italic",
-                        pointerEvents: "none",
-                      }}
-                    >
-                      {titleGenerating ? "suggesting…" : "AI suggested"}
-                    </span>
-                  )}
+                  {/* AI suggested label + retry button */}
+                  <div style={{
+                    position: "absolute",
+                    right: 0,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    flexShrink: 0,
+                  }}>
+                    {(titleIsAI || titleGenerating) && (
+                      <button
+                        type="button"
+                        className="imw-caption"
+                        onClick={() => {
+                          setTitle("");
+                          setTitleIsAI(false);
+                          titleTextareaRef.current?.focus();
+                        }}
+                        style={{
+                          color: "var(--imw-ac)",
+                          fontStyle: "italic",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 0,
+                          fontFamily: "inherit",
+                          fontSize: "inherit",
+                          lineHeight: "inherit",
+                        }}
+                        title="Click to clear AI title"
+                      >
+                        {titleGenerating ? "suggesting…" : "AI suggested"}
+                      </button>
+                    )}
+                    {titleIsAI && !titleGenerating && (
+                      <button
+                        type="button"
+                        onClick={retryTitleGeneration}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--imw-ac)",
+                          padding: "0 0 0 2px",
+                          display: "flex",
+                          alignItems: "center",
+                          opacity: 0.7,
+                        }}
+                        title="Regenerate title"
+                        aria-label="Regenerate title"
+                      >
+                        <RefreshCw size={11} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Divider — always visible */}
-              <div className="imw-divider" style={{ marginBottom: 12 }} />
+              {/* Divider — only shown after title appears */}
+              {title && <div className="imw-divider" style={{ marginBottom: 12 }} />}
 
               {/* Editor scroll area */}
               <div
                 className={isDeepWrite ? "imw-composer-wrap" : undefined}
-                style={isDeepWrite ? { maxHeight: "900px", overflowY: "auto" } : {}}
+                style={isDeepWrite ? { maxHeight: "calc(80vh - 160px)", overflowY: "auto" } : {}}
               >
                 <IMWEditor
                   initialContent=""
@@ -441,7 +603,7 @@ export default function JournalPage() {
               {/* Footer (UI-07: mood chips + save) */}
               <div
                 className="imw-deep-write-chrome"
-                style={{ borderTop: "1px solid var(--imw-border-default)", marginTop: 12, paddingTop: 10 }}
+                style={{ marginTop: 12, paddingTop: 10, paddingLeft: "44px" }}
               >
                 {/* Mood chips */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
@@ -456,23 +618,138 @@ export default function JournalPage() {
                     </button>
                   ))}
                 </div>
-                {/* Save button */}
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <button
-                    type="submit"
-                    disabled={submitting || !hasContent()}
-                    className="imw-btn imw-btn--primary"
-                    style={{ opacity: submitting || !hasContent() ? 0.5 : 1 }}
-                  >
-                    {submitting ? "Saving…" : "Save entry"}
-                  </button>
+                {/* Save + Reset row */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  {/* Reset entry — low-prominence recovery option */}
+                  {hasContent() && (
+                    isResetting ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: "0.7rem", color: "var(--imw-text-tertiary)", fontFamily: "var(--imw-font-ui)" }}>
+                        Clear everything?
+                        <button
+                          type="button"
+                          onClick={discardDraft}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--imw-text-secondary)", fontSize: "0.7rem", fontFamily: "var(--imw-font-ui)", padding: 0, textDecoration: "underline" }}
+                        >
+                          Yes, reset
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsResetting(false)}
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--imw-text-tertiary)", fontSize: "0.7rem", fontFamily: "var(--imw-font-ui)", padding: 0 }}
+                        >
+                          Cancel
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsResetting(true)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--imw-text-tertiary)",
+                          fontSize: "0.7rem",
+                          fontFamily: "var(--imw-font-ui)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: 0,
+                          opacity: 0.7,
+                        }}
+                        title="Clear title and content"
+                      >
+                        <RotateCcw size={11} />
+                        Reset entry
+                      </button>
+                    )
+                  )}
+                  {!hasContent() && <span />}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {/* Analyze button — fades in deep write pure-focus mode */}
+                    <button
+                      type="button"
+                      onClick={analyzeComposerEntry}
+                      disabled={composerAnalyzing || !hasContent()}
+                      className="imw-btn imw-btn--ghost imw-btn--sm"
+                      style={{ opacity: (!hasContent() || composerAnalyzing) ? 0.5 : 0.8, gap: 4, fontSize: "0.7rem" }}
+                      title="Analyze entry for categories"
+                    >
+                      {composerAnalyzing ? <span className="imw-spinner" /> : <Sparkles size={11} />}
+                      {composerAnalyzing ? "Analyzing…" : "Analyze"}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting || !hasContent()}
+                      className="imw-btn imw-btn--primary"
+                      style={{ opacity: submitting || !hasContent() ? 0.5 : 1 }}
+                    >
+                      {submitting ? "Saving…" : "Save entry"}
+                    </button>
+                  </div>
                 </div>
+
+                {/* Inline details panel — tag suggestions + Show details toggle */}
+                {(showDetails || composerAiSuggestions.length > 0) && (
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowDetails(!showDetails)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "var(--imw-text-tertiary)",
+                          fontSize: "0.65rem",
+                          fontFamily: "var(--imw-font-ui)",
+                          fontWeight: 600,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                          padding: 0,
+                        }}
+                      >
+                        {showDetails ? "▾ Hide details" : "▸ Show details"}
+                      </button>
+                    </div>
+                    {showDetails && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {composerTags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => setComposerTags(composerTags.filter((t) => t !== tag))}
+                            style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                            title="Click to remove"
+                          >
+                            <AnnotationTag category={tag as CategoryId} state="confirmed" />
+                          </button>
+                        ))}
+                        {composerAiSuggestions.map((s) =>
+                          CATEGORIES.some((c) => c.id === s.category) && (
+                            <AnnotationTag
+                              key={s.category}
+                              category={s.category as CategoryId}
+                              state="ai-suggested"
+                              rationale={s.rationale}
+                              onConfirm={() => {
+                                setComposerTags([...composerTags.filter((t) => t !== s.category), s.category]);
+                                setComposerAiSuggestions(composerAiSuggestions.filter((x) => x.category !== s.category));
+                              }}
+                              onDismiss={() => setComposerAiSuggestions(composerAiSuggestions.filter((x) => x.category !== s.category))}
+                            />
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </form>
           </div>
 
           {/* ── Entry list (UI-08: editorial rows) ── */}
-          <div className="imw-deep-write-chrome" style={isDeepWrite ? { display: "none" } : {}}>
+          <div className="imw-deep-write-chrome" style={isDeepWrite ? { display: "none" } : { paddingLeft: "44px" }}>
             {loading && (
               <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>
             )}
@@ -560,13 +837,21 @@ export default function JournalPage() {
                       <div className={`imw-feed-row${idx === 0 ? ' imw-feed-row--first' : ''}${entry.id === newEntryId ? ' imw-feed-row--new' : ''}`}>
                         <div className="imw-feed-meta">{formatDate(entry.createdAt)}</div>
                         <div className="imw-feed-title">
-                          {entry.title ?? truncate(getPreviewText(entry.content), 60)}
+                          {entry.title ?? truncate(getPreviewText(entry.content), 45)}
                         </div>
-                        {entry.title && (
-                          <div className="imw-feed-excerpt">
-                            {truncate(getPreviewText(entry.content), 100)}
-                          </div>
-                        )}
+                        {entry.title && (() => {
+                          // Skip the opening ~60 chars so the excerpt doesn't repeat
+                          // what the title likely paraphrases from the opening line.
+                          // Snap to the next word boundary to avoid mid-word cuts.
+                          const preview = getPreviewText(entry.content);
+                          const spaceIdx = preview.indexOf(" ", 60);
+                          const excerpt = spaceIdx !== -1 ? preview.slice(spaceIdx + 1).trimStart() : "";
+                          return excerpt.length > 10 ? (
+                            <div className="imw-feed-excerpt">
+                              {truncate(excerpt, 100)}
+                            </div>
+                          ) : null;
+                        })()}
                         {entry.tags && entry.tags.length > 0 && (
                           <div className="imw-feed-tags">
                             {entry.tags.map((tag) => (
@@ -648,6 +933,19 @@ export default function JournalPage() {
             })()}
           </div>
         </>
+      )}
+
+      {/* Deep Write: persistent settings button, fixed upper-right */}
+      {isDeepWrite && (
+        <button
+          type="button"
+          className="imw-btn imw-btn--ghost imw-btn--sm"
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Writing controls"
+          style={{ position: "fixed", top: 14, right: 16, zIndex: 40 }}
+        >
+          <Settings2 size={13} />
+        </button>
       )}
 
       <WriteControlsDrawer

@@ -409,7 +409,7 @@ export default function EntryPage() {
                     fontWeight: 900,
                     lineHeight: 1.1,
                     color: editTitle ? "var(--imw-text-primary)" : "var(--imw-text-tertiary)",
-                    padding: "0 0 8px",
+                    padding: "0 0 8px 44px",
                     caretColor: "var(--imw-ac)",
                     width: "100%",
                     marginBottom: 8,
@@ -421,21 +421,23 @@ export default function EntryPage() {
                 </h1>
               ) : null}
 
-              {/* Date line */}
-              <p style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--imw-text-tertiary)', marginBottom: 4 }}>
-                {formatDate(entry.createdAt)}
-              </p>
-              {wasEdited && (
-                <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)", marginBottom: 4 }}>
-                  Last edited {formatShortDate(entry.updatedAt)}
+              {/* Date / mood metadata — paddingLeft matches editor gutter when editing */}
+              <div style={{ paddingLeft: isEditing ? "44px" : 0 }}>
+                <p style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--imw-text-tertiary)', marginBottom: 4 }}>
+                  {formatDate(entry.createdAt)}
                 </p>
-              )}
-              {/* Mood (read view) */}
-              {entry.mood && !isEditing && (
-                <p style={{ fontSize: '0.65rem', color: 'var(--imw-text-tertiary)', marginBottom: 4 }}>
-                  mood: {entry.mood}
-                </p>
-              )}
+                {wasEdited && (
+                  <p className="imw-caption" style={{ color: "var(--imw-text-tertiary)", marginBottom: 4 }}>
+                    Last edited {formatShortDate(entry.updatedAt)}
+                  </p>
+                )}
+                {/* Mood (read view) */}
+                {entry.mood && !isEditing && (
+                  <p style={{ fontSize: '0.65rem', color: 'var(--imw-text-tertiary)', marginBottom: 4 }}>
+                    mood: {entry.mood}
+                  </p>
+                )}
+              </div>
 
               {/* Divider before annotation chips */}
               {!isDeepWrite && (
@@ -466,7 +468,11 @@ export default function EntryPage() {
                         <AnnotationTag key={s.category} category={s.category as CategoryId} state="ai-suggested" rationale={s.rationale} onConfirm={() => confirmSuggestion(s)} onDismiss={() => dismissSuggestion(s.category)} />
                       )
                     ))}
-                    {analyzing && <span className="imw-ann imw-ann--unconfirmed" style={{ fontStyle: "italic", opacity: 0.6 }}>analyzing…</span>}
+                    {analyzing && (
+                      <span className="imw-ann imw-ann--unconfirmed" style={{ fontStyle: "italic", opacity: 0.7, display: "inline-flex", alignItems: "center" }}>
+                        <span className="imw-spinner" />analyzing…
+                      </span>
+                    )}
                     {CATEGORIES.filter((c) => !entry.tags.includes(c.id) && !aiSuggestions.some((s) => s.category === c.id)).length > 0 && (
                       <select
                         onChange={(e) => { if (e.target.value) handleTagToggle(e.target.value); e.target.value = ""; }}
@@ -479,8 +485,8 @@ export default function EntryPage() {
                         ))}
                       </select>
                     )}
-                    <button onClick={triggerAnalysis} disabled={analyzing} className="imw-btn imw-btn--ghost imw-btn--sm" style={{ fontSize: '0.65rem', padding: "3px 7px", opacity: analyzing ? 0.5 : 0.8, gap: 4 }} title="Re-analyze">
-                      <Sparkles size={11} />
+                    <button onClick={triggerAnalysis} disabled={analyzing} className="imw-btn imw-btn--ghost imw-btn--sm" style={{ fontSize: '0.65rem', padding: "3px 7px", opacity: analyzing ? 0.7 : 0.8, gap: 4 }} title="Re-analyze">
+                      {analyzing ? <span className="imw-spinner" /> : <Sparkles size={11} />}
                       {analyzing ? "analyzing…" : "analyze"}
                     </button>
                   </div>
@@ -504,7 +510,7 @@ export default function EntryPage() {
 
               {/* Edit mode mood chips */}
               {isEditing && (
-                <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: 16, paddingLeft: "44px" }}>
                   <p style={{ fontFamily: 'var(--imw-font-ui)', fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--imw-text-tertiary)', marginBottom: 6 }}>Mood</p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                     {MOODS.map((m) => (
@@ -549,6 +555,19 @@ export default function EntryPage() {
             <button className="imw-btn imw-btn--ghost imw-btn--sm">Mark Reviewed</button>
           )}
         </div>
+      )}
+
+      {/* Deep Write: persistent settings button, fixed upper-right */}
+      {isDeepWrite && (
+        <button
+          type="button"
+          className="imw-btn imw-btn--ghost imw-btn--sm"
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Writing controls"
+          style={{ position: "fixed", top: 14, right: 16, zIndex: 40 }}
+        >
+          <Settings2 size={13} />
+        </button>
       )}
 
       <WriteControlsDrawer

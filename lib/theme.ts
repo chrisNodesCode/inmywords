@@ -105,14 +105,18 @@ export const DEFAULT_FONT: FontId = 'default'
 // ── Category Taxonomy ─────────────────────────────────────────────────────────
 
 export type CategoryId =
-  | 'executive-function'
-  | 'sensory-processing'
-  | 'social-communication'
-  | 'emotional-dysregulation'
-  | 'functional-impairment'
-  | 'masking-coping'
-  | 'workplace-academic'
-  | 'medical-clinical'
+  | 'masking'
+  | 'scripting'
+  | 'the-crash'
+  | 'sensory-sensitivity'
+  | 'task-paralysis'
+  | 'rejection-sensitivity'
+  | 'justice-sensitivity'
+  | 'people-pleasing'
+  | 'not-knowing-how-i-feel'
+  | 'demand-avoidance'
+  | 'stimming'
+  | 'burnout'
 
 export interface Category {
   id:    CategoryId
@@ -123,71 +127,24 @@ export interface Category {
   }
 }
 
+const NEUTRAL_COLORS = {
+  light: { color: '#6B7585', bg: '#EEEEF2' },
+  dark:  { color: '#9AA0AC', bg: '#1C1E24' },
+}
+
 export const CATEGORIES: Category[] = [
-  {
-    id: 'executive-function',
-    label: 'executive function',
-    colors: {
-      light: { color: '#5B7FA6', bg: '#E8EFF7' },
-      dark:  { color: '#7AAACF', bg: '#162234' },
-    },
-  },
-  {
-    id: 'sensory-processing',
-    label: 'sensory processing',
-    colors: {
-      light: { color: '#5A8F72', bg: '#EAF3E8' },
-      dark:  { color: '#6AB882', bg: '#102418' },
-    },
-  },
-  {
-    id: 'social-communication',
-    label: 'social / communication',
-    colors: {
-      light: { color: '#8F725A', bg: '#F3EDEA' },
-      dark:  { color: '#B89A82', bg: '#241C16' },
-    },
-  },
-  {
-    id: 'emotional-dysregulation',
-    label: 'emotional dysregulation',
-    colors: {
-      light: { color: '#7F77DD', bg: '#EEEDFE' },
-      dark:  { color: '#9E98E8', bg: '#1A1630' },
-    },
-  },
-  {
-    id: 'functional-impairment',
-    label: 'functional impairment',
-    colors: {
-      light: { color: '#4A6078', bg: '#E8EDF2' },
-      dark:  { color: '#7A98B0', bg: '#101820' },
-    },
-  },
-  {
-    id: 'masking-coping',
-    label: 'masking / coping',
-    colors: {
-      light: { color: '#A06880', bg: '#F5EAF0' },
-      dark:  { color: '#C48AA0', bg: '#26101C' },
-    },
-  },
-  {
-    id: 'workplace-academic',
-    label: 'workplace / academic',
-    colors: {
-      light: { color: '#A07848', bg: '#F5EDDF' },
-      dark:  { color: '#C49A68', bg: '#241808' },
-    },
-  },
-  {
-    id: 'medical-clinical',
-    label: 'medical / clinical',
-    colors: {
-      light: { color: '#6B8F5A', bg: '#EDF3EA' },
-      dark:  { color: '#94B882', bg: '#162410' },
-    },
-  },
+  { id: 'masking',                  label: 'masking',                   colors: NEUTRAL_COLORS },
+  { id: 'scripting',                label: 'scripting',                 colors: NEUTRAL_COLORS },
+  { id: 'the-crash',                label: 'the crash',                 colors: NEUTRAL_COLORS },
+  { id: 'sensory-sensitivity',      label: 'sensory sensitivity',       colors: NEUTRAL_COLORS },
+  { id: 'task-paralysis',           label: 'task paralysis',            colors: NEUTRAL_COLORS },
+  { id: 'rejection-sensitivity',    label: 'rejection sensitivity',     colors: NEUTRAL_COLORS },
+  { id: 'justice-sensitivity',      label: 'justice sensitivity',       colors: NEUTRAL_COLORS },
+  { id: 'people-pleasing',          label: 'people pleasing',           colors: NEUTRAL_COLORS },
+  { id: 'not-knowing-how-i-feel',   label: 'not knowing how I feel',    colors: NEUTRAL_COLORS },
+  { id: 'demand-avoidance',         label: 'demand avoidance',          colors: NEUTRAL_COLORS },
+  { id: 'stimming',                 label: 'stimming',                  colors: NEUTRAL_COLORS },
+  { id: 'burnout',                  label: 'burnout',                   colors: NEUTRAL_COLORS },
 ]
 
 // ── userPreferences defaults ───────────────────────────────────────────────────
