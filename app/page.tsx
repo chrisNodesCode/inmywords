@@ -749,7 +749,7 @@ export default function JournalPage() {
           </div>
 
           {/* ── Entry list (UI-08: editorial rows) ── */}
-          <div className="imw-deep-write-chrome" style={isDeepWrite ? { display: "none" } : { paddingLeft: "44px" }}>
+          <div className="imw-deep-write-chrome" style={isDeepWrite ? { display: "none" } : { paddingLeft: isMobile ? 0 : "44px" }}>
             {loading && (
               <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>
             )}
