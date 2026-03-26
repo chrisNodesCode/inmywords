@@ -62,6 +62,7 @@ export default function IMWEditor({
 
   return (
     <div
+      className="imw-editor-wrap"
       style={{
         fontFamily: "var(--imw-font-body)",
         fontSize,

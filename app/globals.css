@@ -1026,6 +1026,16 @@ aside.imw-deep-write-chrome {
   .imw-editor-content .ProseMirror {
     padding-left: 4px !important;
   }
+
+  /* Editor wrapper — trim gutter to exactly the "+" button width on mobile */
+  .imw-editor-wrap {
+    padding-left: 28px !important;
+  }
+
+  /* Title input — match reduced gutter on mobile */
+  .imw-entry-title-input {
+    padding-left: 28px !important;
+  }
 }
 
 /* Deep Write: also fade the mobile top bar */

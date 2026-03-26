@@ -400,6 +400,7 @@ export default function EntryPage() {
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   placeholder="Untitled entry"
+                  className="imw-entry-title-input"
                   style={{
                     background: "transparent",
                     border: "none",
