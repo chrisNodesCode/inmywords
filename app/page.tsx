@@ -442,15 +442,15 @@ export default function JournalPage() {
             }}
           >
             <form onSubmit={handleSubmit}>
-              {/* Mobile controls — always visible */}
-              {isMobile && (
+              {/* Mobile controls — only show enter deep write; exit is handled by the fixed overlay bar */}
+              {isMobile && !isDeepWrite && (
                 <div style={{ display: "flex", gap: 4, justifyContent: "flex-end", marginBottom: 8 }}>
                   <button
                     type="button"
                     className="imw-btn imw-btn--ghost imw-btn--sm"
-                    onClick={isDeepWrite ? exitDeepWrite : enterDeepWrite}
+                    onClick={enterDeepWrite}
                   >
-                    {isDeepWrite ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                    <Maximize2 size={14} />
                   </button>
                 </div>
               )}

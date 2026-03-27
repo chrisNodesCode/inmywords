@@ -410,11 +410,88 @@ export default function EntryPage() {
 
           {/* Mobile header (only on mobile) */}
           {isMobile && !loading && entry && (
-            <div style={{ marginBottom: 16 }}>
-              <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--imw-ac)", textDecoration: "none", fontSize: "0.75rem", marginBottom: 12 }}>
-                <ArrowLeft size={12} />
-                Back
-              </Link>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--imw-ac)", textDecoration: "none", fontSize: "0.75rem" }}>
+                  <ArrowLeft size={12} />
+                  Back
+                </Link>
+                {!isDeepWrite && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {isEditing ? (
+                      <>
+                        <button
+                          type="button"
+                          className="imw-btn imw-btn--ghost imw-btn--sm"
+                          onClick={() => setDrawerOpen(true)}
+                          aria-label="Writing controls"
+                        >
+                          <Settings2 size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="imw-btn imw-btn--ghost imw-btn--sm"
+                          onClick={enterDeepWrite}
+                          aria-label="Enter Deep Write"
+                        >
+                          <Maximize2 size={13} />
+                        </button>
+                        <button
+                          className="imw-btn imw-btn--ghost imw-btn--sm"
+                          onClick={() => { setIsEditing(false); setEditorInstance(null); setEditTitle(entry.title ?? ""); setDeleteConfirming(false); }}
+                          disabled={saving}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="imw-btn imw-btn--primary imw-btn--sm"
+                          onClick={handleSave}
+                          disabled={saving || (editorInstance?.isEmpty ?? true)}
+                          style={{ opacity: saving || (editorInstance?.isEmpty ?? true) ? 0.5 : 1 }}
+                        >
+                          {saving ? "Saving…" : "Save"}
+                        </button>
+                        {deleteConfirming ? (
+                          <>
+                            <button
+                              className="imw-btn imw-btn--ghost imw-btn--sm"
+                              onClick={() => setDeleteConfirming(false)}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              className="imw-btn imw-btn--ghost imw-btn--sm"
+                              onClick={handleDelete}
+                              disabled={deleting}
+                              style={{ color: "var(--imw-error-text)" }}
+                            >
+                              {deleting ? "Deleting…" : "Are you sure?"}
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="imw-btn imw-btn--ghost imw-btn--sm"
+                            onClick={() => setDeleteConfirming(true)}
+                            disabled={deleting}
+                            aria-label="Delete entry"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <button
+                        className="imw-btn imw-btn--ghost imw-btn--sm"
+                        onClick={() => { setEditContent(entry.content); setEditTitle(entry.title ?? ""); setIsEditing(true); }}
+                        disabled={deleting}
+                      >
+                        <Pencil size={12} />
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
