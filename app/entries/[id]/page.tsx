@@ -93,7 +93,7 @@ export default function EntryPage() {
       // Restore saved AI suggestions if present
       if (data.aiSuggestions?.livedExperience?.length > 0) {
         const notYetConfirmed = (data.aiSuggestions.livedExperience as AISuggestion[]).filter(
-          (s) => !data.tags.includes(s.category) && !DSM_CRITERIA_IDS.includes(s.category)
+          (s) => !data.tags.includes(s.category) && !(DSM_CRITERIA_IDS as string[]).includes(s.category)
         );
         setAiSuggestions(notYetConfirmed);
       }
@@ -196,7 +196,7 @@ export default function EntryPage() {
           // Exclude any categories already confirmed
           const confirmedTags = entry.tags;
           const fresh = result.livedExperience.filter(
-            (s) => !confirmedTags.includes(s.category) && !DSM_CRITERIA_IDS.includes(s.category)
+            (s) => !confirmedTags.includes(s.category) && !(DSM_CRITERIA_IDS as string[]).includes(s.category)
           );
           setAiSuggestions(fresh);
           // Refresh entry to get updated aiSuggestions + boolean flags from DB
