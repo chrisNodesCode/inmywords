@@ -3,18 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Settings2, Maximize2, Minimize2, Sparkles, Pencil, Trash2 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ArrowLeft, Settings2, Maximize2, Minimize2, Sparkles, Pencil, Trash2, Save, X } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import { IMWEditor, IMWReadView, WriteControlsDrawer } from "@/components/editor";
 import AnnotationTag from "@/components/AnnotationTag";
@@ -22,6 +11,7 @@ import { useIMWTheme } from "@/components/ThemeProvider";
 import { LINE_WIDTH_VALUES, CATEGORIES, type CategoryId } from "@/lib/theme";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import type { AISuggestion, AIAnalysisResult } from "@/lib/types";
+import { DSM_CRITERIA_IDS } from "@/lib/types";
 import { useMobile } from "@/hooks/useMobile";
 
 const MOODS = ["overwhelmed", "drained", "okay", "grounded", "good", "uncertain"];
@@ -75,6 +65,7 @@ export default function EntryPage() {
 
   // Delete state
   const [deleting, setDeleting] = useState(false);
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
 
   // Drawer + editor instance
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -102,7 +93,7 @@ export default function EntryPage() {
       // Restore saved AI suggestions if present
       if (data.aiSuggestions?.livedExperience?.length > 0) {
         const notYetConfirmed = (data.aiSuggestions.livedExperience as AISuggestion[]).filter(
-          (s) => !data.tags.includes(s.category)
+          (s) => !data.tags.includes(s.category) && !DSM_CRITERIA_IDS.includes(s.category)
         );
         setAiSuggestions(notYetConfirmed);
       }
@@ -205,7 +196,7 @@ export default function EntryPage() {
           // Exclude any categories already confirmed
           const confirmedTags = entry.tags;
           const fresh = result.livedExperience.filter(
-            (s) => !confirmedTags.includes(s.category)
+            (s) => !confirmedTags.includes(s.category) && !DSM_CRITERIA_IDS.includes(s.category)
           );
           setAiSuggestions(fresh);
           // Refresh entry to get updated aiSuggestions + boolean flags from DB
@@ -297,14 +288,16 @@ export default function EntryPage() {
           {/* Right: actions */}
           {!loading && entry && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <button
-                type="button"
-                className="imw-btn imw-btn--ghost imw-btn--sm"
-                onClick={() => setDrawerOpen(true)}
-                aria-label="Writing controls"
-              >
-                <Settings2 size={13} />
-              </button>
+              {isEditing && (
+                <button
+                  type="button"
+                  className="imw-btn imw-btn--ghost imw-btn--sm"
+                  onClick={() => setDrawerOpen(true)}
+                  aria-label="Writing controls"
+                >
+                  <Settings2 size={13} />
+                </button>
+              )}
               {isEditing ? (
                 <>
                   <button
@@ -317,7 +310,7 @@ export default function EntryPage() {
                   </button>
                   <button
                     className="imw-btn imw-btn--ghost imw-btn--sm"
-                    onClick={() => { setIsEditing(false); setEditorInstance(null); setEditTitle(entry.title ?? ""); }}
+                    onClick={() => { setIsEditing(false); setEditorInstance(null); setEditTitle(entry.title ?? ""); setDeleteConfirming(false); }}
                     disabled={saving}
                   >
                     Cancel
@@ -325,11 +318,38 @@ export default function EntryPage() {
                   <button
                     className="imw-btn imw-btn--primary imw-btn--sm"
                     onClick={handleSave}
-                    disabled={saving}
-                    style={{ opacity: saving ? 0.5 : 1 }}
+                    disabled={saving || (editorInstance?.isEmpty ?? true)}
+                    style={{ opacity: saving || (editorInstance?.isEmpty ?? true) ? 0.5 : 1 }}
                   >
                     {saving ? "Saving…" : "Save"}
                   </button>
+                  {deleteConfirming ? (
+                    <>
+                      <button
+                        className="imw-btn imw-btn--ghost imw-btn--sm"
+                        onClick={() => setDeleteConfirming(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="imw-btn imw-btn--ghost imw-btn--sm"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        style={{ color: "var(--imw-error-text)" }}
+                      >
+                        {deleting ? "Deleting…" : "Are you sure?"}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="imw-btn imw-btn--ghost imw-btn--sm"
+                      onClick={() => setDeleteConfirming(true)}
+                      disabled={deleting}
+                      aria-label="Delete entry"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
@@ -341,26 +361,33 @@ export default function EntryPage() {
                     <Pencil size={12} />
                     Edit
                   </button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <button className="imw-btn imw-btn--ghost imw-btn--sm" disabled={deleting}>
-                        <Trash2 size={12} />
-                        {deleting ? "Deleting…" : "Delete"}
+                  {deleteConfirming ? (
+                    <>
+                      <button
+                        className="imw-btn imw-btn--ghost imw-btn--sm"
+                        onClick={() => setDeleteConfirming(false)}
+                      >
+                        Cancel
                       </button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
-                        <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                      <button
+                        className="imw-btn imw-btn--ghost imw-btn--sm"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        style={{ color: "var(--imw-error-text)" }}
+                      >
+                        {deleting ? "Deleting…" : "Are you sure?"}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="imw-btn imw-btn--ghost imw-btn--sm"
+                      onClick={() => setDeleteConfirming(true)}
+                      disabled={deleting}
+                    >
+                      <Trash2 size={12} />
+                      Delete
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -486,10 +513,12 @@ export default function EntryPage() {
                         ))}
                       </select>
                     )}
-                    <button onClick={triggerAnalysis} disabled={analyzing} className="imw-btn imw-btn--ghost imw-btn--sm" style={{ fontSize: '0.65rem', padding: "3px 7px", opacity: analyzing ? 0.7 : 0.8, gap: 4 }} title="Re-analyze">
-                      {analyzing ? <span className="imw-spinner" /> : <Sparkles size={11} />}
-                      {analyzing ? "analyzing…" : "analyze"}
-                    </button>
+                    {!analyzing && (
+                      <button onClick={triggerAnalysis} disabled={editorInstance?.isEmpty ?? false} className="imw-btn imw-btn--ghost imw-btn--sm" style={{ fontSize: '0.65rem', padding: "3px 7px", opacity: 0.8, gap: 4 }} title="Re-analyze">
+                        <Sparkles size={11} />
+                        analyze
+                      </button>
+                    )}
                   </div>
                   {/* Qualifier toggles */}
                   <div style={{ display: "flex", gap: 6 }}>
@@ -558,17 +587,66 @@ export default function EntryPage() {
         </div>
       )}
 
-      {/* Deep Write: persistent settings button, fixed upper-right */}
+      {/* Deep Write: icon buttons fixed upper-right */}
       {isDeepWrite && (
-        <button
-          type="button"
-          className="imw-btn imw-btn--ghost imw-btn--sm"
-          onClick={() => setDrawerOpen(true)}
-          aria-label="Writing controls"
-          style={{ position: "fixed", top: 14, right: 16, zIndex: 40 }}
-        >
-          <Settings2 size={13} />
-        </button>
+        <div style={{ position: "fixed", top: 14, right: 16, zIndex: 40, display: "flex", gap: 6, alignItems: "center" }}>
+          <button
+            type="button"
+            className="imw-btn imw-btn--ghost imw-btn--sm"
+            onClick={handleSave}
+            disabled={saving || (editorInstance?.isEmpty ?? true)}
+            aria-label="Save"
+          >
+            <Save size={13} />
+          </button>
+          {deleteConfirming ? (
+            <>
+              <button
+                type="button"
+                className="imw-btn imw-btn--ghost imw-btn--sm"
+                onClick={() => setDeleteConfirming(false)}
+                aria-label="Cancel delete"
+              >
+                <X size={13} />
+              </button>
+              <button
+                type="button"
+                className="imw-btn imw-btn--ghost imw-btn--sm"
+                onClick={handleDelete}
+                disabled={deleting}
+                aria-label="Confirm delete"
+                style={{ color: "var(--imw-error-text)" }}
+              >
+                <Trash2 size={13} />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="imw-btn imw-btn--ghost imw-btn--sm"
+              onClick={() => setDeleteConfirming(true)}
+              aria-label="Delete entry"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+          <button
+            type="button"
+            className="imw-btn imw-btn--ghost imw-btn--sm"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Writing controls"
+          >
+            <Settings2 size={13} />
+          </button>
+          <button
+            type="button"
+            className="imw-btn imw-btn--ghost imw-btn--sm"
+            onClick={exitDeepWrite}
+            aria-label="Exit Deep Write"
+          >
+            <Minimize2 size={13} />
+          </button>
+        </div>
       )}
 
       <WriteControlsDrawer

@@ -10,11 +10,6 @@ interface WriteControlsDrawerProps {
   editor: Editor | null;
   mood: string;
   onMoodChange: (mood: string) => void;
-  isDeepWrite?: boolean;
-  onSave?: () => void;
-  onDiscard?: () => void;
-  submitting?: boolean;
-  hasContent?: boolean;
 }
 
 const MOODS = ["overwhelmed", "drained", "okay", "grounded", "good", "uncertain"];
@@ -31,11 +26,6 @@ export function WriteControlsDrawer({
   editor,
   mood,
   onMoodChange,
-  isDeepWrite = false,
-  onSave,
-  onDiscard,
-  submitting = false,
-  hasContent = false,
 }: WriteControlsDrawerProps) {
   const { prefs, setEditorFontSize, setEditorLineWidth } = useIMWTheme();
 
@@ -155,30 +145,6 @@ export function WriteControlsDrawer({
         </div>
       </div>
 
-      {/* Deep Write actions */}
-      {isDeepWrite && (
-        <>
-          <div className="imw-divider" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <button
-              className="imw-btn imw-btn--primary"
-              onClick={onSave}
-              disabled={submitting || !hasContent}
-              style={{ opacity: submitting || !hasContent ? 0.5 : 1, justifyContent: "center" }}
-            >
-              {submitting ? "Saving…" : "Save entry"}
-            </button>
-            <button
-              className="imw-btn imw-btn--danger"
-              onClick={onDiscard}
-              disabled={submitting}
-              style={{ justifyContent: "center" }}
-            >
-              Discard draft
-            </button>
-          </div>
-        </>
-      )}
     </div>
   );
 }

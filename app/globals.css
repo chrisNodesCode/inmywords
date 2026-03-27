@@ -367,6 +367,7 @@ html { font-size: 18px; }
   font-family: inherit;
 }
 .imw-btn:active { transform: translate(2px, 2px); box-shadow: none !important; }
+.imw-btn:disabled { cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 .imw-btn--sm { font-size: 0.7rem; padding: 6px 12px; }
 .imw-btn--lg { font-size: 0.85rem; padding: 12px 24px; }
 

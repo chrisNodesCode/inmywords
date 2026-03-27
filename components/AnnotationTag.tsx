@@ -24,15 +24,15 @@ export default function AnnotationTag({
 
   const colors = prefs.darkMode ? cat.colors.dark : cat.colors.light;
 
-  const baseStyle: React.CSSProperties = {
-    borderLeftColor: colors.color,
-  };
+  const baseStyle: React.CSSProperties = {};
 
   if (state === "confirmed") {
-    baseStyle.backgroundColor = colors.bg;
-    baseStyle.color = colors.color;
+    baseStyle.backgroundColor = "var(--imw-ac-l)";
+    baseStyle.color = "var(--imw-ac-d)";
+    baseStyle.borderLeftColor = "var(--imw-ac)";
     baseStyle.borderLeftWidth = 2;
   } else if (state === "ai-suggested") {
+    baseStyle.borderLeftColor = colors.color;
     baseStyle.color = colors.color;
   }
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, Settings2, Maximize2, Minimize2, X, Sparkles, RefreshCw, RotateCcw } from "lucide-react";
+import { BookOpen, Settings2, Maximize2, Minimize2, X, Sparkles, RefreshCw, RotateCcw, Save, Trash2 } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import { IMWEditor, WriteControlsDrawer } from "@/components/editor";
 import { useIMWTheme } from "@/components/ThemeProvider";
@@ -82,6 +82,7 @@ export default function JournalPage() {
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
   const [composerTags, setComposerTags] = useState<string[]>([]);
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
+  const [composerDiscardConfirming, setComposerDiscardConfirming] = useState(false);
 
   const router = useRouter();
   const isMobile = useMobile();
@@ -408,15 +409,6 @@ export default function JournalPage() {
               {isDeepWrite ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
               <span style={{ marginLeft: 3 }}>Deep Write</span>
             </button>
-            <button
-              type="button"
-              className="imw-btn imw-btn--ghost imw-btn--sm"
-              onClick={() => setDrawerOpen(true)}
-              aria-label="Writing controls"
-            >
-              <Settings2 size={13} />
-            </button>
-            <DarkModeTopBarToggle />
           </div>
         </div>
       )}
@@ -459,13 +451,6 @@ export default function JournalPage() {
                     onClick={isDeepWrite ? exitDeepWrite : enterDeepWrite}
                   >
                     {isDeepWrite ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                  </button>
-                  <button
-                    type="button"
-                    className="imw-btn imw-btn--ghost imw-btn--sm"
-                    onClick={() => setDrawerOpen(true)}
-                  >
-                    <Settings2 size={14} />
                   </button>
                 </div>
               )}
@@ -666,23 +651,25 @@ export default function JournalPage() {
                   )}
                   {!hasContent() && <span />}
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {/* Analyze button — fades in deep write pure-focus mode */}
-                    <button
-                      type="button"
-                      onClick={analyzeComposerEntry}
-                      disabled={composerAnalyzing || !hasContent()}
-                      className="imw-btn imw-btn--ghost imw-btn--sm"
-                      style={{ opacity: (!hasContent() || composerAnalyzing) ? 0.5 : 0.8, gap: 4, fontSize: "0.7rem" }}
-                      title="Analyze entry for categories"
-                    >
-                      {composerAnalyzing ? <span className="imw-spinner" /> : <Sparkles size={11} />}
-                      {composerAnalyzing ? "Analyzing…" : "Analyze"}
-                    </button>
+                    {/* Analyze button — hidden while analyzing */}
+                    {!composerAnalyzing && (
+                      <button
+                        type="button"
+                        onClick={analyzeComposerEntry}
+                        disabled={editorInstance?.isEmpty ?? true}
+                        className="imw-btn imw-btn--ghost imw-btn--sm"
+                        style={{ opacity: (editorInstance?.isEmpty ?? true) ? 0.5 : 0.8, gap: 4, fontSize: "0.7rem" }}
+                        title="Analyze entry for categories"
+                      >
+                        <Sparkles size={11} />
+                        Analyze
+                      </button>
+                    )}
                     <button
                       type="submit"
-                      disabled={submitting || !hasContent()}
+                      disabled={submitting || (editorInstance?.isEmpty ?? true)}
                       className="imw-btn imw-btn--primary"
-                      style={{ opacity: submitting || !hasContent() ? 0.5 : 1 }}
+                      style={{ opacity: submitting || (editorInstance?.isEmpty ?? true) ? 0.5 : 1 }}
                     >
                       {submitting ? "Saving…" : "Save entry"}
                     </button>
@@ -935,17 +922,65 @@ export default function JournalPage() {
         </>
       )}
 
-      {/* Deep Write: persistent settings button, fixed upper-right */}
+      {/* Deep Write: icon buttons fixed upper-right */}
       {isDeepWrite && (
-        <button
-          type="button"
-          className="imw-btn imw-btn--ghost imw-btn--sm"
-          onClick={() => setDrawerOpen(true)}
-          aria-label="Writing controls"
-          style={{ position: "fixed", top: 14, right: 16, zIndex: 40 }}
-        >
-          <Settings2 size={13} />
-        </button>
+        <div style={{ position: "fixed", top: 14, right: 16, zIndex: 40, display: "flex", gap: 6, alignItems: "center" }}>
+          <button
+            type="button"
+            className="imw-btn imw-btn--ghost imw-btn--sm"
+            onClick={saveEntry}
+            disabled={submitting || (editorInstance?.isEmpty ?? true)}
+            aria-label="Save entry"
+          >
+            <Save size={13} />
+          </button>
+          {composerDiscardConfirming ? (
+            <>
+              <button
+                type="button"
+                className="imw-btn imw-btn--ghost imw-btn--sm"
+                onClick={() => setComposerDiscardConfirming(false)}
+                aria-label="Cancel discard"
+              >
+                <X size={13} />
+              </button>
+              <button
+                type="button"
+                className="imw-btn imw-btn--ghost imw-btn--sm"
+                onClick={() => { discardDraft(); setComposerDiscardConfirming(false); }}
+                aria-label="Confirm discard"
+                style={{ color: "var(--imw-error-text)" }}
+              >
+                <Trash2 size={13} />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="imw-btn imw-btn--ghost imw-btn--sm"
+              onClick={() => setComposerDiscardConfirming(true)}
+              aria-label="Discard draft"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+          <button
+            type="button"
+            className="imw-btn imw-btn--ghost imw-btn--sm"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Writing controls"
+          >
+            <Settings2 size={13} />
+          </button>
+          <button
+            type="button"
+            className="imw-btn imw-btn--ghost imw-btn--sm"
+            onClick={exitDeepWrite}
+            aria-label="Exit Deep Write"
+          >
+            <Minimize2 size={13} />
+          </button>
+        </div>
       )}
 
       <WriteControlsDrawer
@@ -954,11 +989,6 @@ export default function JournalPage() {
         editor={editorInstance}
         mood={mood}
         onMoodChange={setMood}
-        isDeepWrite={isDeepWrite}
-        onSave={saveEntry}
-        onDiscard={discardDraft}
-        submitting={submitting}
-        hasContent={hasContent()}
       />
       {drawerOpen && (
         <div className="imw-drawer-backdrop" onClick={() => setDrawerOpen(false)} aria-hidden="true" />
@@ -967,35 +997,3 @@ export default function JournalPage() {
   );
 }
 
-// Inline dark/light toggle for top bar
-function DarkModeTopBarToggle() {
-  const { prefs, setDarkMode } = useIMWTheme();
-  return (
-    <div style={{ display: "inline-flex", border: "0.5px solid var(--imw-border-medium)" }}>
-      {(["light", "dark"] as const).map((mode) => {
-        const isActive = mode === "dark" ? prefs.darkMode : !prefs.darkMode;
-        return (
-          <button
-            key={mode}
-            onClick={() => setDarkMode(mode === "dark")}
-            style={{
-              padding: "4px 10px",
-              fontSize: "0.6rem",
-              fontWeight: isActive ? 600 : 400,
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-              background: isActive ? "var(--imw-ac)" : "transparent",
-              color: isActive ? "#fff" : "var(--imw-text-tertiary)",
-              border: "none",
-              borderRadius: 0,
-              cursor: "pointer",
-              transition: "background 0.15s, color 0.15s",
-            }}
-          >
-            {mode === "light" ? "☀ Light" : "☾ Dark"}
-          </button>
-        );
-      })}
-    </div>
-  );
-}

@@ -204,8 +204,25 @@ function EntryCard({
         <span className="imw-caption" style={{ color: "var(--imw-text-tertiary)" }}>
           {formatShortDate(entry.createdAt)}
         </span>
-        {entry.isChildhoodMemory && <QualifierBadge label="C" />}
-        {entry.isFunctionalImpairment && <QualifierBadge label="D" />}
+        {suggestion?.rationale && (
+          <span
+            title={suggestion.rationale}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 14,
+              height: 14,
+              fontSize: "0.6rem",
+              color: "var(--imw-text-tertiary)",
+              cursor: "default",
+              flexShrink: 0,
+            }}
+            aria-label="Reasoning"
+          >
+            ⓘ
+          </span>
+        )}
       </div>
     </div>
   );
@@ -452,7 +469,7 @@ export default function InMyWordsPage() {
   const [entries, setEntries] = useState<EntryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState<string | null>(null);
-  const { prefs, setDarkMode } = useIMWTheme();
+  const { prefs } = useIMWTheme();
 
   const fontFamily =
     prefs.font === "noto"
@@ -492,13 +509,6 @@ export default function InMyWordsPage() {
         <span style={{ fontSize: "0.6rem", fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--imw-text-tertiary)", fontFamily: "var(--imw-font-ui)" }}>
           In My Words
         </span>
-        <button
-          onClick={() => setDarkMode(!prefs.darkMode)}
-          className="imw-btn imw-btn--ghost imw-btn--sm"
-          style={{ fontFamily: "var(--imw-font-ui)", fontSize: "0.7rem" }}
-        >
-          {prefs.darkMode ? "☀ Light" : "☾ Dark"}
-        </button>
       </div>
 
       {/* Content well */}
