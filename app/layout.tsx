@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "next-themes";
 import { IMWThemeProvider } from "@/components/ThemeProvider";
-import Sidebar from "@/components/Sidebar";
+import { SidebarWrapper } from "@/app/SidebarWrapper";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -47,7 +47,7 @@ export default function RootLayout({
               applies data-accent, data-font, --imw-font-body to <html>. */}
           <IMWThemeProvider>
             <div style={{ display: "flex", minHeight: "100vh" }}>
-              <Sidebar />
+              <SidebarWrapper />
               <main style={{ flex: 1, minWidth: 0 }}>{children}</main>
             </div>
           </IMWThemeProvider>

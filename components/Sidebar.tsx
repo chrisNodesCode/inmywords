@@ -71,7 +71,7 @@ function AutoAnalyzeToggle() {
 }
 
 const NAV_ITEMS = [
-  { label: "journal", href: "/" },
+  { label: "journal", href: "/journal" },
   { label: "in my words", href: "/in-my-words" },
 ];
 

@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 // cause the preview panel's embedded browser to abort navigation.
 
 // Public routes that don't require authentication
-const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
+const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)", "/", "/tos(.*)", "/privacy(.*)"]);
 
 export const proxy =
   process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true"
