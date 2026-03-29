@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "ai";
 import { prisma } from "@/lib/prisma";
@@ -35,9 +35,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const clerkUser = await currentUser();
-  const plan = clerkUser?.publicMetadata?.plan as string | undefined;
-  const isASDUser = plan === "asd_user" || process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
+  const { has } = await auth();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isASDUser = !!(has?.({ plan: "asd_user" } as any)) || process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
   if (!isASDUser) {
     return NextResponse.json({ error: "Plan upgrade required" }, { status: 403 });
   }

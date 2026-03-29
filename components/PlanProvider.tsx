@@ -1,14 +1,16 @@
 'use client'
 import { createContext, useContext } from 'react'
 import type { ReactNode } from 'react'
-import { useUser } from '@clerk/nextjs'
+import { useAuth } from '@clerk/nextjs'
 
 const PlanContext = createContext<{ isASDUser: boolean }>({ isASDUser: false })
 
-// Inner component — only rendered when ClerkProvider is present (production)
+// Inner component — only rendered when ClerkProvider is present (production).
+// Uses Clerk Billing's has({ plan }) check against live session claims — no webhook needed.
 function ClerkPlanLoader({ children }: { children: ReactNode }) {
-  const { user } = useUser()
-  const isASDUser = user?.publicMetadata?.plan === 'asd_user'
+  const { has, isLoaded } = useAuth()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isASDUser = isLoaded ? !!(has?.({ plan: 'asd_user' } as any)) : false
   return <PlanContext.Provider value={{ isASDUser }}>{children}</PlanContext.Provider>
 }
 
