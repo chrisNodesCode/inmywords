@@ -12,6 +12,7 @@ import { LINE_WIDTH_VALUES, CATEGORIES, type CategoryId } from "@/lib/theme";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import type { AISuggestion } from "@/lib/types";
 import { useMobile } from "@/hooks/useMobile";
+import { usePlan } from "@/components/PlanProvider";
 
 const MOODS = ["overwhelmed", "drained", "okay", "grounded", "good", "uncertain"];
 
@@ -87,6 +88,8 @@ export default function JournalPage() {
   const router = useRouter();
   const isMobile = useMobile();
   const { prefs, setDeepWriteDefault } = useIMWTheme();
+  const { isASDUser } = usePlan();
+  const titleVisible = isASDUser ? !!(title || titleEverShown) : true;
   const [isDeepWrite, setIsDeepWrite] = useState(false);
   const resolvedLineWidth =
     LINE_WIDTH_VALUES[prefs.editorLineWidth as keyof typeof LINE_WIDTH_VALUES] ?? "640px";
@@ -118,6 +121,7 @@ export default function JournalPage() {
 
   // Auto-trigger title generation at 30-word threshold (debounced)
   useEffect(() => {
+    if (!isASDUser) return; // Title auto-generation is an asd_user feature
     if (titleTouched) return; // User typed a custom title — never auto-fill
     if (titleGeneratedRef.current) return; // Already generated once this session
 
@@ -161,7 +165,7 @@ export default function JournalPage() {
       if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content, titleTouched]);
+  }, [content, titleTouched, isASDUser]);
 
   async function saveEntry() {
     let hasText = false;
@@ -455,13 +459,13 @@ export default function JournalPage() {
                 </div>
               )}
 
-              {/* Title row — hidden until AI suggests or user types */}
+              {/* Title row — asd_user: hidden until AI suggests or user types; free_user: always visible */}
               <div style={{
-                maxHeight: (title || titleEverShown) ? "200px" : "0px",
-                opacity: (title || titleEverShown) ? 1 : 0,
+                maxHeight: titleVisible ? "200px" : "0px",
+                opacity: titleVisible ? 1 : 0,
                 overflow: "hidden",
-                marginBottom: (title || titleEverShown) ? 14 : 0,
-                paddingBottom: (title || titleEverShown) ? 4 : 0,
+                marginBottom: titleVisible ? 14 : 0,
+                paddingBottom: titleVisible ? 4 : 0,
                 transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease, margin-bottom 0.4s ease",
               }}>
                 <div style={{ position: "relative" }}>
@@ -478,14 +482,14 @@ export default function JournalPage() {
                       e.target.style.height = "auto";
                       e.target.style.height = e.target.scrollHeight + "px";
                     }}
-                    placeholder=""
+                    placeholder={isASDUser ? "" : "Give this entry a title (optional)"}
                     disabled={submitting}
-                    className={titleEverShown && !title ? "imw-title-pulse" : ""}
+                    className={isASDUser && titleEverShown && !title ? "imw-title-pulse" : ""}
                     style={{
                       width: "100%",
                       background: "transparent",
                       border: "none",
-                      borderBottom: titleEverShown && !title ? undefined : "none",
+                      borderBottom: isASDUser && titleEverShown && !title ? undefined : "none",
                       outline: "none",
                       fontFamily: "var(--imw-font-body)",
                       fontSize: 22,
@@ -501,8 +505,8 @@ export default function JournalPage() {
                       display: "block",
                     }}
                   />
-                  {/* AI suggested label + retry button */}
-                  <div style={{
+                  {/* AI suggested label + retry button — asd_user only */}
+                  {isASDUser && <div style={{
                     position: "absolute",
                     right: 0,
                     top: "50%",
@@ -557,7 +561,7 @@ export default function JournalPage() {
                         <RefreshCw size={11} />
                       </button>
                     )}
-                  </div>
+                  </div>}
                 </div>
               </div>
 
@@ -656,10 +660,10 @@ export default function JournalPage() {
                       <button
                         type="button"
                         onClick={analyzeComposerEntry}
-                        disabled={editorInstance?.isEmpty ?? true}
+                        disabled={isASDUser ? (editorInstance?.isEmpty ?? true) : true}
                         className="imw-btn imw-btn--ghost imw-btn--sm"
-                        style={{ opacity: (editorInstance?.isEmpty ?? true) ? 0.5 : 0.8, gap: 4, fontSize: "0.7rem" }}
-                        title="Analyze entry for categories"
+                        style={{ opacity: isASDUser && !(editorInstance?.isEmpty ?? true) ? 0.8 : 0.4, gap: 4, fontSize: "0.7rem", cursor: isASDUser ? undefined : "not-allowed" }}
+                        title={isASDUser ? "Analyze entry for categories" : "Upgrade to Articulate to unlock AI tag suggestions"}
                       >
                         <Sparkles size={11} />
                         Analyze

@@ -13,6 +13,7 @@ import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import type { AISuggestion, AIAnalysisResult } from "@/lib/types";
 import { DSM_CRITERIA_IDS } from "@/lib/types";
 import { useMobile } from "@/hooks/useMobile";
+import { usePlan } from "@/components/PlanProvider";
 
 const MOODS = ["overwhelmed", "drained", "okay", "grounded", "good", "uncertain"];
 
@@ -76,6 +77,7 @@ export default function EntryPage() {
   const [analyzing, setAnalyzing] = useState(false);
 
   const { prefs, setDeepWriteDefault } = useIMWTheme();
+  const { isASDUser } = usePlan();
   const [isDeepWrite, setIsDeepWrite] = useState(false);
   const isMobile = useMobile();
   const resolvedLineWidth =
@@ -162,8 +164,8 @@ export default function EntryPage() {
       setEntry(updated);
       setIsEditing(false);
 
-      // Auto-analyze on save if preference is on
-      if (prefs.autoAnalyze) {
+      // Auto-analyze on save if preference is on (asd_user only)
+      if (isASDUser && prefs.autoAnalyze) {
         triggerAnalysis();
       }
     } finally {
@@ -591,7 +593,7 @@ export default function EntryPage() {
                       </select>
                     )}
                     {!analyzing && (
-                      <button onClick={triggerAnalysis} disabled={editorInstance?.isEmpty ?? false} className="imw-btn imw-btn--ghost imw-btn--sm" style={{ fontSize: '0.65rem', padding: "3px 7px", opacity: 0.8, gap: 4 }} title="Re-analyze">
+                      <button onClick={triggerAnalysis} disabled={isASDUser ? (editorInstance?.isEmpty ?? false) : true} className="imw-btn imw-btn--ghost imw-btn--sm" style={{ fontSize: '0.65rem', padding: "3px 7px", opacity: isASDUser ? 0.8 : 0.4, gap: 4, cursor: isASDUser ? undefined : "not-allowed" }} title={isASDUser ? "Re-analyze" : "Upgrade to Articulate to unlock AI tag suggestions"}>
                         <Sparkles size={11} />
                         analyze
                       </button>
