@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import { useIMWTheme } from "@/components/ThemeProvider";
@@ -28,6 +29,17 @@ export function WriteControlsDrawer({
   onMoodChange,
 }: WriteControlsDrawerProps) {
   const { prefs, setEditorFontSize, setEditorLineWidth } = useIMWTheme();
+
+  // Force re-render on every editor keystroke so stats stay live.
+  // TipTap's Editor is a mutable object — same reference on every render —
+  // so React won't detect content changes without an explicit subscription.
+  const [, setEditorVersion] = useState(0);
+  useEffect(() => {
+    if (!editor) return;
+    const handler = () => setEditorVersion((v) => v + 1);
+    editor.on("update", handler);
+    return () => { editor.off("update", handler); };
+  }, [editor]);
 
   const text = editor?.getText() ?? "";
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;

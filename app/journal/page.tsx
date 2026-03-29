@@ -119,7 +119,7 @@ export default function JournalPage() {
     fetchEntries();
   }, [fetchEntries]);
 
-  // Auto-trigger title generation at 40-character threshold (debounced)
+  // Auto-trigger title generation at 30-word threshold (debounced)
   useEffect(() => {
     if (!isASDUser) return; // Title auto-generation is an asd_user feature
     if (titleTouched) return; // User typed a custom title — never auto-fill
@@ -127,7 +127,7 @@ export default function JournalPage() {
 
     const plainText = getPreviewText(content);
 
-    if (plainText.trim().length < 40) return;
+    if (countWords(plainText) < 30) return;
 
     if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
 
@@ -240,7 +240,7 @@ export default function JournalPage() {
 
   async function retryTitleGeneration() {
     const plainText = getPreviewText(content);
-    if (plainText.trim().length < 40) return;
+    if (countWords(plainText) < 30) return;
     titleGeneratedRef.current = false;
     setTitleIsAI(false);
     setTitleGenerating(true);
@@ -509,7 +509,23 @@ export default function JournalPage() {
                     gap: 4,
                     flexShrink: 0,
                   }}>
-                    {(titleIsAI || titleGenerating) && (
+                    {titleGenerating && (
+                      <span
+                        className="imw-caption"
+                        style={{
+                          color: "var(--imw-text-tertiary)",
+                          fontStyle: "italic",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          pointerEvents: "none",
+                        }}
+                      >
+                        <span className="imw-spinner" />
+                        Suggesting title...
+                      </span>
+                    )}
+                    {titleIsAI && !titleGenerating && (
                       <button
                         type="button"
                         className="imw-caption"
@@ -531,7 +547,7 @@ export default function JournalPage() {
                         }}
                         title="Click to clear AI title"
                       >
-                        {titleGenerating ? "suggesting…" : "AI suggested"}
+                        AI suggested
                       </button>
                     )}
                     {titleIsAI && !titleGenerating && (
