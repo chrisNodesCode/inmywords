@@ -488,7 +488,7 @@ export default function JournalPage() {
                       fontSize: 22,
                       fontWeight: 400,
                       color: "var(--imw-text-primary)",
-                      padding: "4px 110px 8px 44px",
+                      padding: "4px 110px 8px 0",
                       caretColor: "var(--imw-ac)",
                       resize: "none",
                       overflow: "hidden",
@@ -601,7 +601,7 @@ export default function JournalPage() {
               {/* Footer (UI-07: mood chips + save) */}
               <div
                 className="imw-deep-write-chrome"
-                style={{ marginTop: 12, paddingTop: 10, paddingLeft: "44px" }}
+                style={{ marginTop: 12, paddingTop: 10 }}
               >
                 {/* Mood chips */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
@@ -749,7 +749,7 @@ export default function JournalPage() {
           </div>
 
           {/* ── Entry list (UI-08: editorial rows) ── */}
-          <div className="imw-deep-write-chrome" style={isDeepWrite ? { display: "none" } : { paddingLeft: isMobile ? 0 : "44px" }}>
+          <div className="imw-deep-write-chrome" style={isDeepWrite ? { display: "none" } : {}}>
             {loading && (
               <p className="imw-body" style={{ color: "var(--imw-text-tertiary)" }}>Loading…</p>
             )}

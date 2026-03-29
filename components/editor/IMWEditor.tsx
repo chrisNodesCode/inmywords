@@ -68,7 +68,6 @@ export default function IMWEditor({
         fontSize,
         maxWidth: lineWidth,
         position: "relative",
-        paddingLeft: "44px",
       }}
     >
       <EditorContent editor={editor} className="imw-editor-content" />
@@ -83,6 +82,7 @@ export default function IMWEditor({
           tippyOptions={{
             placement: "left",
             offset: [0, 8],
+            appendTo: () => document.body,
           }}
           shouldShow={({ state }) => {
             const { selection } = state;

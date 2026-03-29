@@ -526,7 +526,7 @@ export default function EntryPage() {
                     fontWeight: 900,
                     lineHeight: 1.1,
                     color: editTitle ? "var(--imw-text-primary)" : "var(--imw-text-tertiary)",
-                    padding: "0 0 8px 44px",
+                    padding: "0 0 8px 0",
                     caretColor: "var(--imw-ac)",
                     width: "100%",
                     marginBottom: 8,
