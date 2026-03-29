@@ -142,7 +142,7 @@ export default function LandingPage() {
               marginBottom: 32,
             }}
           >
-            Beta — Free to join
+            Now in Beta
           </div>
 
           {/* Headline */}
@@ -187,7 +187,7 @@ export default function LandingPage() {
             }}
           >
             <Link href="/sign-up" style={btnPrimary}>
-              Join the free beta
+              Get started
             </Link>
             <a href="#how-it-works" style={btnGhost}>
               See how it works
@@ -430,8 +430,8 @@ export default function LandingPage() {
               margin: "0 0 36px",
             }}
           >
-            Join the beta — free access while we build together. No credit
-            card. No clinical framing. Just your words.
+            Document your lived experience in your own words. No clinical
+            framing. No forms. Just honest, structured self-expression.
           </p>
 
           <Link
