@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Settings2, Maximize2, Minimize2, Sparkles, Pencil, Trash2, Save, X } from "lucide-react";
@@ -82,6 +82,16 @@ export default function EntryPage() {
   const isMobile = useMobile();
   const resolvedLineWidth =
     LINE_WIDTH_VALUES[prefs.editorLineWidth as keyof typeof LINE_WIDTH_VALUES] ?? "640px";
+
+  // Rationale lookup map: category id → rationale string, derived from saved AI suggestions
+  const rationaleMap = useMemo(
+    () =>
+      Object.fromEntries(
+        (entry?.aiSuggestions?.livedExperience ?? []).map((s: AISuggestion) => [s.category, s.rationale])
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [entry?.aiSuggestions]
+  );
 
   const fetchEntry = useCallback(async () => {
     try {
@@ -560,7 +570,7 @@ export default function EntryPage() {
                       if (!isConfirmed) return null;
                       return (
                         <button key={cat.id} onClick={() => handleTagToggle(cat.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }} title="Click to remove">
-                          <AnnotationTag category={cat.id as CategoryId} state="confirmed" />
+                          <AnnotationTag category={cat.id as CategoryId} state="confirmed" rationale={rationaleMap[cat.id]} />
                         </button>
                       );
                     })}
