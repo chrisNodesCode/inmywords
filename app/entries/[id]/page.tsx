@@ -538,8 +538,8 @@ export default function EntryPage() {
                 </h1>
               ) : null}
 
-              {/* Date / mood metadata — paddingLeft matches editor gutter when editing */}
-              <div style={{ paddingLeft: isEditing ? "44px" : 0 }}>
+              {/* Date / mood metadata */}
+              <div>
                 <p style={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--imw-text-tertiary)', marginBottom: 4 }}>
                   {formatDate(entry.createdAt)}
                 </p>
@@ -608,7 +608,7 @@ export default function EntryPage() {
 
               {/* Edit mode mood chips */}
               {isEditing && (
-                <div style={{ marginBottom: 16, paddingLeft: "44px" }}>
+                <div style={{ marginBottom: 16 }}>
                   <p style={{ fontFamily: 'var(--imw-font-ui)', fontSize: '0.6rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--imw-text-tertiary)', marginBottom: 6 }}>Mood</p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                     {MOODS.map((m) => (
