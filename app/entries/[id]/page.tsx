@@ -564,12 +564,6 @@ export default function EntryPage() {
                         </button>
                       );
                     })}
-                    {entry.isChildhoodMemory && (
-                      <span title="Criterion C" style={{ display: "inline-flex", alignItems: "center", padding: "2px 6px", fontSize: '0.65rem', fontWeight: 600, borderRadius: 0, border: "0.5px solid var(--imw-border-medium)", color: "var(--imw-text-secondary)", letterSpacing: "0.04em" }}>C</span>
-                    )}
-                    {entry.isFunctionalImpairment && (
-                      <span title="Criterion D" style={{ display: "inline-flex", alignItems: "center", padding: "2px 6px", fontSize: '0.65rem', fontWeight: 600, borderRadius: 0, border: "0.5px solid var(--imw-border-medium)", color: "var(--imw-text-secondary)", letterSpacing: "0.04em" }}>D</span>
-                    )}
                     {aiSuggestions.map((s) => (
                       CATEGORIES.some((c) => c.id === s.category) && (
                         <AnnotationTag key={s.category} category={s.category as CategoryId} state="ai-suggested" rationale={s.rationale} onConfirm={() => confirmSuggestion(s)} onDismiss={() => dismissSuggestion(s.category)} />
@@ -598,21 +592,6 @@ export default function EntryPage() {
                         analyze
                       </button>
                     )}
-                  </div>
-                  {/* Qualifier toggles */}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    {(["isChildhoodMemory", "isFunctionalImpairment"] as const).map((field) => {
-                      const isOn = entry[field];
-                      const label = field === "isChildhoodMemory" ? "childhood memory" : "affected my functioning";
-                      return (
-                        <button key={field} onClick={() => handleQualifierToggle(field)} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: '0.65rem', padding: "3px 8px", borderRadius: 0, border: `0.5px solid ${isOn ? "var(--imw-ac)" : "var(--imw-border-medium)"}`, background: isOn ? "color-mix(in srgb, var(--imw-ac) 10%, transparent)" : "transparent", color: isOn ? "var(--imw-ac)" : "var(--imw-text-tertiary)", cursor: "pointer" }}>
-                          <span style={{ width: 10, height: 10, borderRadius: 2, border: `1.5px solid ${isOn ? "var(--imw-ac)" : "var(--imw-border-medium)"}`, background: isOn ? "var(--imw-ac)" : "transparent", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            {isOn && <span style={{ color: "#fff", fontSize: 7, lineHeight: 1 }}>✓</span>}
-                          </span>
-                          {label}
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
               )}

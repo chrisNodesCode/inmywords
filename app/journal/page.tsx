@@ -119,20 +119,15 @@ export default function JournalPage() {
     fetchEntries();
   }, [fetchEntries]);
 
-  // Auto-trigger title generation at 30-word threshold (debounced)
+  // Auto-trigger title generation at 40-character threshold (debounced)
   useEffect(() => {
     if (!isASDUser) return; // Title auto-generation is an asd_user feature
     if (titleTouched) return; // User typed a custom title — never auto-fill
     if (titleGeneratedRef.current) return; // Already generated once this session
 
     const plainText = getPreviewText(content);
-    const wordCount = countWords(plainText);
 
-    // Threshold rationale: ND users tend to front-load context and can feel pressure
-    // to "beat" the API call before their thought is complete. The extra runway lets a
-    // more complete, representative sentence form before the title generates.
-    // Old value: 30 words. New value: 40 words (~25–35 additional characters of content).
-    if (wordCount < 40) return;
+    if (plainText.trim().length < 40) return;
 
     if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
 
@@ -245,9 +240,7 @@ export default function JournalPage() {
 
   async function retryTitleGeneration() {
     const plainText = getPreviewText(content);
-    const wordCount = countWords(plainText);
-    // Increase threshold by ~10 words vs auto-trigger — only retry if enough content
-    if (wordCount < 40) return;
+    if (plainText.trim().length < 40) return;
     titleGeneratedRef.current = false;
     setTitleIsAI(false);
     setTitleGenerating(true);

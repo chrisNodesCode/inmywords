@@ -26,6 +26,16 @@ export async function GET() {
   let prefs = await prisma.userPreferences.findUnique({ where: { userId } });
 
   if (!prefs) {
+    // asd_user plan gets autoAnalyze: true by default; free_user gets false
+    let autoAnalyzeDefault = false;
+    if (process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true") {
+      autoAnalyzeDefault = true;
+    } else {
+      const { has } = await auth();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      autoAnalyzeDefault = !!(has?.({ plan: "asd_user" } as any));
+    }
+
     try {
       prefs = await prisma.userPreferences.create({
         data: {
@@ -35,6 +45,7 @@ export async function GET() {
           darkMode: USER_PREFERENCE_DEFAULTS.darkMode,
           editorFontSize: USER_PREFERENCE_DEFAULTS.editorFontSize,
           editorLineWidth: USER_PREFERENCE_DEFAULTS.editorLineWidth,
+          autoAnalyze: autoAnalyzeDefault,
         },
       });
     } catch {

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { Menu, Search, X } from "lucide-react";
 import { useIMWTheme } from "@/components/ThemeProvider";
+import { usePlan } from "@/components/PlanProvider";
 import AccentPicker from "@/components/AccentPicker";
 import FontPicker from "@/components/FontPicker";
 import { useMobile } from "@/hooks/useMobile";
@@ -21,29 +22,33 @@ function WordmarkText() {
 
 function AutoAnalyzeToggle() {
   const { prefs, setAutoAnalyze } = useIMWTheme();
+  const { isASDUser } = usePlan();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <span className="imw-label">ai analysis</span>
       <button
-        onClick={() => setAutoAnalyze(!prefs.autoAnalyze)}
+        onClick={() => isASDUser && setAutoAnalyze(!prefs.autoAnalyze)}
+        disabled={!isASDUser}
         style={{
           display: "inline-flex",
           alignItems: "center",
           gap: 8,
           background: "transparent",
           border: "none",
-          cursor: "pointer",
+          cursor: isASDUser ? "pointer" : "not-allowed",
           padding: 0,
+          opacity: isASDUser ? 1 : 0.4,
         }}
-        aria-label={`Auto-analyze is ${prefs.autoAnalyze ? "on" : "off"}`}
+        aria-label={isASDUser ? `Auto-analyze is ${prefs.autoAnalyze ? "on" : "off"}` : "Upgrade to Articulate to unlock auto-analyze"}
+        title={isASDUser ? undefined : "Upgrade to Articulate to unlock auto-analyze"}
       >
         <span
           style={{
             width: 28,
             height: 16,
             borderRadius: 8,
-            background: prefs.autoAnalyze ? "var(--imw-ac)" : "var(--imw-border-medium)",
+            background: isASDUser && prefs.autoAnalyze ? "var(--imw-ac)" : "var(--imw-border-medium)",
             position: "relative",
             transition: "background 0.2s",
             flexShrink: 0,
@@ -53,7 +58,7 @@ function AutoAnalyzeToggle() {
             style={{
               position: "absolute",
               top: 2,
-              left: prefs.autoAnalyze ? 14 : 2,
+              left: isASDUser && prefs.autoAnalyze ? 14 : 2,
               width: 12,
               height: 12,
               borderRadius: "50%",
