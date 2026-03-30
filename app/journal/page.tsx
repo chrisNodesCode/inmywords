@@ -89,7 +89,7 @@ export default function JournalPage() {
   const isMobile = useMobile();
   const { prefs, setDeepWriteDefault } = useIMWTheme();
   const { isASDUser } = usePlan();
-  const titleVisible = isASDUser ? !!(title || titleEverShown) : true;
+  const titleVisible = isASDUser ? !!(title || titleEverShown || titleGenerating) : true;
   const [isDeepWrite, setIsDeepWrite] = useState(false);
   const resolvedLineWidth =
     LINE_WIDTH_VALUES[prefs.editorLineWidth as keyof typeof LINE_WIDTH_VALUES] ?? "640px";
@@ -664,20 +664,6 @@ export default function JournalPage() {
                   )}
                   {!hasContent() && <span />}
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {/* Analyze button — hidden while analyzing */}
-                    {!composerAnalyzing && (
-                      <button
-                        type="button"
-                        onClick={analyzeComposerEntry}
-                        disabled={isASDUser ? (editorInstance?.isEmpty ?? true) : true}
-                        className="imw-btn imw-btn--ghost imw-btn--sm"
-                        style={{ opacity: isASDUser && !(editorInstance?.isEmpty ?? true) ? 0.8 : 0.4, gap: 4, fontSize: "0.7rem", cursor: isASDUser ? undefined : "not-allowed" }}
-                        title={isASDUser ? "Analyze entry for categories" : "Upgrade to Articulate to unlock AI tag suggestions"}
-                      >
-                        <Sparkles size={11} />
-                        Analyze
-                      </button>
-                    )}
                     <button
                       type="submit"
                       disabled={submitting || (editorInstance?.isEmpty ?? true)}
