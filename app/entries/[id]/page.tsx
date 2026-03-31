@@ -10,7 +10,7 @@ import AnnotationTag from "@/components/AnnotationTag";
 import { useIMWTheme } from "@/components/ThemeProvider";
 import { LINE_WIDTH_VALUES, CATEGORIES, type CategoryId } from "@/lib/theme";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
-import type { AISuggestion, AIAnalysisResult } from "@/lib/types";
+import type { AISuggestion, AIAnalysisResult, TagQuoteMap } from "@/lib/types";
 import { DSM_CRITERIA_IDS } from "@/lib/types";
 import { useMobile } from "@/hooks/useMobile";
 import { usePlan } from "@/components/PlanProvider";
@@ -24,6 +24,7 @@ type JournalEntry = {
   mood?: string | null;
   tags: string[];
   aiSuggestions?: AIAnalysisResult | null;
+  tagQuotes?: TagQuoteMap | null;
   isChildhoodMemory: boolean;
   isFunctionalImpairment: boolean;
   createdAt: string;
@@ -83,14 +84,11 @@ export default function EntryPage() {
   const resolvedLineWidth =
     LINE_WIDTH_VALUES[prefs.editorLineWidth as keyof typeof LINE_WIDTH_VALUES] ?? "640px";
 
-  // Rationale lookup map: category id → rationale string, derived from saved AI suggestions
-  const rationaleMap = useMemo(
-    () =>
-      Object.fromEntries(
-        (entry?.aiSuggestions?.livedExperience ?? []).map((s: AISuggestion) => [s.category, s.rationale])
-      ),
+  // Persistent quote+rationale lookup for confirmed tags, sourced from tagQuotes (survives re-analysis)
+  const suggestionDataMap = useMemo(
+    () => (entry?.tagQuotes ?? {}) as TagQuoteMap,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [entry?.aiSuggestions]
+    [entry?.tagQuotes]
   );
 
   const fetchEntry = useCallback(async () => {
@@ -570,13 +568,13 @@ export default function EntryPage() {
                       if (!isConfirmed) return null;
                       return (
                         <button key={cat.id} onClick={() => handleTagToggle(cat.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }} title="Click to remove">
-                          <AnnotationTag category={cat.id as CategoryId} state="confirmed" rationale={rationaleMap[cat.id]} />
+                          <AnnotationTag category={cat.id as CategoryId} state="confirmed" quote={suggestionDataMap[cat.id]?.quote} rationale={suggestionDataMap[cat.id]?.rationale} />
                         </button>
                       );
                     })}
                     {aiSuggestions.map((s) => (
                       CATEGORIES.some((c) => c.id === s.category) && (
-                        <AnnotationTag key={s.category} category={s.category as CategoryId} state="ai-suggested" rationale={s.rationale} onConfirm={() => confirmSuggestion(s)} onDismiss={() => dismissSuggestion(s.category)} />
+                        <AnnotationTag key={s.category} category={s.category as CategoryId} state="ai-suggested" quote={s.quote} rationale={s.rationale} onConfirm={() => confirmSuggestion(s)} onDismiss={() => dismissSuggestion(s.category)} />
                       )
                     ))}
                     {analyzing && (

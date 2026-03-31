@@ -15,6 +15,7 @@ model JournalEntry {
   tags            String[]
   aiSuggestedTags String[]
   aiSuggestions          Json?
+  tagQuotes              Json?
   aiConfirmed            Boolean  @default(false)
   isChildhoodMemory      Boolean  @default(false)
   isFunctionalImpairment Boolean  @default(false)

@@ -4,7 +4,7 @@ import { generateText } from "ai";
 import { prisma } from "@/lib/prisma";
 import { anthropic, CLAUDE_MODEL } from "@/lib/ai";
 import { CATEGORIES } from "@/lib/theme";
-import type { AIAnalysisResult, AISuggestion } from "@/lib/types";
+import type { AIAnalysisResult, AISuggestion, TagQuoteMap } from "@/lib/types";
 import { DSM_CRITERIA_IDS } from "@/lib/types";
 
 async function getUserId(): Promise<string | null> {
@@ -253,11 +253,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       };
     }
 
+    // Merge all suggestions into tagQuotes (persistent, survives re-analysis)
+    const existing: TagQuoteMap = (entry.tagQuotes as TagQuoteMap) ?? {};
+    const mergedQuotes: TagQuoteMap = { ...existing };
+    for (const s of [...result.livedExperience, ...result.dsmCriteria]) {
+      if (s.quote?.trim()) {
+        mergedQuotes[s.category] = { quote: s.quote, rationale: s.rationale };
+      }
+    }
+
     // Persist full AIAnalysisResult + update boolean flags (only if not user-set)
     await prisma.journalEntry.update({
       where: { id },
       data: {
         aiSuggestions: result,
+        tagQuotes: mergedQuotes,
         ...(!userSetChildhood && { isChildhoodMemory: result.isChildhoodMemory }),
         ...(!userSetFunctionalImpairment && { isFunctionalImpairment: result.isFunctionalImpairment }),
       },

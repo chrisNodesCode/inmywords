@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import type { AIAnalysisResult, AISuggestion } from "@/lib/types";
+import type { AIAnalysisResult, TagQuoteMap, TagQuote } from "@/lib/types";
 import { CATEGORIES } from "@/lib/theme";
 import { useIMWTheme } from "@/components/ThemeProvider";
 
@@ -14,6 +14,7 @@ type EntryRow = {
   createdAt: string;
   tags: string[];
   aiSuggestions?: AIAnalysisResult | null;
+  tagQuotes?: TagQuoteMap | null;
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -26,11 +27,8 @@ function formatShortDate(iso: string) {
   });
 }
 
-function getLivedExperienceSuggestion(
-  entry: EntryRow,
-  catId: string
-): AISuggestion | undefined {
-  return entry.aiSuggestions?.livedExperience?.find((s) => s.category === catId);
+function getTagQuote(entry: EntryRow, catId: string): TagQuote | undefined {
+  return entry.tagQuotes?.[catId] ?? undefined;
 }
 
 // ── Entry card ─────────────────────────────────────────────────────────────────
@@ -44,7 +42,7 @@ function EntryCard({
   catId: string;
   fontFamily: string;
 }) {
-  const suggestion = getLivedExperienceSuggestion(entry, catId);
+  const suggestion = getTagQuote(entry, catId);
   const displayTitle = entry.title ?? formatShortDate(entry.createdAt);
 
   return (
@@ -254,7 +252,9 @@ export default function InMyWordsPage() {
 
   const taggedCount = entries.filter((e) => e.tags.length > 0).length;
   const patternCount = new Set(entries.flatMap((e) => e.tags)).size;
-  const unanalyzedCount = entries.filter((e) => !e.aiSuggestions).length;
+  const quotesCount = entries.reduce((sum, e) => {
+    return sum + (e.aiSuggestions?.livedExperience?.filter((s) => s.quote?.trim()).length ?? 0);
+  }, 0);
 
   return (
     <div
@@ -345,7 +345,7 @@ export default function InMyWordsPage() {
                   { value: entries.length, label: "Entries" },
                   { value: taggedCount, label: "With tags" },
                   { value: patternCount, label: "Patterns found" },
-                  { value: unanalyzedCount, label: "Unanalyzed" },
+                  { value: quotesCount, label: "Quotes" },
                 ].map((stat, i, arr) => (
                   <div
                     key={stat.label}

@@ -19,3 +19,6 @@ export type AIAnalysisResult = {
 
 export const DSM_CRITERIA_IDS = ["A1", "A2", "A3", "B1", "B2", "B3", "B4"] as const;
 export type DSMCriterionId = (typeof DSM_CRITERIA_IDS)[number];
+
+export type TagQuote = { quote: string; rationale: string };
+export type TagQuoteMap = Record<string, TagQuote>;

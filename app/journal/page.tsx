@@ -828,12 +828,7 @@ export default function JournalPage() {
                           {entry.title ?? truncate(getPreviewText(entry.content), 45)}
                         </div>
                         {entry.title && (() => {
-                          // Skip the opening ~60 chars so the excerpt doesn't repeat
-                          // what the title likely paraphrases from the opening line.
-                          // Snap to the next word boundary to avoid mid-word cuts.
-                          const preview = getPreviewText(entry.content);
-                          const spaceIdx = preview.indexOf(" ", 60);
-                          const excerpt = spaceIdx !== -1 ? preview.slice(spaceIdx + 1).trimStart() : "";
+                          const excerpt = getPreviewText(entry.content);
                           return excerpt.length > 10 ? (
                             <div className="imw-feed-excerpt">
                               {truncate(excerpt, 100)}
