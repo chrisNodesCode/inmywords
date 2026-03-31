@@ -9,6 +9,7 @@ import { IMWEditor, WriteControlsDrawer } from "@/components/editor";
 import { useIMWTheme } from "@/components/ThemeProvider";
 import AnnotationTag from "@/components/AnnotationTag";
 import { LINE_WIDTH_VALUES, CATEGORIES, type CategoryId } from "@/lib/theme";
+import { getRandomPrompt } from "@/lib/writing-prompts";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import type { AISuggestion } from "@/lib/types";
 import { useMobile } from "@/hooks/useMobile";
@@ -60,6 +61,7 @@ function countWords(text: string): number {
 }
 
 export default function JournalPage() {
+  const [composerPlaceholder] = useState(() => getRandomPrompt());
   const [content, setContent] = useState("");
   const [title, setTitle] = useState("");
   const [titleTouched, setTitleTouched] = useState(false);
@@ -586,7 +588,7 @@ export default function JournalPage() {
                   initialContent=""
                   onChange={setContent}
                   onEditorReady={setEditorInstance}
-                  placeholder="What happened? What did you notice?"
+                  placeholder={composerPlaceholder}
                   fontSize={prefs.editorFontSize}
                   lineWidth={resolvedLineWidth}
                   disabled={submitting}
