@@ -84,12 +84,23 @@ export default function EntryPage() {
   const resolvedLineWidth =
     LINE_WIDTH_VALUES[prefs.editorLineWidth as keyof typeof LINE_WIDTH_VALUES] ?? "640px";
 
-  // Persistent quote+rationale lookup for confirmed tags, sourced from tagQuotes (survives re-analysis)
-  const suggestionDataMap = useMemo(
-    () => (entry?.tagQuotes ?? {}) as TagQuoteMap,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [entry?.tagQuotes]
-  );
+  // Persistent quote+rationale lookup for confirmed tags.
+  // tagQuotes is the primary source (survives re-analysis). For entries analyzed before tagQuotes
+  // was introduced, fall back to aiSuggestions so existing data is not silently lost.
+  const suggestionDataMap = useMemo(() => {
+    const fromTagQuotes = (entry?.tagQuotes ?? {}) as TagQuoteMap;
+    const fallback: TagQuoteMap = {};
+    for (const s of [
+      ...(entry?.aiSuggestions?.livedExperience ?? []),
+      ...(entry?.aiSuggestions?.dsmCriteria ?? []),
+    ]) {
+      if ((s as AISuggestion).quote?.trim() && !fromTagQuotes[(s as AISuggestion).category]) {
+        fallback[(s as AISuggestion).category] = { quote: (s as AISuggestion).quote, rationale: (s as AISuggestion).rationale };
+      }
+    }
+    return { ...fallback, ...fromTagQuotes };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry?.tagQuotes, entry?.aiSuggestions]);
 
   const fetchEntry = useCallback(async () => {
     try {

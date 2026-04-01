@@ -28,7 +28,10 @@ function formatShortDate(iso: string) {
 }
 
 function getTagQuote(entry: EntryRow, catId: string): TagQuote | undefined {
-  return entry.tagQuotes?.[catId] ?? undefined;
+  // tagQuotes is the persistent store; fall back to aiSuggestions for entries analyzed
+  // before tagQuotes was introduced so existing quote data is not silently lost.
+  return entry.tagQuotes?.[catId]
+    ?? entry.aiSuggestions?.livedExperience?.find((s) => s.category === catId);
 }
 
 // ── Entry card ─────────────────────────────────────────────────────────────────
