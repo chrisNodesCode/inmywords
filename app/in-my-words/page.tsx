@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { AIAnalysisResult, TagQuoteMap, TagQuote } from "@/lib/types";
 import { CATEGORIES } from "@/lib/theme";
 import { useIMWTheme } from "@/components/ThemeProvider";
+import QuoteRationaleModal from "@/components/QuoteRationaleModal";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -47,14 +48,18 @@ function EntryCard({
 }) {
   const suggestion = getTagQuote(entry, catId);
   const displayTitle = entry.title ?? formatShortDate(entry.createdAt);
+  const [modalOpen, setModalOpen] = useState(false);
+  const hasModal = !!(suggestion?.quote || suggestion?.rationale);
 
   return (
     <div
       style={{
         padding: "12px 14px",
+        paddingBottom: hasModal ? "36px" : "12px",
         borderRadius: 4,
         border: "0.5px solid var(--imw-border-default)",
         background: "var(--imw-bg-base)",
+        position: "relative",
       }}
     >
       {suggestion?.quote && (
@@ -89,26 +94,32 @@ function EntryCard({
         <span className="imw-caption" style={{ color: "var(--imw-text-tertiary)" }}>
           {formatShortDate(entry.createdAt)}
         </span>
-        {suggestion?.rationale && (
-          <span
-            title={suggestion.rationale}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 14,
-              height: 14,
-              fontSize: "0.6rem",
-              color: "var(--imw-text-tertiary)",
-              cursor: "default",
-              flexShrink: 0,
-            }}
-            aria-label="Reasoning"
-          >
-            ⓘ
-          </span>
-        )}
       </div>
+
+      {hasModal && (
+        <button
+          className="imw-btn imw-btn--ghost imw-btn--sm"
+          onClick={() => setModalOpen(true)}
+          aria-label="View quote & rationale"
+          style={{
+            position: "absolute",
+            bottom: 8,
+            right: 8,
+            fontSize: "0.6rem",
+            color: "var(--imw-text-tertiary)",
+          }}
+        >
+          ⓘ
+        </button>
+      )}
+
+      {modalOpen && (
+        <QuoteRationaleModal
+          quote={suggestion?.quote}
+          rationale={suggestion?.rationale}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

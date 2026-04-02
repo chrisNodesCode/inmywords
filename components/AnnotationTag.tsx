@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { CATEGORIES, CategoryId } from "@/lib/theme";
 import { useIMWTheme } from "@/components/ThemeProvider";
 
@@ -23,7 +23,8 @@ export default function AnnotationTag({
 }: AnnotationTagProps) {
   const { prefs } = useIMWTheme();
   const cat = CATEGORIES.find((c) => c.id === category);
-  const [isHovered, setIsHovered] = useState(false);
+  const tagRef = useRef<HTMLSpanElement>(null);
+  const [tooltipState, setTooltipState] = useState<{ above: boolean; transformX: string } | null>(null);
 
   if (!cat) return null;
 
@@ -43,11 +44,31 @@ export default function AnnotationTag({
 
   const hasTooltip = !!(quote || rationale);
 
+  function handleMouseEnter() {
+    if (!hasTooltip || !tagRef.current) return;
+    const rect = tagRef.current.getBoundingClientRect();
+    const tooltipHeight = 120;
+    const buffer = 12;
+    const tooltipWidth = 260;
+    const above = rect.top >= tooltipHeight + buffer;
+    const tagCenterX = rect.left + rect.width / 2;
+    let transformX = "translateX(-50%)";
+    const rightOverflow = tagCenterX + tooltipWidth / 2 - (window.innerWidth - 8);
+    const leftOverflow = 8 - (tagCenterX - tooltipWidth / 2);
+    if (rightOverflow > 0) {
+      transformX = `translateX(calc(-50% - ${rightOverflow}px))`;
+    } else if (leftOverflow > 0) {
+      transformX = `translateX(calc(-50% + ${leftOverflow}px))`;
+    }
+    setTooltipState({ above, transformX });
+  }
+
   return (
     <span
+      ref={tagRef}
       style={{ position: "relative", display: "inline-flex" }}
-      onMouseEnter={() => hasTooltip && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => setTooltipState(null)}
     >
       <span
         className={`imw-ann imw-ann--${state === "ai-suggested" ? "suggested" : state}`}
@@ -80,13 +101,15 @@ export default function AnnotationTag({
         )}
       </span>
 
-      {isHovered && hasTooltip && (
+      {tooltipState && hasTooltip && (
         <span
           style={{
             position: "absolute",
-            bottom: "calc(100% + 8px)",
+            ...(tooltipState.above
+              ? { bottom: "calc(100% + 8px)", top: "auto" }
+              : { top: "calc(100% + 8px)", bottom: "auto" }),
             left: "50%",
-            transform: "translateX(-50%)",
+            transform: tooltipState.transformX,
             width: 260,
             background: "var(--imw-bg-surface)",
             border: "2px solid var(--imw-text-primary)",

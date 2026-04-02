@@ -78,6 +78,7 @@ function AutoAnalyzeToggle() {
 const NAV_ITEMS = [
   { label: "journal", href: "/journal" },
   { label: "in my words", href: "/in-my-words" },
+  { label: "eval prep", href: "/eval-prep" },
 ];
 
 function DarkModeToggle() {
@@ -308,8 +309,9 @@ export default function Sidebar() {
 
   // Desktop: collapsed rail
   if (collapsed) {
-    const isJournal = pathname === "/" || pathname.startsWith("/entries");
+    const isJournal = pathname === "/" || pathname.startsWith("/journal") || pathname.startsWith("/entries");
     const isWords = pathname === "/in-my-words";
+    const isEvalPrep = pathname === "/eval-prep";
     const railBtnStyle = {
       background: "none",
       border: "none",
@@ -364,6 +366,14 @@ export default function Sidebar() {
           style={{ ...railBtnStyle, color: isWords ? "var(--imw-ac)" : "var(--imw-text-tertiary)" }}
         >
           W
+        </button>
+        <button
+          onClick={() => router.push("/eval-prep")}
+          aria-label="Eval Prep"
+          title="Eval Prep"
+          style={{ ...railBtnStyle, color: isEvalPrep ? "var(--imw-ac)" : "var(--imw-text-tertiary)" }}
+        >
+          E
         </button>
       </div>
     );

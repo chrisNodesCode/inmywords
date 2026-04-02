@@ -15,7 +15,7 @@ import type { AISuggestion } from "@/lib/types";
 import { useMobile } from "@/hooks/useMobile";
 import { usePlan } from "@/components/PlanProvider";
 
-const MOODS = ["overwhelmed", "drained", "okay", "grounded", "good", "uncertain"];
+const MOODS = ["Neutral", "Anxious", "Excited", "Mad", "Happy", "Not Sure"];
 
 type JournalEntry = {
   id: string;

@@ -13,7 +13,7 @@ interface WriteControlsDrawerProps {
   onMoodChange: (mood: string) => void;
 }
 
-const MOODS = ["overwhelmed", "drained", "okay", "grounded", "good", "uncertain"];
+const MOODS = ["Neutral", "Anxious", "Excited", "Mad", "Happy", "Not Sure"];
 
 const LINE_WIDTHS = [
   { id: "narrow" as const, label: "narrow" },
