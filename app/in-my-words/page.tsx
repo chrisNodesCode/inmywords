@@ -53,13 +53,14 @@ function EntryCard({
 
   return (
     <div
+      onClick={hasModal ? () => setModalOpen(true) : undefined}
       style={{
         padding: "12px 14px",
-        paddingBottom: hasModal ? "36px" : "12px",
         borderRadius: 4,
         border: "0.5px solid var(--imw-border-default)",
         background: "var(--imw-bg-base)",
-        position: "relative",
+        cursor: hasModal ? "pointer" : "default",
+        transition: "opacity 0.15s",
       }}
     >
       {suggestion?.quote && (
@@ -79,39 +80,42 @@ function EntryCard({
         </blockquote>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-        <Link
-          href={`/entries/${entry.id}`}
+        <span
           style={{
             fontFamily: "var(--imw-font-ui)",
             fontSize: "0.7rem",
             fontWeight: 600,
             color: "var(--imw-ac-d)",
-            textDecoration: "none",
           }}
         >
           {displayTitle}
-        </Link>
+        </span>
         <span className="imw-caption" style={{ color: "var(--imw-text-tertiary)" }}>
           {formatShortDate(entry.createdAt)}
         </span>
-      </div>
-
-      {hasModal && (
-        <button
-          className="imw-btn imw-btn--ghost imw-btn--sm"
-          onClick={() => setModalOpen(true)}
-          aria-label="View quote & rationale"
+        <Link
+          href={`/entries/${entry.id}`}
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Open entry"
           style={{
-            position: "absolute",
-            bottom: 8,
-            right: 8,
-            fontSize: "0.6rem",
-            color: "var(--imw-text-tertiary)",
+            marginLeft: "auto",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 22,
+            height: 22,
+            borderRadius: "50%",
+            border: "1.5px solid var(--imw-ac)",
+            color: "var(--imw-ac)",
+            fontSize: "0.75rem",
+            textDecoration: "none",
+            flexShrink: 0,
+            transition: "background 0.15s, color 0.15s",
           }}
         >
-          ⓘ
-        </button>
-      )}
+          →
+        </Link>
+      </div>
 
       {modalOpen && (
         <QuoteRationaleModal

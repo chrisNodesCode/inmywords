@@ -192,6 +192,11 @@ export default function JournalPage() {
 
       const newEntry = await res.json();
 
+      // Auto-analyze: fire-and-forget so suggestions are ready when user opens the entry
+      if (isASDUser && prefs.autoAnalyze) {
+        fetch(`/api/entries/${newEntry.id}/analyze`, { method: "POST" }).catch(() => {});
+      }
+
       if (isDeepWrite) {
         exitDeepWrite();
         router.push(`/entries/${newEntry.id}`);
