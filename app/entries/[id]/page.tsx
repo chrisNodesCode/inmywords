@@ -578,9 +578,7 @@ export default function EntryPage() {
                       const isConfirmed = entry.tags.includes(cat.id);
                       if (!isConfirmed) return null;
                       return (
-                        <button key={cat.id} onClick={() => handleTagToggle(cat.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }} title="Click to remove">
-                          <AnnotationTag category={cat.id as CategoryId} state="confirmed" quote={suggestionDataMap[cat.id]?.quote} rationale={suggestionDataMap[cat.id]?.rationale} />
-                        </button>
+                        <AnnotationTag key={cat.id} category={cat.id as CategoryId} state="confirmed" quote={suggestionDataMap[cat.id]?.quote} rationale={suggestionDataMap[cat.id]?.rationale} onRemove={() => handleTagToggle(cat.id)} />
                       );
                     })}
                     {aiSuggestions.map((s) => (

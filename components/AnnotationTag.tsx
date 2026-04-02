@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { CATEGORIES, CategoryId } from "@/lib/theme";
 import { useIMWTheme } from "@/components/ThemeProvider";
+import QuoteRationaleModal from "@/components/QuoteRationaleModal";
 
 interface AnnotationTagProps {
   category: CategoryId;
@@ -11,6 +12,8 @@ interface AnnotationTagProps {
   rationale?: string;
   onConfirm?: () => void;
   onDismiss?: () => void;
+  /** For confirmed tags on the entry detail page — removes the tag */
+  onRemove?: () => void;
 }
 
 export default function AnnotationTag({
@@ -20,11 +23,11 @@ export default function AnnotationTag({
   rationale,
   onConfirm,
   onDismiss,
+  onRemove,
 }: AnnotationTagProps) {
   const { prefs } = useIMWTheme();
   const cat = CATEGORIES.find((c) => c.id === category);
-  const tagRef = useRef<HTMLSpanElement>(null);
-  const [tooltipState, setTooltipState] = useState<{ above: boolean; transformX: string } | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   if (!cat) return null;
 
@@ -42,39 +45,54 @@ export default function AnnotationTag({
     baseStyle.color = colors.color;
   }
 
-  const hasTooltip = !!(quote || rationale);
-
-  function handleMouseEnter() {
-    if (!hasTooltip || !tagRef.current) return;
-    const rect = tagRef.current.getBoundingClientRect();
-    const tooltipHeight = 120;
-    const buffer = 12;
-    const tooltipWidth = 260;
-    const above = rect.top >= tooltipHeight + buffer;
-    const tagCenterX = rect.left + rect.width / 2;
-    let transformX = "translateX(-50%)";
-    const rightOverflow = tagCenterX + tooltipWidth / 2 - (window.innerWidth - 8);
-    const leftOverflow = 8 - (tagCenterX - tooltipWidth / 2);
-    if (rightOverflow > 0) {
-      transformX = `translateX(calc(-50% - ${rightOverflow}px))`;
-    } else if (leftOverflow > 0) {
-      transformX = `translateX(calc(-50% + ${leftOverflow}px))`;
-    }
-    setTooltipState({ above, transformX });
-  }
+  const hasModal = state === "confirmed" && !!(quote || rationale);
 
   return (
-    <span
-      ref={tagRef}
-      style={{ position: "relative", display: "inline-flex" }}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={() => setTooltipState(null)}
-    >
+    <span style={{ position: "relative", display: "inline-flex" }}>
       <span
         className={`imw-ann imw-ann--${state === "ai-suggested" ? "suggested" : state}`}
-        style={{ ...baseStyle, display: "inline-flex", alignItems: "center", gap: 4 }}
+        style={{
+          ...baseStyle,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          cursor: hasModal ? "pointer" : "default",
+        }}
+        onClick={hasModal ? () => setModalOpen(true) : undefined}
+        title={hasModal ? "View quote & rationale" : undefined}
       >
         {cat.label}
+
+        {/* Confirmed tag: remove button (circle ×) */}
+        {state === "confirmed" && onRemove && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            aria-label={`Remove ${cat.label}`}
+            title="Remove tag"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 14,
+              height: 14,
+              borderRadius: "50%",
+              border: "1px solid currentColor",
+              background: "none",
+              cursor: "pointer",
+              color: "inherit",
+              fontSize: "0.55rem",
+              lineHeight: 1,
+              padding: 0,
+              marginLeft: 2,
+              opacity: 0.65,
+              flexShrink: 0,
+            }}
+          >
+            ×
+          </button>
+        )}
+
+        {/* AI-suggested tag: confirm + dismiss buttons (unchanged) */}
         {state === "ai-suggested" && (
           <>
             {onConfirm && (
@@ -101,56 +119,12 @@ export default function AnnotationTag({
         )}
       </span>
 
-      {tooltipState && hasTooltip && (
-        <span
-          style={{
-            position: "absolute",
-            ...(tooltipState.above
-              ? { bottom: "calc(100% + 8px)", top: "auto" }
-              : { top: "calc(100% + 8px)", bottom: "auto" }),
-            left: "50%",
-            transform: tooltipState.transformX,
-            width: 260,
-            background: "var(--imw-bg-surface)",
-            border: "2px solid var(--imw-text-primary)",
-            boxShadow: "3px 3px 0 0 var(--imw-text-primary)",
-            padding: "10px 12px",
-            zIndex: 100,
-            pointerEvents: "none",
-          }}
-        >
-          {quote && (
-            <span
-              style={{
-                display: "block",
-                borderLeft: "2px solid var(--imw-border-medium)",
-                paddingLeft: 8,
-                marginBottom: rationale ? 8 : 0,
-                fontFamily: "var(--imw-font-display)",
-                fontWeight: 400,
-                fontSize: "0.72rem",
-                fontStyle: "italic",
-                lineHeight: 1.5,
-                color: "var(--imw-text-primary)",
-              }}
-            >
-              &ldquo;{quote}&rdquo;
-            </span>
-          )}
-          {rationale && (
-            <span
-              style={{
-                display: "block",
-                fontFamily: "var(--imw-font-ui)",
-                fontSize: "0.65rem",
-                lineHeight: 1.5,
-                color: "var(--imw-text-secondary)",
-              }}
-            >
-              {rationale}
-            </span>
-          )}
-        </span>
+      {modalOpen && (
+        <QuoteRationaleModal
+          quote={quote}
+          rationale={rationale}
+          onClose={() => setModalOpen(false)}
+        />
       )}
     </span>
   );
