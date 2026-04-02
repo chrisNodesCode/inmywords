@@ -233,6 +233,19 @@ function EntryCard({
           quote={suggestion?.quote}
           rationale={suggestion?.rationale}
           onClose={() => setModalOpen(false)}
+          heading={
+            <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
+              <span
+                className="imw-ui-small"
+                style={{ fontWeight: 600, color: "var(--imw-text-primary)" }}
+              >
+                {criterion}
+              </span>
+              <span className="imw-ui-small" style={{ color: "var(--imw-text-secondary)" }}>
+                — {DSM_LABELS[criterion]}
+              </span>
+            </span>
+          }
         />
       )}
     </div>

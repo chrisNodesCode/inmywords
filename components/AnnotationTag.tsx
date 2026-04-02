@@ -124,6 +124,20 @@ export default function AnnotationTag({
           quote={quote}
           rationale={rationale}
           onClose={() => setModalOpen(false)}
+          heading={
+            <span
+              className="imw-ann imw-ann--confirmed"
+              style={{
+                backgroundColor: "var(--imw-ac-l)",
+                color: "var(--imw-ac-d)",
+                borderLeftColor: "var(--imw-ac)",
+                borderLeftWidth: 2,
+                pointerEvents: "none",
+              }}
+            >
+              {cat.label}
+            </span>
+          }
         />
       )}
     </span>

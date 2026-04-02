@@ -118,6 +118,24 @@ function EntryCard({
           quote={suggestion?.quote}
           rationale={suggestion?.rationale}
           onClose={() => setModalOpen(false)}
+          heading={(() => {
+            const cat = CATEGORIES.find((c) => c.id === catId);
+            if (!cat) return undefined;
+            return (
+              <span
+                className="imw-ann imw-ann--confirmed"
+                style={{
+                  backgroundColor: "var(--imw-ac-l)",
+                  color: "var(--imw-ac-d)",
+                  borderLeftColor: "var(--imw-ac)",
+                  borderLeftWidth: 2,
+                  pointerEvents: "none",
+                }}
+              >
+                {cat.label}
+              </span>
+            );
+          })()}
         />
       )}
     </div>

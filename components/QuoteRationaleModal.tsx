@@ -1,12 +1,16 @@
 "use client";
 
+import React from "react";
+
 interface QuoteRationaleModalProps {
   quote?: string;
   rationale?: string;
   onClose: () => void;
+  /** Tag chip or criterion label rendered inline with the × close button */
+  heading?: React.ReactNode;
 }
 
-export default function QuoteRationaleModal({ quote, rationale, onClose }: QuoteRationaleModalProps) {
+export default function QuoteRationaleModal({ quote, rationale, onClose, heading }: QuoteRationaleModalProps) {
   return (
     <div
       onClick={onClose}
@@ -30,20 +34,32 @@ export default function QuoteRationaleModal({ quote, rationale, onClose }: Quote
           border: "2px solid var(--imw-text-primary)",
           boxShadow: "4px 4px 0 0 var(--imw-text-primary)",
           padding: "20px 22px 24px",
-          position: "relative",
         }}
       >
-        {/* Close button */}
-        <button
-          className="imw-btn imw-btn--ghost imw-btn--sm"
-          onClick={onClose}
-          aria-label="Close"
-          style={{ position: "absolute", top: 12, right: 12 }}
+        {/* Heading row: tag chip or criterion + close button */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 12,
+            gap: 8,
+          }}
         >
-          ×
-        </button>
+          <div style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
+            {heading ?? null}
+          </div>
+          <button
+            className="imw-btn imw-btn--ghost imw-btn--sm"
+            onClick={onClose}
+            aria-label="Close"
+            style={{ flexShrink: 0 }}
+          >
+            ×
+          </button>
+        </div>
 
-        {/* Header */}
+        {/* Sub-header */}
         <p
           style={{
             fontFamily: "var(--imw-font-ui)",
