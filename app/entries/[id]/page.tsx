@@ -184,7 +184,7 @@ export default function EntryPage() {
       setIsEditing(false);
 
       // Auto-analyze on save if preference is on (asd_user only)
-      if (isASDUser && prefs.autoAnalyze) {
+      if (isASDUser) {
         triggerAnalysis();
       }
     } finally {

@@ -20,61 +20,6 @@ function WordmarkText() {
   return <>{name ? `${name}'s words` : "InMyWords"}</>;
 }
 
-function AutoAnalyzeToggle() {
-  const { prefs, setAutoAnalyze } = useIMWTheme();
-  const { isASDUser } = usePlan();
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <span className="imw-label">ai analysis</span>
-      <button
-        onClick={() => isASDUser && setAutoAnalyze(!prefs.autoAnalyze)}
-        disabled={!isASDUser}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          background: "transparent",
-          border: "none",
-          cursor: isASDUser ? "pointer" : "not-allowed",
-          padding: 0,
-          opacity: isASDUser ? 1 : 0.4,
-        }}
-        aria-label={isASDUser ? `Auto-analyze is ${prefs.autoAnalyze ? "on" : "off"}` : "Upgrade to Articulate to unlock auto-analyze"}
-        title={isASDUser ? undefined : "Upgrade to Articulate to unlock auto-analyze"}
-      >
-        <span
-          style={{
-            width: 28,
-            height: 16,
-            borderRadius: 8,
-            background: isASDUser && prefs.autoAnalyze ? "var(--imw-ac)" : "var(--imw-border-medium)",
-            position: "relative",
-            transition: "background 0.2s",
-            flexShrink: 0,
-          }}
-        >
-          <span
-            style={{
-              position: "absolute",
-              top: 2,
-              left: isASDUser && prefs.autoAnalyze ? 14 : 2,
-              width: 12,
-              height: 12,
-              borderRadius: "50%",
-              background: "#fff",
-              transition: "left 0.2s",
-            }}
-          />
-        </span>
-        <span className="imw-ui-small" style={{ color: "var(--imw-text-secondary)" }}>
-          auto on save
-        </span>
-      </button>
-    </div>
-  );
-}
-
 const NAV_ITEMS = [
   { label: "journal", href: "/journal" },
   { label: "in my words", href: "/in-my-words" },
@@ -196,14 +141,6 @@ function SidebarContents({ onNavClick, onCollapse }: { onNavClick?: () => void; 
         <div>
           <FontPicker />
         </div>
-      </div>
-
-      {/* Divider */}
-      <div className="imw-divider" style={{ margin: "12px 12px" }} />
-
-      {/* AI analysis section */}
-      <div style={{ padding: "4px 12px" }}>
-        <AutoAnalyzeToggle />
       </div>
 
       {/* Bottom: user button */}

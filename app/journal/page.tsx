@@ -193,7 +193,7 @@ export default function JournalPage() {
       const newEntry = await res.json();
 
       // Auto-analyze: fire-and-forget so suggestions are ready when user opens the entry
-      if (isASDUser && prefs.autoAnalyze) {
+      if (isASDUser) {
         fetch(`/api/entries/${newEntry.id}/analyze`, { method: "POST" }).catch(() => {});
       }
 
@@ -398,12 +398,6 @@ export default function JournalPage() {
             Journal
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {prefs.autoAnalyze && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.6rem', fontWeight: 600, color: 'var(--imw-ac)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--imw-ac)', animation: 'imw-blink 1.4s ease infinite' }} />
-                AI Ready
-              </span>
-            )}
             <button
               type="button"
               className="imw-btn imw-btn--ghost imw-btn--sm"
