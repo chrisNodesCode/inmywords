@@ -924,6 +924,15 @@ aside.imw-deep-write-chrome {
   animation: imw-feed-entry-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
+@keyframes imw-feed-tag-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.imw-feed-tag--new {
+  opacity: 0;
+  animation: imw-feed-tag-in 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 /* =============================================================================
    UTILITY
    ============================================================================= */

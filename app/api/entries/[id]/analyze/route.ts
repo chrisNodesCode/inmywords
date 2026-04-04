@@ -166,9 +166,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { has } = await auth();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isASDUser = !!(has?.({ plan: "asd_user" } as any)) || process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
+  const isASDUser = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true"
+    ? true
+    : !!((await auth()).has?.({ plan: "asd_user" } as any));
   if (!isASDUser) {
     return NextResponse.json({ error: "Plan upgrade required" }, { status: 403 });
   }

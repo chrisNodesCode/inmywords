@@ -86,6 +86,7 @@ export default function JournalPage() {
   const [composerTags, setComposerTags] = useState<string[]>([]);
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
   const [composerDiscardConfirming, setComposerDiscardConfirming] = useState(false);
+  const [pendingAiTags, setPendingAiTags] = useState<Record<string, string[]>>({});
 
   const router = useRouter();
   const isMobile = useMobile();
@@ -192,9 +193,20 @@ export default function JournalPage() {
 
       const newEntry = await res.json();
 
-      // Auto-analyze: fire-and-forget so suggestions are ready when user opens the entry
+      // Auto-analyze: runs in parallel so entry appears in feed immediately;
+      // when response arrives, push any lived experience tags onto the feed card.
       if (isASDUser) {
-        fetch(`/api/entries/${newEntry.id}/analyze`, { method: "POST" }).catch(() => {});
+        fetch(`/api/entries/${newEntry.id}/analyze`, { method: "POST" })
+          .then((res) => res.json())
+          .then((data) => {
+            const liveTags: string[] = (data.suggestions?.livedExperience ?? [])
+              .filter((s: AISuggestion) => s.confidence > 0.4)
+              .map((s: AISuggestion) => s.category as string);
+            if (liveTags.length > 0) {
+              setPendingAiTags((prev) => ({ ...prev, [newEntry.id]: liveTags }));
+            }
+          })
+          .catch(() => {});
       }
 
       if (isDeepWrite) {
@@ -460,7 +472,7 @@ export default function JournalPage() {
                 overflow: "hidden",
                 marginBottom: titleVisible ? 14 : 0,
                 paddingBottom: titleVisible ? 4 : 0,
-                transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease, margin-bottom 0.4s ease",
+                transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease, margin-bottom 0.4s ease, padding-bottom 0.4s ease",
               }}>
                 <div style={{ position: "relative" }}>
                   <textarea
@@ -834,13 +846,29 @@ export default function JournalPage() {
                             </div>
                           ) : null;
                         })()}
-                        {entry.tags && entry.tags.length > 0 && (
-                          <div className="imw-feed-tags">
-                            {entry.tags.map((tag) => (
-                              <AnnotationTag key={tag} category={tag as CategoryId} state="confirmed" />
-                            ))}
-                          </div>
-                        )}
+                        {(() => {
+                          const pending = (pendingAiTags[entry.id] ?? []).filter(
+                            (t) => !entry.tags?.includes(t)
+                          );
+                          const hasTags = (entry.tags && entry.tags.length > 0) || pending.length > 0;
+                          if (!hasTags) return null;
+                          return (
+                            <div className="imw-feed-tags">
+                              {entry.tags?.map((tag) => (
+                                <AnnotationTag key={tag} category={tag as CategoryId} state="confirmed" />
+                              ))}
+                              {pending.map((tag, i) => (
+                                <span
+                                  key={tag}
+                                  className="imw-feed-tag--new"
+                                  style={{ animationDelay: `${i * 0.06}s`, display: "inline-flex" }}
+                                >
+                                  <AnnotationTag category={tag as CategoryId} state="ai-suggested" />
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </Link>
                   ))}
