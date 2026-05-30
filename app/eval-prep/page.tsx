@@ -10,7 +10,7 @@ import { useIMWTheme } from "@/components/ThemeProvider";
 import QuoteRationaleModal from "@/components/QuoteRationaleModal";
 
 const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
-const OWNER_USER_ID = "user_3B96aTk46r75BFheU5eZQ9egSan";
+const OWNER_EMAIL = "chrislahoma@gmail.com";
 
 // ── DSM criterion labels ───────────────────────────────────────────────────────
 
@@ -510,7 +510,7 @@ export default function EvalPrepPage() {
     : useUser();
 
   useEffect(() => {
-    if (!devBypass && userLoaded && user?.id !== OWNER_USER_ID) {
+    if (!devBypass && userLoaded && user?.primaryEmailAddress?.emailAddress !== OWNER_EMAIL) {
       router.replace("/journal");
     }
   }, [userLoaded, user, router]);
@@ -539,7 +539,7 @@ export default function EvalPrepPage() {
     fetchEntries();
   }, []);
 
-  if (!devBypass && (!userLoaded || user?.id !== OWNER_USER_ID)) return null;
+  if (!devBypass && (!userLoaded || user?.primaryEmailAddress?.emailAddress !== OWNER_EMAIL)) return null;
 
   const analyzedCount = entries.filter((e) => (e.aiSuggestions?.dsmCriteria?.length ?? 0) > 0).length;
   const criteriaCovered = new Set(

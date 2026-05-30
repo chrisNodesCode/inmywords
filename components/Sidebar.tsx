@@ -12,7 +12,7 @@ import FontPicker from "@/components/FontPicker";
 import { useMobile } from "@/hooks/useMobile";
 
 const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
-const OWNER_USER_ID = "user_3B96aTk46r75BFheU5eZQ9egSan";
+const OWNER_EMAIL = "chrislahoma@gmail.com";
 
 // Only rendered when ClerkProvider is active (not in dev bypass)
 function WordmarkText() {
@@ -30,7 +30,7 @@ const BASE_NAV_ITEMS = [
 function EvalPrepNavLink({ onNavClick }: { onNavClick?: () => void }) {
   const { user } = useUser();
   const pathname = usePathname();
-  if (user?.id !== OWNER_USER_ID) return null;
+  if (user?.primaryEmailAddress?.emailAddress !== OWNER_EMAIL) return null;
   const isActive = pathname === "/eval-prep";
   return (
     <Link
@@ -49,7 +49,7 @@ function EvalPrepNavLink({ onNavClick }: { onNavClick?: () => void }) {
 function EvalPrepRailBtn({ railBtnStyle, onClick }: { railBtnStyle: React.CSSProperties; onClick: () => void }) {
   const { user } = useUser();
   const pathname = usePathname();
-  if (user?.id !== OWNER_USER_ID) return null;
+  if (user?.primaryEmailAddress?.emailAddress !== OWNER_EMAIL) return null;
   return (
     <button
       onClick={onClick}
