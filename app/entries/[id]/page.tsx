@@ -182,11 +182,6 @@ export default function EntryPage() {
       const updated = await res.json();
       setEntry(updated);
       setIsEditing(false);
-
-      // Auto-analyze on save if preference is on (asd_user only)
-      if (isASDUser) {
-        triggerAnalysis();
-      }
     } finally {
       setSaving(false);
     }

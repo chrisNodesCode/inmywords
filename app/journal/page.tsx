@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, Settings2, Maximize2, Minimize2, X, Sparkles, RefreshCw, RotateCcw, Save, Trash2 } from "lucide-react";
+import { BookOpen, Settings2, Maximize2, Minimize2, X, Sparkles, RotateCcw, Save, Trash2 } from "lucide-react";
 import type { Editor } from "@tiptap/react";
 import { IMWEditor, WriteControlsDrawer } from "@/components/editor";
 import { useIMWTheme } from "@/components/ThemeProvider";
@@ -13,7 +13,6 @@ import { getRandomPrompt } from "@/lib/writing-prompts";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import type { AISuggestion } from "@/lib/types";
 import { useMobile } from "@/hooks/useMobile";
-import { usePlan } from "@/components/PlanProvider";
 
 const MOODS = ["Neutral", "Anxious", "Excited", "Mad", "Happy", "Not Sure"];
 
@@ -63,11 +62,6 @@ function countWords(text: string): number {
 export default function JournalPage() {
   const [composerPlaceholder] = useState(() => getRandomPrompt());
   const [content, setContent] = useState("");
-  const [title, setTitle] = useState("");
-  const [titleTouched, setTitleTouched] = useState(false);
-  const [titleIsAI, setTitleIsAI] = useState(false);
-  const [titleGenerating, setTitleGenerating] = useState(false);
-  const [titleEverShown, setTitleEverShown] = useState(false);
   const [mood, setMood] = useState("");
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,18 +85,9 @@ export default function JournalPage() {
   const router = useRouter();
   const isMobile = useMobile();
   const { prefs, setDeepWriteDefault } = useIMWTheme();
-  const { isASDUser } = usePlan();
-  const titleVisible = isASDUser ? !!(title || titleEverShown || titleGenerating) : true;
   const [isDeepWrite, setIsDeepWrite] = useState(false);
   const resolvedLineWidth =
     LINE_WIDTH_VALUES[prefs.editorLineWidth as keyof typeof LINE_WIDTH_VALUES] ?? "640px";
-
-  // Debounce timer ref for auto-title generation
-  const titleDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Track whether we've already auto-generated at this session to avoid re-firing
-  const titleGeneratedRef = useRef(false);
-  // Ref for auto-resizing title textarea
-  const titleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const fetchEntries = useCallback(async () => {
     try {
@@ -121,49 +106,6 @@ export default function JournalPage() {
   useEffect(() => {
     fetchEntries();
   }, [fetchEntries]);
-
-  // Auto-trigger title generation at 30-word threshold (debounced)
-  useEffect(() => {
-    if (!isASDUser) return; // Title auto-generation is an asd_user feature
-    if (titleTouched) return; // User typed a custom title — never auto-fill
-    if (titleGeneratedRef.current) return; // Already generated once this session
-
-    const plainText = getPreviewText(content);
-
-    if (countWords(plainText) < 30) return;
-
-    if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
-
-    titleDebounceRef.current = setTimeout(async () => {
-      if (titleTouched || titleGeneratedRef.current) return;
-      setTitleGenerating(true);
-      try {
-        const res = await fetch("/api/entries/new/generate-title", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: plainText }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.title && !titleTouched) {
-            setTitle(data.title);
-            setTitleIsAI(true);
-            setTitleEverShown(true);
-            titleGeneratedRef.current = true;
-          }
-        }
-      } catch {
-        // Silent fail — title generation is non-blocking
-      } finally {
-        setTitleGenerating(false);
-      }
-    }, 1500);
-
-    return () => {
-      if (titleDebounceRef.current) clearTimeout(titleDebounceRef.current);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content, titleTouched, isASDUser]);
 
   async function saveEntry() {
     let hasText = false;
@@ -185,7 +127,6 @@ export default function JournalPage() {
         body: JSON.stringify({
           content,
           mood: mood || undefined,
-          title: title.trim() || undefined,
         }),
       });
 
@@ -193,38 +134,39 @@ export default function JournalPage() {
 
       const newEntry = await res.json();
 
-      // Auto-analyze: runs in parallel so entry appears in feed immediately;
-      // when response arrives, push any lived experience tags onto the feed card.
-      if (isASDUser) {
-        fetch(`/api/entries/${newEntry.id}/analyze`, { method: "POST" })
-          .then((res) => res.json())
-          .then((data) => {
-            const liveTags: string[] = (data.suggestions?.livedExperience ?? [])
-              .filter((s: AISuggestion) => s.confidence > 0.4)
-              .map((s: AISuggestion) => s.category as string);
-            if (liveTags.length > 0) {
-              setPendingAiTags((prev) => ({ ...prev, [newEntry.id]: liveTags }));
+      // Generate title on save, then patch entry before refreshing the feed
+      const plainText = getPreviewText(content);
+      if (plainText.trim().length >= 10) {
+        try {
+          const titleRes = await fetch("/api/entries/new/generate-title", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: plainText }),
+          });
+          if (titleRes.ok) {
+            const titleData = await titleRes.json();
+            if (titleData.title) {
+              await fetch(`/api/entries/${newEntry.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: titleData.title }),
+              });
             }
-          })
-          .catch(() => {});
+          }
+        } catch {
+          // Title generation failed — entry will appear untitled
+        }
       }
 
       if (isDeepWrite) {
         exitDeepWrite();
         router.push(`/entries/${newEntry.id}`);
       } else {
-        // Clear the TipTap editor content directly
         editorInstance?.commands.clearContent(true);
         setContent("");
-        setTitle("");
-        setTitleTouched(false);
-        setTitleIsAI(false);
-        setTitleEverShown(false);
-        titleGeneratedRef.current = false;
         setMood("");
         setNewEntryId(newEntry.id);
         await fetchEntries();
-        // Clear the animation class after it completes
         setTimeout(() => setNewEntryId(null), 800);
       }
     } catch (err) {
@@ -242,11 +184,6 @@ export default function JournalPage() {
 
   function discardDraft() {
     setContent("");
-    setTitle("");
-    setTitleTouched(false);
-    setTitleIsAI(false);
-    setTitleEverShown(false);
-    titleGeneratedRef.current = false;
     setMood("");
     editorInstance?.commands.clearContent();
     setDrawerOpen(false);
@@ -255,34 +192,6 @@ export default function JournalPage() {
     setComposerAiSuggestions([]);
     setSavedEntryId(null);
     setComposerTags([]);
-  }
-
-  async function retryTitleGeneration() {
-    const plainText = getPreviewText(content);
-    if (countWords(plainText) < 30) return;
-    titleGeneratedRef.current = false;
-    setTitleIsAI(false);
-    setTitleGenerating(true);
-    try {
-      const res = await fetch("/api/entries/new/generate-title", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: plainText }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.title) {
-          setTitle(data.title);
-          setTitleIsAI(true);
-          setTitleEverShown(true);
-          titleGeneratedRef.current = true;
-        }
-      }
-    } catch {
-      // Silent fail
-    } finally {
-      setTitleGenerating(false);
-    }
   }
 
   /** Save the current entry silently (no editor clear), return the entry ID. */
@@ -304,7 +213,6 @@ export default function JournalPage() {
         body: JSON.stringify({
           content,
           mood: mood || undefined,
-          title: title.trim() || undefined,
         }),
       });
       if (!res.ok) return null;
@@ -464,131 +372,6 @@ export default function JournalPage() {
                   </button>
                 </div>
               )}
-
-              {/* Title row — asd_user: hidden until AI suggests or user types; free_user: always visible */}
-              <div style={{
-                maxHeight: titleVisible ? "200px" : "0px",
-                opacity: titleVisible ? 1 : 0,
-                overflow: "hidden",
-                marginBottom: titleVisible ? 14 : 0,
-                paddingBottom: titleVisible ? 4 : 0,
-                transition: "max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s ease, margin-bottom 0.4s ease, padding-bottom 0.4s ease",
-              }}>
-                <div style={{ position: "relative" }}>
-                  <textarea
-                    ref={titleTextareaRef}
-                    value={title}
-                    rows={1}
-                    onChange={(e) => {
-                      setTitle(e.target.value);
-                      setTitleTouched(true);
-                      setTitleIsAI(false);
-                      setTitleEverShown(true);
-                      // Auto-resize
-                      e.target.style.height = "auto";
-                      e.target.style.height = e.target.scrollHeight + "px";
-                    }}
-                    placeholder={isASDUser ? "" : "Give this entry a title (optional)"}
-                    disabled={submitting}
-                    className={isASDUser && titleEverShown && !title ? "imw-title-pulse" : ""}
-                    style={{
-                      width: "100%",
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: isASDUser && titleEverShown && !title ? undefined : "none",
-                      outline: "none",
-                      fontFamily: "var(--imw-font-body)",
-                      fontSize: 22,
-                      fontWeight: 400,
-                      color: "var(--imw-text-primary)",
-                      padding: "4px 110px 8px 0",
-                      caretColor: "var(--imw-ac)",
-                      resize: "none",
-                      overflow: "hidden",
-                      overflowWrap: "break-word",
-                      wordBreak: "break-word",
-                      lineHeight: 1.3,
-                      display: "block",
-                    }}
-                  />
-                  {/* AI suggested label + retry button — asd_user only */}
-                  {isASDUser && <div style={{
-                    position: "absolute",
-                    right: 0,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    flexShrink: 0,
-                  }}>
-                    {titleGenerating && (
-                      <span
-                        className="imw-caption"
-                        style={{
-                          color: "var(--imw-text-tertiary)",
-                          fontStyle: "italic",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 5,
-                          pointerEvents: "none",
-                        }}
-                      >
-                        <span className="imw-spinner" />
-                        Suggesting title...
-                      </span>
-                    )}
-                    {titleIsAI && !titleGenerating && (
-                      <button
-                        type="button"
-                        className="imw-caption"
-                        onClick={() => {
-                          setTitle("");
-                          setTitleIsAI(false);
-                          titleTextareaRef.current?.focus();
-                        }}
-                        style={{
-                          color: "var(--imw-ac)",
-                          fontStyle: "italic",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: 0,
-                          fontFamily: "inherit",
-                          fontSize: "inherit",
-                          lineHeight: "inherit",
-                        }}
-                        title="Click to clear AI title"
-                      >
-                        AI suggested
-                      </button>
-                    )}
-                    {titleIsAI && !titleGenerating && (
-                      <button
-                        type="button"
-                        onClick={retryTitleGeneration}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          color: "var(--imw-ac)",
-                          padding: "0 0 0 2px",
-                          display: "flex",
-                          alignItems: "center",
-                          opacity: 0.7,
-                        }}
-                        title="Regenerate title"
-                        aria-label="Regenerate title"
-                      >
-                        <RefreshCw size={11} />
-                      </button>
-                    )}
-                  </div>}
-                </div>
-              </div>
-
-              {/* Divider — only shown after title appears */}
-              {title && <div className="imw-divider" style={{ marginBottom: 12 }} />}
 
               {/* Editor scroll area */}
               <div
