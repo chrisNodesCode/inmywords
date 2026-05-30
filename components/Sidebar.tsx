@@ -12,6 +12,7 @@ import FontPicker from "@/components/FontPicker";
 import { useMobile } from "@/hooks/useMobile";
 
 const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
+const OWNER_USER_ID = "user_3B96aTk46r75BFheU5eZQ9egSan";
 
 // Only rendered when ClerkProvider is active (not in dev bypass)
 function WordmarkText() {
@@ -20,11 +21,46 @@ function WordmarkText() {
   return <>{name ? `${name}'s words` : "InMyWords"}</>;
 }
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { label: "journal", href: "/journal" },
   { label: "in my words", href: "/in-my-words" },
-  { label: "eval prep", href: "/eval-prep" },
 ];
+
+// Only rendered when ClerkProvider is active — shows eval prep for owner only
+function EvalPrepNavLink({ onNavClick }: { onNavClick?: () => void }) {
+  const { user } = useUser();
+  const pathname = usePathname();
+  if (user?.id !== OWNER_USER_ID) return null;
+  const isActive = pathname === "/eval-prep";
+  return (
+    <Link
+      href="/eval-prep"
+      onClick={onNavClick}
+      className={`imw-nav-item${isActive ? " imw-nav-item--active" : ""}`}
+      style={{ textDecoration: "none" }}
+    >
+      <span className="imw-nav-dot" />
+      eval prep
+    </Link>
+  );
+}
+
+// Only rendered when ClerkProvider is active — shows eval prep rail button for owner only
+function EvalPrepRailBtn({ railBtnStyle, onClick }: { railBtnStyle: React.CSSProperties; onClick: () => void }) {
+  const { user } = useUser();
+  const pathname = usePathname();
+  if (user?.id !== OWNER_USER_ID) return null;
+  return (
+    <button
+      onClick={onClick}
+      aria-label="Eval Prep"
+      title="Eval Prep"
+      style={{ ...railBtnStyle, color: pathname === "/eval-prep" ? "var(--imw-ac)" : "var(--imw-text-tertiary)" }}
+    >
+      E
+    </button>
+  );
+}
 
 function DarkModeToggle() {
   const { prefs, setDarkMode } = useIMWTheme();
@@ -106,7 +142,7 @@ function SidebarContents({ onNavClick, onCollapse }: { onNavClick?: () => void; 
 
       {/* Nav items */}
       <nav style={{ padding: "0 8px", marginBottom: 8 }}>
-        {NAV_ITEMS.map((item) => {
+        {BASE_NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
@@ -121,6 +157,19 @@ function SidebarContents({ onNavClick, onCollapse }: { onNavClick?: () => void; 
             </Link>
           );
         })}
+        {devBypass ? (
+          <Link
+            href="/eval-prep"
+            onClick={onNavClick}
+            className={`imw-nav-item${pathname === "/eval-prep" ? " imw-nav-item--active" : ""}`}
+            style={{ textDecoration: "none" }}
+          >
+            <span className="imw-nav-dot" />
+            eval prep
+          </Link>
+        ) : (
+          <EvalPrepNavLink onNavClick={onNavClick} />
+        )}
       </nav>
 
       {/* Divider */}
@@ -248,7 +297,6 @@ export default function Sidebar() {
   if (collapsed) {
     const isJournal = pathname === "/" || pathname.startsWith("/journal") || pathname.startsWith("/entries");
     const isWords = pathname === "/in-my-words";
-    const isEvalPrep = pathname === "/eval-prep";
     const railBtnStyle = {
       background: "none",
       border: "none",
@@ -304,14 +352,18 @@ export default function Sidebar() {
         >
           W
         </button>
-        <button
-          onClick={() => router.push("/eval-prep")}
-          aria-label="Eval Prep"
-          title="Eval Prep"
-          style={{ ...railBtnStyle, color: isEvalPrep ? "var(--imw-ac)" : "var(--imw-text-tertiary)" }}
-        >
-          E
-        </button>
+        {devBypass ? (
+          <button
+            onClick={() => router.push("/eval-prep")}
+            aria-label="Eval Prep"
+            title="Eval Prep"
+            style={{ ...railBtnStyle, color: pathname === "/eval-prep" ? "var(--imw-ac)" : "var(--imw-text-tertiary)" }}
+          >
+            E
+          </button>
+        ) : (
+          <EvalPrepRailBtn railBtnStyle={railBtnStyle} onClick={() => router.push("/eval-prep")} />
+        )}
       </div>
     );
   }

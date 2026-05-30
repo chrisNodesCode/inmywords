@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import type { AIAnalysisResult, AISuggestion } from "@/lib/types";
 import { DSM_CRITERIA_IDS } from "@/lib/types";
@@ -9,6 +10,7 @@ import { useIMWTheme } from "@/components/ThemeProvider";
 import QuoteRationaleModal from "@/components/QuoteRationaleModal";
 
 const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true";
+const OWNER_USER_ID = "user_3B96aTk46r75BFheU5eZQ9egSan";
 
 // ── DSM criterion labels ───────────────────────────────────────────────────────
 
@@ -499,6 +501,19 @@ export default function EvalPrepPage() {
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState<string | null>(null);
   const { prefs } = useIMWTheme();
+  const router = useRouter();
+
+  // Gate access to owner only in production
+  const { user, isLoaded: userLoaded } = devBypass
+    ? { user: null as null, isLoaded: true }
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    : useUser();
+
+  useEffect(() => {
+    if (!devBypass && userLoaded && user?.id !== OWNER_USER_ID) {
+      router.replace("/journal");
+    }
+  }, [userLoaded, user, router]);
 
   const fontFamily =
     prefs.font === "noto"
@@ -523,6 +538,8 @@ export default function EvalPrepPage() {
     }
     fetchEntries();
   }, []);
+
+  if (!devBypass && (!userLoaded || user?.id !== OWNER_USER_ID)) return null;
 
   const analyzedCount = entries.filter((e) => (e.aiSuggestions?.dsmCriteria?.length ?? 0) > 0).length;
   const criteriaCovered = new Set(

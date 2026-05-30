@@ -172,8 +172,7 @@ export default function LandingPage() {
             }}
           >
             A journaling tool designed for neurodivergent adults who are seeking
-            to understand, articulate, and document their own experience — for
-            clinicians, HR, or themselves.
+            to understand, articulate, and document their own experience.
           </p>
 
           {/* CTA buttons */}
@@ -269,7 +268,7 @@ export default function LandingPage() {
               {
                 step: "03 — Document",
                 title: "Export with confidence",
-                body: "Generate a structured, clinician-friendly document that lets your experiences speak for themselves.",
+                body: "Build a clear record of your patterns and experiences — organized, searchable, and yours to share when you're ready.",
               },
             ].map((card) => (
               <div
@@ -353,7 +352,7 @@ export default function LandingPage() {
             {[
               {
                 title: "Self-advocates",
-                body: "Adults exploring late diagnosis who need help translating their lived experience into language clinicians understand.",
+                body: "Adults exploring late diagnosis who need help understanding and articulating their own lived experience.",
               },
               {
                 title: "Workplace navigators",
