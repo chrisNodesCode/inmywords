@@ -30,8 +30,25 @@ export async function PATCH(
     if (!list) return NextResponse.json({ error: "Invalid listId" }, { status: 400 });
     data.listId = list.id;
   }
+  if ("entryId" in body) {
+    const v = body.entryId;
+    if (v === null || v === "") {
+      data.entryId = null;
+    } else if (typeof v === "string") {
+      const entry = await prisma.journalEntry.findFirst({
+        where: { id: v, userId },
+        select: { id: true },
+      });
+      if (!entry) return NextResponse.json({ error: "Invalid entryId" }, { status: 400 });
+      data.entryId = entry.id;
+    }
+  }
 
-  const item = await prisma.shoppingItem.update({ where: { id }, data });
+  const item = await prisma.shoppingItem.update({
+    where: { id },
+    data,
+    include: { entry: { select: { id: true, title: true } } },
+  });
   return NextResponse.json({ item });
 }
 

@@ -68,6 +68,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // Validate projectId if provided
+  let projectIdUpdate: { projectId: string | null } | Record<string, never> = {};
+  if ("projectId" in body) {
+    const v = body.projectId;
+    if (v === null || v === "") {
+      projectIdUpdate = { projectId: null };
+    } else if (typeof v === "string") {
+      const p = await prisma.project.findFirst({
+        where: { id: v, userId },
+        select: { id: true },
+      });
+      if (!p) return NextResponse.json({ error: "Invalid projectId" }, { status: 400 });
+      projectIdUpdate = { projectId: p.id };
+    }
+  }
+
   const entry = await prisma.journalEntry.update({
     where: { id },
     data: {
@@ -77,7 +93,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       ...(title !== undefined && { title: title ? title.trim() : null }),
       ...(isChildhoodMemory !== undefined && { isChildhoodMemory }),
       ...(isFunctionalImpairment !== undefined && { isFunctionalImpairment }),
+      ...projectIdUpdate,
     },
+    include: { project: { select: { id: true, name: true } } },
   });
 
   return NextResponse.json(entry);

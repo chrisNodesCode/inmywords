@@ -10,7 +10,20 @@ async function getUserId(): Promise<string | null> {
   return userId;
 }
 
-// GET /api/entries — list all entries for the current user
+async function resolveProjectId(
+  value: unknown,
+  userId: string
+): Promise<string | null | false> {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "string") return false;
+  const p = await prisma.project.findFirst({
+    where: { id: value, userId },
+    select: { id: true },
+  });
+  return p ? p.id : false;
+}
+
+// GET /api/entries — list all entries for the current user (with project)
 export async function GET() {
   const userId = await getUserId();
   if (!userId) {
@@ -20,6 +33,7 @@ export async function GET() {
   const entries = await prisma.journalEntry.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
+    include: { project: { select: { id: true, name: true } } },
   });
 
   return NextResponse.json(entries);
@@ -39,13 +53,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Content is required" }, { status: 400 });
   }
 
+  const projectId = await resolveProjectId(body.projectId, userId);
+  if (projectId === false) {
+    return NextResponse.json({ error: "Invalid projectId" }, { status: 400 });
+  }
+
   const entry = await prisma.journalEntry.create({
     data: {
       userId,
       content: content.trim(),
       ...(mood && typeof mood === "string" && { mood }),
       ...(title && typeof title === "string" && { title: title.trim() }),
+      ...(projectId && { projectId }),
     },
+    include: { project: { select: { id: true, name: true } } },
   });
 
   return NextResponse.json(entry, { status: 201 });

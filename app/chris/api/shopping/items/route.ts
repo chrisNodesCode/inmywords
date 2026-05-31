@@ -10,6 +10,7 @@ export async function GET() {
   const items = await prisma.shoppingItem.findMany({
     where: { userId },
     orderBy: [{ completed: "asc" }, { createdAt: "desc" }],
+    include: { entry: { select: { id: true, title: true } } },
   });
   return NextResponse.json({ items });
 }
@@ -32,8 +33,20 @@ export async function POST(req: NextRequest) {
   });
   if (!list) return NextResponse.json({ error: "Invalid listId" }, { status: 400 });
 
+  // Optional entry link
+  let entryId: string | null = null;
+  if (typeof body.entryId === "string" && body.entryId) {
+    const entry = await prisma.journalEntry.findFirst({
+      where: { id: body.entryId, userId },
+      select: { id: true },
+    });
+    if (!entry) return NextResponse.json({ error: "Invalid entryId" }, { status: 400 });
+    entryId = entry.id;
+  }
+
   const item = await prisma.shoppingItem.create({
-    data: { userId, listId, name },
+    data: { userId, listId, name, entryId },
+    include: { entry: { select: { id: true, title: true } } },
   });
   return NextResponse.json({ item }, { status: 201 });
 }

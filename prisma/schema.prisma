@@ -22,9 +22,15 @@ model JournalEntry {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  todos Todo[]
+  // Optional parent project (playground organizer).
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  todos         Todo[]
+  shoppingItems ShoppingItem[]
 
   @@index([userId])
+  @@index([projectId])
 }
 
 enum Priority {
@@ -73,6 +79,7 @@ model Project {
 
   prompts Prompt[]
   todos   Todo[]
+  entries JournalEntry[]
 
   @@index([userId])
 }
@@ -121,8 +128,13 @@ model ShoppingItem {
 
   list ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
 
+  // Optional cross-reference to a journal entry (mirrors Todo.entryId).
+  entryId String?
+  entry   JournalEntry? @relation(fields: [entryId], references: [id], onDelete: SetNull)
+
   @@index([userId])
   @@index([listId])
+  @@index([entryId])
 }
 
 model UserPreferences {

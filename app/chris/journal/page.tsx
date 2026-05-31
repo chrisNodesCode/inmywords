@@ -1,0 +1,638 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import Link from "next/link";
+import { IMWEditor } from "@/components/editor";
+import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
+
+// ── Types ───────────────────────────────────────────────────────────────────
+
+type Project = { id: string; name: string };
+
+type Entry = {
+  id: string;
+  title: string | null;
+  content: string;
+  mood: string | null;
+  projectId: string | null;
+  project: { id: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// ── Palette ──────────────────────────────────────────────────────────────────
+
+const C = {
+  bg: "#0e0f12",
+  card: "#15171c",
+  cardHover: "#181b21",
+  border: "#23262d",
+  borderSoft: "#1f2228",
+  text: "#e7e9ee",
+  textDim: "#9aa0aa",
+  textFaint: "#6b7280",
+  accent: "#c9a86a",
+  accentText: "#1a1710",
+};
+const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
+const SERIF = 'ui-serif, Georgia, "Times New Roman", serif';
+
+const LAST_PROJECT_KEY = "chris.journal.lastProjectId";
+const UNASSIGNED = "__unassigned__";
+const MOODS = ["Neutral", "Anxious", "Excited", "Mad", "Happy", "Not Sure"];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function snippetFromContent(content: string, max = 200): string {
+  try {
+    return extractPlainText(parseEntryContent(content)).slice(0, max);
+  } catch {
+    return content.slice(0, max);
+  }
+}
+
+function isContentEmpty(content: string): boolean {
+  return snippetFromContent(content, 500).trim().length === 0;
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
+export default function JournalPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Composer state
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [mood, setMood] = useState<string | null>(null);
+  const [editorKey, setEditorKey] = useState(0);
+  const [deepWrite, setDeepWrite] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Active project — same UX as other modules
+  const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
+  const setActiveProjectId = useCallback((id: string | null) => {
+    setActiveProjectIdState(id);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(LAST_PROJECT_KEY, id ?? UNASSIGNED);
+    }
+  }, []);
+
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+
+  // ── Load initial data ──
+  useEffect(() => {
+    (async () => {
+      try {
+        const [pr, er] = await Promise.all([
+          fetch("/chris/api/projects"),
+          fetch("/api/entries"),
+        ]);
+        const pd = await pr.json();
+        const ed = await er.json();
+        const loadedProjects: Project[] = (pd.projects ?? []).map(
+          (p: { id: string; name: string }) => ({ id: p.id, name: p.name })
+        );
+        setProjects(loadedProjects);
+        setEntries(Array.isArray(ed) ? ed : []);
+
+        const saved = localStorage.getItem(LAST_PROJECT_KEY);
+        if (saved === UNASSIGNED) setActiveProjectIdState(null);
+        else if (saved && loadedProjects.some((p) => p.id === saved)) {
+          setActiveProjectIdState(saved);
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // ── Deep write ──
+  useEffect(() => {
+    const handler = () => {
+      if (!document.fullscreenElement && deepWrite) setDeepWrite(false);
+    };
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, [deepWrite]);
+
+  const toggleDeepWrite = async () => {
+    if (deepWrite) {
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+      setDeepWrite(false);
+    } else {
+      try {
+        await wrapperRef.current?.requestFullscreen();
+        setDeepWrite(true);
+      } catch {
+        setDeepWrite(true);
+      }
+    }
+  };
+
+  // ── Project CRUD ──
+  const createProject = async (name: string): Promise<Project | null> => {
+    const t = name.trim();
+    if (!t) return null;
+    const res = await fetch("/chris/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: t }),
+    });
+    if (!res.ok) return null;
+    const { project } = await res.json();
+    const p = { id: project.id, name: project.name };
+    setProjects((prev) => [...prev, p]);
+    return p;
+  };
+
+  // ── Save entry ──
+  const saveEntry = async (projectIdOverride?: string | null) => {
+    if (isContentEmpty(content)) return;
+    const projectId =
+      projectIdOverride !== undefined ? projectIdOverride : activeProjectId;
+    const res = await fetch("/api/entries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content,
+        title: title.trim() || undefined,
+        mood,
+        projectId,
+      }),
+    });
+    if (res.ok) {
+      const entry = await res.json();
+      setEntries((prev) => [entry, ...prev]);
+      setTitle("");
+      setContent("");
+      setMood(null);
+      setEditorKey((k) => k + 1);
+    }
+  };
+
+  // Click a project chip — switch active; if there's drafted content, also save
+  const handleProjectChipClick = async (projectId: string | null) => {
+    setActiveProjectId(projectId);
+    if (!isContentEmpty(content)) {
+      await saveEntry(projectId);
+    }
+  };
+
+  // ── Entry actions ──
+  const deleteEntry = async (id: string) => {
+    if (!confirm("Delete this entry?")) return;
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+    await fetch(`/api/entries/${id}`, { method: "DELETE" });
+  };
+
+  const draftEmpty = isContentEmpty(content);
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  return (
+    <main
+      style={{
+        maxWidth: deepWrite ? "100%" : 720,
+        margin: "0 auto",
+        padding: deepWrite ? "0" : "0 24px 96px",
+      }}
+    >
+      {/* Top bar */}
+      {!deepWrite && (
+        <header
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            height: 64,
+            borderBottom: `1px solid ${C.border}`,
+          }}
+        >
+          <Link href="/chris" style={{ textDecoration: "none", fontFamily: MONO, fontSize: 14 }}>
+            <span style={{ color: C.textFaint }}>~/chris/</span>
+            <span style={{ color: C.text }}>journal</span>
+          </Link>
+          <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
+            {entries.length} entr{entries.length === 1 ? "y" : "ies"}
+          </span>
+        </header>
+      )}
+
+      {/* Composer */}
+      <section style={{ marginTop: deepWrite ? 0 : 28 }}>
+        <div
+          ref={wrapperRef}
+          className="chris-editor-wrap"
+          style={{
+            background: deepWrite ? C.bg : C.card,
+            border: deepWrite ? "none" : `1px solid ${C.border}`,
+            borderRadius: deepWrite ? 0 : 14,
+            padding: deepWrite ? "56px 24px 24px" : "22px 24px 14px",
+            minHeight: deepWrite ? "100vh" : 260,
+          }}
+        >
+          <div
+            style={{
+              maxWidth: deepWrite ? 720 : "none",
+              margin: deepWrite ? "0 auto" : 0,
+            }}
+          >
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Title (optional)"
+              style={{
+                width: "100%",
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                color: C.text,
+                fontFamily: SERIF,
+                fontSize: 24,
+                fontWeight: 600,
+                letterSpacing: "-0.01em",
+                padding: "0 0 12px",
+                marginBottom: 8,
+                borderBottom: `1px solid ${C.borderSoft}`,
+              }}
+            />
+            <IMWEditor
+              key={editorKey}
+              placeholder="What did today actually feel like?"
+              fontSize={16}
+              lineWidth="100%"
+              onChange={setContent}
+              autoFocus={false}
+            />
+          </div>
+        </div>
+
+        {/* Action bar */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: deepWrite ? "16px 24px" : "12px 4px 0",
+            position: deepWrite ? "fixed" : "static",
+            bottom: deepWrite ? 0 : undefined,
+            left: deepWrite ? 0 : undefined,
+            right: deepWrite ? 0 : undefined,
+            background: deepWrite ? C.bg : "transparent",
+            borderTop: deepWrite ? `1px solid ${C.border}` : "none",
+            flexWrap: "wrap",
+          }}
+        >
+          <button
+            onClick={toggleDeepWrite}
+            title={deepWrite ? "Exit deep write" : "Deep write mode"}
+            style={{
+              border: `1px solid ${C.border}`,
+              background: "transparent",
+              color: C.textDim,
+              borderRadius: 999,
+              padding: "6px 12px",
+              fontSize: 12.5,
+              cursor: "pointer",
+              fontFamily: MONO,
+            }}
+          >
+            {deepWrite ? "exit" : "deep write"}
+          </button>
+
+          {/* Mood chips */}
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {MOODS.map((m) => {
+              const active = mood === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setMood(active ? null : m)}
+                  style={{
+                    border: `1px solid ${active ? C.accent : C.border}`,
+                    background: active ? `${C.accent}22` : "transparent",
+                    color: active ? C.text : C.textDim,
+                    borderRadius: 999,
+                    padding: "5px 11px",
+                    fontSize: 12,
+                    cursor: "pointer",
+                    transition: "background 0.15s ease",
+                  }}
+                >
+                  {m}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => saveEntry()}
+            disabled={draftEmpty}
+            style={{
+              border: "none",
+              borderRadius: 10,
+              background: draftEmpty ? C.border : C.accent,
+              color: draftEmpty ? C.textFaint : C.accentText,
+              fontWeight: 600,
+              fontSize: 14,
+              padding: "10px 18px",
+              cursor: draftEmpty ? "default" : "pointer",
+            }}
+          >
+            Save entry
+          </button>
+        </div>
+
+        {/* Project chip row */}
+        {!deepWrite && (
+          <>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 6,
+                padding: "12px 4px 0",
+              }}
+            >
+              <ProjectChip
+                name="Unassigned"
+                active={activeProjectId === null}
+                onClick={() => handleProjectChipClick(null)}
+                muted
+              />
+              {projects.map((p) => (
+                <ProjectChip
+                  key={p.id}
+                  name={p.name}
+                  active={activeProjectId === p.id}
+                  onClick={() => handleProjectChipClick(p.id)}
+                />
+              ))}
+              {creatingProject ? (
+                <input
+                  autoFocus
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  onBlur={async () => {
+                    const p = await createProject(newProjectName);
+                    if (p) setActiveProjectId(p.id);
+                    setNewProjectName("");
+                    setCreatingProject(false);
+                  }}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      const p = await createProject(newProjectName);
+                      if (p) setActiveProjectId(p.id);
+                      setNewProjectName("");
+                      setCreatingProject(false);
+                    }
+                    if (e.key === "Escape") {
+                      setNewProjectName("");
+                      setCreatingProject(false);
+                    }
+                  }}
+                  placeholder="Project name"
+                  style={{
+                    background: "transparent",
+                    border: `1px solid ${C.accent}`,
+                    borderRadius: 999,
+                    outline: "none",
+                    color: C.text,
+                    fontSize: 12.5,
+                    padding: "5px 11px",
+                    minWidth: 120,
+                  }}
+                />
+              ) : (
+                <button
+                  onClick={() => setCreatingProject(true)}
+                  style={{
+                    border: `1px dashed ${C.border}`,
+                    background: "transparent",
+                    color: C.textDim,
+                    borderRadius: 999,
+                    padding: "5px 12px",
+                    fontSize: 12.5,
+                    cursor: "pointer",
+                  }}
+                >
+                  + project
+                </button>
+              )}
+              <Link
+                href="/chris/projects"
+                style={{
+                  marginLeft: "auto",
+                  fontFamily: MONO,
+                  fontSize: 11,
+                  color: C.textFaint,
+                  textDecoration: "none",
+                }}
+              >
+                manage →
+              </Link>
+            </div>
+            <p style={{ margin: "12px 4px 0", fontFamily: MONO, fontSize: 11.5, color: C.textFaint }}>
+              saves to{" "}
+              <span style={{ color: C.accent }}>
+                {activeProjectId
+                  ? projects.find((p) => p.id === activeProjectId)?.name ?? "Unassigned"
+                  : "Unassigned"}
+              </span>
+            </p>
+          </>
+        )}
+      </section>
+
+      {/* Feed */}
+      {!deepWrite && (
+        <section style={{ marginTop: 32 }}>
+          {loading ? (
+            <p style={{ color: C.textFaint, fontFamily: MONO, fontSize: 13 }}>loading…</p>
+          ) : entries.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "48px 0", color: C.textFaint }}>
+              <p style={{ margin: 0, fontSize: 14 }}>No entries yet. Write one above.</p>
+            </div>
+          ) : (
+            <EntryFeed entries={entries} onDelete={deleteEntry} />
+          )}
+        </section>
+      )}
+    </main>
+  );
+}
+
+// ── Chip ─────────────────────────────────────────────────────────────────────
+
+function ProjectChip({
+  name,
+  active,
+  onClick,
+  muted,
+}: {
+  name: string;
+  active: boolean;
+  onClick: () => void;
+  muted?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        border: `1px solid ${active ? C.accent : C.border}`,
+        background: active ? C.accent : "transparent",
+        color: active ? C.accentText : muted ? C.textFaint : C.textDim,
+        borderRadius: 999,
+        padding: "5px 12px",
+        fontSize: 12.5,
+        fontWeight: active ? 600 : 400,
+        cursor: "pointer",
+        fontStyle: muted && !active ? "italic" : "normal",
+        transition: "background 0.15s ease, color 0.15s ease",
+      }}
+    >
+      {name}
+    </button>
+  );
+}
+
+// ── Feed ─────────────────────────────────────────────────────────────────────
+
+function EntryFeed({
+  entries,
+  onDelete,
+}: {
+  entries: Entry[];
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {entries.map((entry) => (
+        <EntryRow key={entry.id} entry={entry} onDelete={() => onDelete(entry.id)} />
+      ))}
+    </div>
+  );
+}
+
+function EntryRow({ entry, onDelete }: { entry: Entry; onDelete: () => void }) {
+  const [hover, setHover] = useState(false);
+  const snippet = useMemo(() => snippetFromContent(entry.content, 240), [entry.content]);
+
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        position: "relative",
+        border: `1px solid ${C.border}`,
+        borderRadius: 12,
+        background: hover ? C.cardHover : C.card,
+        padding: "16px 18px",
+        transition: "background 0.12s ease",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 6 }}>
+        <Link
+          href={`/entries/${entry.id}`}
+          style={{
+            textDecoration: "none",
+            color: C.text,
+            fontFamily: SERIF,
+            fontSize: 18,
+            fontWeight: 600,
+            letterSpacing: "-0.01em",
+            flex: 1,
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {entry.title?.trim() || (
+            <span style={{ color: C.textFaint, fontStyle: "italic", fontWeight: 400 }}>
+              Untitled
+            </span>
+          )}
+        </Link>
+        <span style={{ fontFamily: MONO, fontSize: 11.5, color: C.textFaint, whiteSpace: "nowrap" }}>
+          {formatDate(entry.createdAt)}
+        </span>
+      </div>
+
+      <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.55, color: C.textDim }}>{snippet}</p>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+        {entry.project && (
+          <Link
+            href="/chris/projects"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              border: `1px solid ${C.border}`,
+              background: C.bg,
+              color: C.textDim,
+              borderRadius: 999,
+              padding: "3px 10px",
+              fontSize: 11.5,
+              textDecoration: "none",
+            }}
+          >
+            <span style={{ color: C.accent }}>◆</span>
+            {entry.project.name}
+          </Link>
+        )}
+        {entry.mood && (
+          <span style={{ fontFamily: MONO, fontSize: 11, color: C.textFaint }}>
+            mood · {entry.mood.toLowerCase()}
+          </span>
+        )}
+        <div style={{ flex: 1 }} />
+        <Link
+          href={`/entries/${entry.id}`}
+          style={{
+            fontFamily: MONO,
+            fontSize: 11,
+            color: C.textFaint,
+            textDecoration: "none",
+          }}
+        >
+          open →
+        </Link>
+        <button
+          onClick={onDelete}
+          aria-label="Delete entry"
+          style={{
+            border: "none",
+            background: "transparent",
+            color: C.textFaint,
+            cursor: "pointer",
+            fontSize: 14,
+            lineHeight: 1,
+            padding: "3px 6px",
+            opacity: hover ? 1 : 0,
+            transition: "opacity 0.12s ease",
+          }}
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}

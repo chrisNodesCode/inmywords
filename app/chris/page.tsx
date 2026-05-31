@@ -21,7 +21,7 @@ type Module = {
 const MODULES: Module[] = [
   { key: "todos", name: "To-dos", blurb: "Quick capture + daily list", glyph: "✓", href: "/chris/todos" },
   { key: "projects", name: "Projects", blurb: "Organize prompts and to-dos", glyph: "◳", href: "/chris/projects" },
-  { key: "ideas", name: "Idea Lab", blurb: "Webapp ideas & thought experiments", glyph: "✦" },
+  { key: "journal", name: "Journal", blurb: "Write entries — shared with InMyWords", glyph: "✦", href: "/chris/journal" },
   { key: "shopping", name: "Shopping List", blurb: "Items grouped by retailer", glyph: "⟳", href: "/chris/shopping" },
   { key: "prompts", name: "Prompts", blurb: "Drafting space for LLM prompts", glyph: "✎", href: "/chris/prompts" },
   { key: "automations", name: "Automations", blurb: "Little helpers & scripts", glyph: "⚙" },
