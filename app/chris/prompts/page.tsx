@@ -272,6 +272,7 @@ export default function PromptsPage() {
       <section style={{ marginTop: deepWrite ? 0 : 28 }}>
         <div
           ref={editorWrapperRef}
+          className="chris-editor-wrap"
           style={{
             background: deepWrite ? C.bg : C.card,
             border: deepWrite ? "none" : `1px solid ${C.border}`,

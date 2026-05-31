@@ -1057,3 +1057,33 @@ aside.imw-deep-write-chrome {
   opacity: 1;
   pointer-events: all;
 }
+
+/* =============================================================================
+   Playground editor color overrides (Chris's playground)
+   The /chris area uses an always-dark canvas regardless of the user's
+   InMyWords data-mode preference. Without this scope, the editor inherits the
+   IMW data-mode text color (which is dark when the user has light mode set),
+   causing dark-on-dark invisible text inside the prompt editor.
+   ============================================================================= */
+.chris-editor-wrap .ProseMirror,
+.chris-editor-wrap .ProseMirror p,
+.chris-editor-wrap .ProseMirror li,
+.chris-editor-wrap .ProseMirror blockquote,
+.chris-editor-wrap .ProseMirror h1,
+.chris-editor-wrap .ProseMirror h2,
+.chris-editor-wrap .ProseMirror h3,
+.chris-editor-wrap .ProseMirror strong,
+.chris-editor-wrap .ProseMirror em {
+  color: #e7e9ee;
+}
+.chris-editor-wrap .ProseMirror p.is-editor-empty:first-child::before {
+  color: #6b7280;
+}
+.chris-editor-wrap .ProseMirror blockquote {
+  border-left-color: #2a2e36;
+}
+.chris-editor-wrap .ProseMirror div[data-type="callout"] {
+  background: #181b21;
+  border-color: #23262d;
+  color: #e7e9ee;
+}
