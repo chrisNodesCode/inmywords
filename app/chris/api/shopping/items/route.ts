@@ -44,8 +44,19 @@ export async function POST(req: NextRequest) {
     entryId = entry.id;
   }
 
+  // Optional quantity / unitPrice (typically not set at create time, but
+  // accept them so the API is consistent).
+  const quantity =
+    typeof body.quantity === "number" && Number.isFinite(body.quantity) && body.quantity > 0
+      ? Math.floor(body.quantity)
+      : null;
+  const unitPrice =
+    typeof body.unitPrice === "number" && Number.isFinite(body.unitPrice) && body.unitPrice >= 0
+      ? body.unitPrice
+      : null;
+
   const item = await prisma.shoppingItem.create({
-    data: { userId, listId, name, entryId },
+    data: { userId, listId, name, entryId, quantity, unitPrice },
     include: { entry: { select: { id: true, title: true } } },
   });
   return NextResponse.json({ item }, { status: 201 });

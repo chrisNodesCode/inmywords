@@ -125,6 +125,8 @@ model ShoppingItem {
   listId      String
   sortOrder   Int       @default(0)
   name        String
+  quantity    Int?
+  unitPrice   Float?
   completed   Boolean   @default(false)
   completedAt DateTime?
   createdAt   DateTime  @default(now())

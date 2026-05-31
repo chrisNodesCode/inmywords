@@ -30,6 +30,18 @@ export async function PATCH(
     if (!list) return NextResponse.json({ error: "Invalid listId" }, { status: 400 });
     data.listId = list.id;
   }
+  if ("quantity" in body) {
+    const v = body.quantity;
+    if (v === null || v === "") data.quantity = null;
+    else if (typeof v === "number" && Number.isFinite(v) && v > 0) data.quantity = Math.floor(v);
+    else return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
+  }
+  if ("unitPrice" in body) {
+    const v = body.unitPrice;
+    if (v === null || v === "") data.unitPrice = null;
+    else if (typeof v === "number" && Number.isFinite(v) && v >= 0) data.unitPrice = v;
+    else return NextResponse.json({ error: "Invalid unitPrice" }, { status: 400 });
+  }
   if ("entryId" in body) {
     const v = body.entryId;
     if (v === null || v === "") {

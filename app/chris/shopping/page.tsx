@@ -18,11 +18,20 @@ type Item = {
   id: string;
   listId: string;
   name: string;
+  quantity: number | null;
+  unitPrice: number | null;
   completed: boolean;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
+
+// ── Money helpers ────────────────────────────────────────────────────────────
+
+const fmtMoney = (n: number) =>
+  n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+
+const itemTotal = (it: Item) => (it.quantity ?? 1) * (it.unitPrice ?? 0);
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 
@@ -193,6 +202,31 @@ export default function ShoppingPage() {
   // ── Derived ───────────────────────────────────────────────────────────────
 
   const openCount = items.filter((i) => !i.completed).length;
+  const grandTotal = items
+    .filter((i) => !i.completed)
+    .reduce((sum, i) => sum + itemTotal(i), 0);
+
+  // Typeahead suggestions — distinct item names matching the current draft,
+  // excluding exact matches (Enter handles those) and case-insensitive.
+  const suggestions = useMemo(() => {
+    const q = draft.trim().toLowerCase();
+    if (!q) return [];
+    const seen = new Set<string>();
+    const matches: string[] = [];
+    for (const it of items) {
+      const name = it.name.trim();
+      if (!name) continue;
+      const lower = name.toLowerCase();
+      if (lower === q) continue;
+      if (!lower.includes(q)) continue;
+      if (seen.has(lower)) continue;
+      seen.add(lower);
+      matches.push(name);
+      if (matches.length >= 6) break;
+    }
+    return matches;
+  }, [draft, items]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(true);
 
   // Group items by list (in list sortOrder); skip lists with zero items
   const grouped = useMemo(() => {
@@ -224,11 +258,17 @@ export default function ShoppingPage() {
         </Link>
         <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
           {openCount} item{openCount === 1 ? "" : "s"}
+          {grandTotal > 0 && (
+            <>
+              <span style={{ color: C.borderSoft, margin: "0 6px" }}>|</span>
+              <span style={{ color: C.accent }}>{fmtMoney(grandTotal)}</span>
+            </>
+          )}
         </span>
       </header>
 
       {/* Quick add */}
-      <section style={{ marginTop: 28 }}>
+      <section style={{ marginTop: 28, position: "relative" }}>
         <div
           style={{
             border: `1px solid ${C.border}`,
@@ -243,10 +283,17 @@ export default function ShoppingPage() {
           <input
             ref={inputRef}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setSuggestionsOpen(true);
+            }}
+            onFocus={() => setSuggestionsOpen(true)}
             onKeyDown={(e) => {
               if (e.key === "Enter") submitToActive();
-              if (e.key === "Escape") setDraft("");
+              if (e.key === "Escape") {
+                if (suggestionsOpen && suggestions.length) setSuggestionsOpen(false);
+                else setDraft("");
+              }
             }}
             placeholder={
               lists.length === 0
@@ -283,6 +330,65 @@ export default function ShoppingPage() {
             Add
           </button>
         </div>
+
+        {/* Typeahead suggestions */}
+        {suggestionsOpen && suggestions.length > 0 && activeListId && (
+          <div
+            style={{
+              position: "absolute",
+              top: "calc(100% + 4px)",
+              left: 0,
+              right: 0,
+              zIndex: 30,
+              background: C.card,
+              border: `1px solid ${C.border}`,
+              borderRadius: 12,
+              boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+              overflow: "hidden",
+              maxHeight: 260,
+              overflowY: "auto",
+            }}
+          >
+            {suggestions.map((name) => (
+              <button
+                key={name}
+                onClick={async () => {
+                  await addItem(name, activeListId);
+                  setDraft("");
+                  setSuggestionsOpen(false);
+                  inputRef.current?.focus();
+                }}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  background: "transparent",
+                  border: "none",
+                  borderBottom: `1px solid ${C.borderSoft}`,
+                  color: C.text,
+                  cursor: "pointer",
+                  fontSize: 14,
+                  padding: "10px 14px",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = C.cardHover)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              >
+                <span style={{ color: C.accent, marginRight: 8 }}>+</span>
+                {name}
+                <span
+                  style={{
+                    fontFamily: MONO,
+                    fontSize: 10.5,
+                    color: C.textFaint,
+                    float: "right",
+                  }}
+                >
+                  add again
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Chip row */}
         <ChipRow
@@ -347,6 +453,8 @@ export default function ShoppingPage() {
                 groupItems={groupItems}
                 onToggle={(id, completed) => patchItem(id, { completed })}
                 onEditName={(id, name) => patchItem(id, { name })}
+                onEditQuantity={(id, qty) => patchItem(id, { quantity: qty })}
+                onEditUnitPrice={(id, price) => patchItem(id, { unitPrice: price })}
                 onDelete={(id) => deleteItem(id)}
                 applyGroupReorder={(orderedIds) => {
                   // Merge new order into global items array
@@ -604,6 +712,8 @@ function ShoppingItemGroup({
   groupItems,
   onToggle,
   onEditName,
+  onEditQuantity,
+  onEditUnitPrice,
   onDelete,
   applyGroupReorder,
 }: {
@@ -611,6 +721,8 @@ function ShoppingItemGroup({
   groupItems: Item[];
   onToggle: (id: string, completed: boolean) => void;
   onEditName: (id: string, name: string) => void;
+  onEditQuantity: (id: string, qty: number | null) => void;
+  onEditUnitPrice: (id: string, price: number | null) => void;
   onDelete: (id: string) => void;
   applyGroupReorder: (orderedIds: string[]) => void;
 }) {
@@ -647,6 +759,16 @@ function ShoppingItemGroup({
           {open.length} open
           {done.length > 0 && ` · ${done.length} done`}
         </span>
+        {(() => {
+          const listTotal = open.reduce((s, i) => s + itemTotal(i), 0);
+          if (listTotal <= 0) return null;
+          return (
+            <span style={{ fontFamily: MONO, fontSize: 11, color: C.textFaint }}>
+              <span style={{ color: C.borderSoft, margin: "0 6px" }}>|</span>
+              <span style={{ color: C.accent }}>{fmtMoney(listTotal)}</span>
+            </span>
+          );
+        })()}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {open.map((item) => (
@@ -657,6 +779,8 @@ function ShoppingItemGroup({
             dragStyle={rowStyle(item.id)}
             onToggle={() => onToggle(item.id, !item.completed)}
             onEditName={(name) => onEditName(item.id, name)}
+            onEditQuantity={(qty) => onEditQuantity(item.id, qty)}
+            onEditUnitPrice={(price) => onEditUnitPrice(item.id, price)}
             onDelete={() => onDelete(item.id)}
           />
         ))}
@@ -666,6 +790,8 @@ function ShoppingItemGroup({
             item={item}
             onToggle={() => onToggle(item.id, !item.completed)}
             onEditName={(name) => onEditName(item.id, name)}
+            onEditQuantity={(qty) => onEditQuantity(item.id, qty)}
+            onEditUnitPrice={(price) => onEditUnitPrice(item.id, price)}
             onDelete={() => onDelete(item.id)}
           />
         ))}
@@ -680,6 +806,8 @@ function ItemRow({
   dragStyle,
   onToggle,
   onEditName,
+  onEditQuantity,
+  onEditUnitPrice,
   onDelete,
 }: {
   item: Item;
@@ -687,6 +815,8 @@ function ItemRow({
   dragStyle?: React.CSSProperties;
   onToggle: () => void;
   onEditName: (name: string) => void;
+  onEditQuantity: (qty: number | null) => void;
+  onEditUnitPrice: (price: number | null) => void;
   onDelete: () => void;
 }) {
   const [hover, setHover] = useState(false);
@@ -778,6 +908,31 @@ function ItemRow({
         </div>
       )}
 
+      {/* Inline quantity + unit-price (justified right) */}
+      <InlineNumber
+        value={item.quantity}
+        placeholder="qty"
+        format={(n) => `${n}×`}
+        parse={(s) => {
+          const n = parseInt(s, 10);
+          return Number.isFinite(n) && n > 0 ? n : null;
+        }}
+        onCommit={onEditQuantity}
+        muted={item.completed}
+      />
+      <InlineNumber
+        value={item.unitPrice}
+        placeholder="$0.00"
+        format={(n) => fmtMoney(n)}
+        parse={(s) => {
+          const cleaned = s.replace(/[^0-9.]/g, "");
+          const n = parseFloat(cleaned);
+          return Number.isFinite(n) && n >= 0 ? n : null;
+        }}
+        onCommit={onEditUnitPrice}
+        muted={item.completed}
+      />
+
       <button
         onClick={onDelete}
         aria-label="Delete item"
@@ -831,5 +986,99 @@ function EmptyNoLists({ onPick }: { onPick: (name: string) => void }) {
         ))}
       </div>
     </div>
+  );
+}
+
+// ── Inline number input (qty / price) ────────────────────────────────────────
+
+function InlineNumber({
+  value,
+  placeholder,
+  format,
+  parse,
+  onCommit,
+  muted,
+}: {
+  value: number | null;
+  placeholder: string;
+  format: (n: number) => string;
+  parse: (s: string) => number | null;
+  onCommit: (v: number | null) => void;
+  muted?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<string>(value != null ? String(value) : "");
+
+  const commit = () => {
+    setEditing(false);
+    if (draft.trim() === "") {
+      if (value != null) onCommit(null);
+      return;
+    }
+    const next = parse(draft);
+    if (next === null) {
+      // invalid → revert
+      setDraft(value != null ? String(value) : "");
+      return;
+    }
+    if (next !== value) onCommit(next);
+  };
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") {
+            setDraft(value != null ? String(value) : "");
+            setEditing(false);
+          }
+        }}
+        style={{
+          flexShrink: 0,
+          width: 64,
+          textAlign: "right",
+          background: "transparent",
+          border: "none",
+          borderBottom: `1px solid ${C.accent}`,
+          outline: "none",
+          color: C.text,
+          fontFamily: MONO,
+          fontSize: 12.5,
+          padding: "1px 4px",
+        }}
+      />
+    );
+  }
+
+  const empty = value == null;
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        setDraft(value != null ? String(value) : "");
+        setEditing(true);
+      }}
+      style={{
+        flexShrink: 0,
+        background: "transparent",
+        border: "none",
+        color: empty ? C.textFaint : muted ? C.textFaint : C.textDim,
+        cursor: "pointer",
+        fontFamily: MONO,
+        fontSize: 12.5,
+        padding: "3px 6px",
+        fontStyle: empty ? "italic" : "normal",
+        minWidth: 48,
+        textAlign: "right",
+        opacity: empty ? 0.6 : 1,
+      }}
+    >
+      {empty ? placeholder : format(value as number)}
+    </button>
   );
 }
