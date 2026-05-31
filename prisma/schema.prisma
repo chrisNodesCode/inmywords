@@ -22,6 +22,8 @@ model JournalEntry {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  todos Todo[]
+
   @@index([userId])
 }
 
@@ -45,7 +47,13 @@ model Todo {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  // Optional cross-reference to a journal entry. SetNull so deleting an entry
+  // just unlinks the todo rather than removing it.
+  entryId String?
+  entry   JournalEntry? @relation(fields: [entryId], references: [id], onDelete: SetNull)
+
   @@index([userId])
+  @@index([entryId])
 }
 
 model UserPreferences {

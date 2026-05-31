@@ -17,6 +17,15 @@ type Todo = {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  entryId: string | null;
+  entry: { id: string; title: string | null } | null;
+};
+
+type EntryLite = {
+  id: string;
+  title: string | null;
+  snippet: string;
+  createdAt: string;
 };
 
 // ── Palette ──────────────────────────────────────────────────────────────────
@@ -83,6 +92,23 @@ export default function TodosPage() {
   const [expanded, setExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Entry-linking state
+  const [entries, setEntries] = useState<EntryLite[] | null>(null);
+  const [entriesLoading, setEntriesLoading] = useState(false);
+  const [pickerForId, setPickerForId] = useState<string | null>(null);
+
+  const ensureEntries = useCallback(async () => {
+    if (entries !== null || entriesLoading) return;
+    setEntriesLoading(true);
+    try {
+      const res = await fetch("/chris/api/entries");
+      const data = await res.json();
+      setEntries(data.entries ?? []);
+    } finally {
+      setEntriesLoading(false);
+    }
+  }, [entries, entriesLoading]);
+
   const load = useCallback(async () => {
     try {
       const res = await fetch("/chris/api/todos");
@@ -146,6 +172,16 @@ export default function TodosPage() {
     const idx = PRIORITY_ORDER.indexOf(t.priority);
     const next = PRIORITY_ORDER[(idx + 1) % PRIORITY_ORDER.length];
     patchTodo(t.id, { priority: next });
+  };
+
+  const openPicker = (todoId: string) => {
+    setPickerForId(todoId);
+    ensureEntries();
+  };
+
+  const linkEntry = async (todoId: string, entryId: string | null) => {
+    setPickerForId(null);
+    await patchTodo(todoId, { entryId });
   };
 
   const active = todos.filter((t) => !t.completed);
@@ -329,6 +365,12 @@ export default function TodosPage() {
                   onCyclePriority={() => cyclePriority(t)}
                   onEditTitle={(title) => patchTodo(t.id, { title })}
                   onDelete={() => deleteTodo(t.id)}
+                  pickerOpen={pickerForId === t.id}
+                  entries={entries}
+                  entriesLoading={entriesLoading}
+                  onOpenPicker={() => openPicker(t.id)}
+                  onClosePicker={() => setPickerForId(null)}
+                  onLink={(entryId) => linkEntry(t.id, entryId)}
                 />
               ))}
             </div>
@@ -356,6 +398,12 @@ export default function TodosPage() {
                       onCyclePriority={() => cyclePriority(t)}
                       onEditTitle={(title) => patchTodo(t.id, { title })}
                       onDelete={() => deleteTodo(t.id)}
+                      pickerOpen={pickerForId === t.id}
+                      entries={entries}
+                      entriesLoading={entriesLoading}
+                      onOpenPicker={() => openPicker(t.id)}
+                      onClosePicker={() => setPickerForId(null)}
+                      onLink={(entryId) => linkEntry(t.id, entryId)}
                     />
                   ))}
                 </div>
@@ -376,12 +424,24 @@ function TodoRow({
   onCyclePriority,
   onEditTitle,
   onDelete,
+  pickerOpen,
+  entries,
+  entriesLoading,
+  onOpenPicker,
+  onClosePicker,
+  onLink,
 }: {
   todo: Todo;
   onToggle: () => void;
   onCyclePriority: () => void;
   onEditTitle: (title: string) => void;
   onDelete: () => void;
+  pickerOpen: boolean;
+  entries: EntryLite[] | null;
+  entriesLoading: boolean;
+  onOpenPicker: () => void;
+  onClosePicker: () => void;
+  onLink: (entryId: string | null) => void;
 }) {
   const [hover, setHover] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -402,6 +462,7 @@ function TodoRow({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
+        position: "relative",
         display: "flex",
         alignItems: "flex-start",
         gap: 12,
@@ -499,6 +560,55 @@ function TodoRow({
             )}
           </div>
         )}
+
+        {/* Linked journal entry */}
+        {todo.entry && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+            <Link
+              href={`/entries/${todo.entry.id}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                maxWidth: "100%",
+                border: `1px solid ${C.border}`,
+                borderRadius: 999,
+                padding: "3px 10px",
+                fontSize: 12,
+                color: C.textDim,
+                textDecoration: "none",
+                background: C.bg,
+              }}
+            >
+              <span style={{ color: C.accent }}>↳</span>
+              <span
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {todo.entry.title?.trim() || "journal entry"}
+              </span>
+            </Link>
+            <button
+              onClick={() => onLink(null)}
+              title="Unlink entry"
+              aria-label="Unlink entry"
+              style={{
+                border: "none",
+                background: "transparent",
+                color: C.textFaint,
+                cursor: "pointer",
+                fontSize: 13,
+                lineHeight: 1,
+                padding: 2,
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Priority dot — click to cycle */}
@@ -518,6 +628,30 @@ function TodoRow({
           transition: "opacity 0.12s ease",
         }}
       />
+
+      {/* Link to entry */}
+      <button
+        onClick={() => (pickerOpen ? onClosePicker() : onOpenPicker())}
+        title={todo.entry ? "Change linked entry" : "Link a journal entry"}
+        aria-label="Link a journal entry"
+        style={{
+          flexShrink: 0,
+          marginTop: 1,
+          width: 22,
+          height: 22,
+          borderRadius: 6,
+          border: "none",
+          background: "transparent",
+          color: todo.entry || pickerOpen ? C.accent : C.textFaint,
+          cursor: "pointer",
+          fontSize: 13,
+          lineHeight: 1,
+          opacity: todo.entry || hover || pickerOpen ? 1 : 0,
+          transition: "opacity 0.12s ease",
+        }}
+      >
+        🔗
+      </button>
 
       {/* Delete */}
       <button
@@ -541,6 +675,158 @@ function TodoRow({
       >
         ×
       </button>
+
+      {pickerOpen && (
+        <EntryPicker
+          entries={entries}
+          loading={entriesLoading}
+          currentEntryId={todo.entryId}
+          onPick={onLink}
+          onClose={onClosePicker}
+        />
+      )}
     </div>
+  );
+}
+
+// ── Entry picker dropdown ────────────────────────────────────────────────────
+
+function EntryPicker({
+  entries,
+  loading,
+  currentEntryId,
+  onPick,
+  onClose,
+}: {
+  entries: EntryLite[] | null;
+  loading: boolean;
+  currentEntryId: string | null;
+  onPick: (entryId: string | null) => void;
+  onClose: () => void;
+}) {
+  const [q, setQ] = useState("");
+
+  const filtered = (entries ?? []).filter((e) => {
+    if (!q.trim()) return true;
+    const hay = `${e.title ?? ""} ${e.snippet}`.toLowerCase();
+    return hay.includes(q.toLowerCase());
+  });
+
+  return (
+    <>
+      {/* click-away backdrop */}
+      <div
+        onClick={onClose}
+        style={{ position: "fixed", inset: 0, zIndex: 40 }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          top: "calc(100% + 6px)",
+          right: 0,
+          width: 320,
+          maxWidth: "calc(100vw - 48px)",
+          zIndex: 50,
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderRadius: 12,
+          boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+          overflow: "hidden",
+        }}
+      >
+        <div style={{ padding: 10, borderBottom: `1px solid ${C.borderSoft}` }}>
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search journal entries…"
+            style={{
+              width: "100%",
+              background: C.bg,
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              outline: "none",
+              color: C.text,
+              fontSize: 13,
+              padding: "7px 10px",
+            }}
+          />
+        </div>
+
+        <div style={{ maxHeight: 260, overflowY: "auto" }}>
+          {currentEntryId && (
+            <button
+              onClick={() => onPick(null)}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                background: "transparent",
+                border: "none",
+                borderBottom: `1px solid ${C.borderSoft}`,
+                color: "#e0736a",
+                cursor: "pointer",
+                fontSize: 12.5,
+                padding: "10px 12px",
+              }}
+            >
+              Unlink current entry
+            </button>
+          )}
+
+          {loading ? (
+            <p style={{ color: C.textFaint, fontSize: 12.5, padding: "14px 12px", margin: 0 }}>
+              loading entries…
+            </p>
+          ) : filtered.length === 0 ? (
+            <p style={{ color: C.textFaint, fontSize: 12.5, padding: "14px 12px", margin: 0 }}>
+              {entries && entries.length === 0 ? "No journal entries yet." : "No matches."}
+            </p>
+          ) : (
+            filtered.map((e) => {
+              const isCurrent = e.id === currentEntryId;
+              return (
+                <button
+                  key={e.id}
+                  onClick={() => onPick(e.id)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    background: isCurrent ? C.cardHover : "transparent",
+                    border: "none",
+                    borderBottom: `1px solid ${C.borderSoft}`,
+                    cursor: "pointer",
+                    padding: "10px 12px",
+                  }}
+                  onMouseEnter={(ev) => (ev.currentTarget.style.background = C.cardHover)}
+                  onMouseLeave={(ev) =>
+                    (ev.currentTarget.style.background = isCurrent ? C.cardHover : "transparent")
+                  }
+                >
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: C.text,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {e.title?.trim() || e.snippet || "Untitled entry"}
+                  </div>
+                  <div style={{ fontFamily: MONO, fontSize: 10.5, color: C.textFaint, marginTop: 2 }}>
+                    {new Date(e.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </>
   );
 }

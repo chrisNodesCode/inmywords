@@ -38,8 +38,25 @@ export async function PATCH(
     data.completed = body.completed;
     data.completedAt = body.completed ? new Date() : null;
   }
+  if ("entryId" in body) {
+    const v = body.entryId;
+    if (v === null || v === "") {
+      data.entryId = null;
+    } else if (typeof v === "string") {
+      const entry = await prisma.journalEntry.findFirst({
+        where: { id: v, userId },
+        select: { id: true },
+      });
+      if (!entry) return NextResponse.json({ error: "Invalid entryId" }, { status: 400 });
+      data.entryId = entry.id;
+    }
+  }
 
-  const todo = await prisma.todo.update({ where: { id }, data });
+  const todo = await prisma.todo.update({
+    where: { id },
+    data,
+    include: { entry: { select: { id: true, title: true } } },
+  });
   return NextResponse.json({ todo });
 }
 

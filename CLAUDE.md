@@ -25,7 +25,7 @@ It now shares the **main `nameless-block` database** (merged 2026-05-31 from the
 former standalone `bitter-queen` project) so playground data can cross-reference
 journal entries and tags. It is NOT a separate DB anymore.
 
-- **Models:** `Todo` (+ `Priority` enum) live in `prisma/schema.prisma` alongside `JournalEntry`.
+- **Models:** `Todo` (+ `Priority` enum) live in `prisma/schema.prisma` alongside `JournalEntry`. A `Todo` may optionally link to a `JournalEntry` via `entryId` (relation `Todo.entry` / `JournalEntry.todos`, `onDelete: SetNull`). The to-dos UI links/unlinks entries via a picker fed by `GET /chris/api/entries`.
 - **Client:** uses the standard `import { prisma } from "@/lib/prisma"`.
 - **Owner gate:** `lib/playground-auth.ts` (`getPlaygroundUserId()` returns a userId only for `PLAYGROUND_OWNER_EMAIL`) + `app/chris/OwnerGate.tsx` (client redirect). Non-owners are blocked at both the UI and the API.
 - **Layout:** `app/chris/layout.tsx` is self-contained — no IMW sidebar/theme. `SidebarWrapper` hides the IMW sidebar on `/chris*`.
