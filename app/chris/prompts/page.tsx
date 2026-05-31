@@ -82,6 +82,24 @@ export default function PromptsPage() {
   const [deepWrite, setDeepWrite] = useState(false);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
 
+  // Which feed card is being edited in-place (null = none)
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // View Transitions API — animate sibling reflow when expanding/collapsing.
+  // Falls back to plain state change in unsupported browsers.
+  const transitionTo = (apply: () => void) => {
+    const doc = document as unknown as {
+      startViewTransition?: (cb: () => void) => unknown;
+    };
+    if (typeof document !== "undefined" && doc.startViewTransition) {
+      doc.startViewTransition(apply);
+    } else {
+      apply();
+    }
+  };
+  const expandEdit = (id: string) => transitionTo(() => setEditingId(id));
+  const collapseEdit = () => transitionTo(() => setEditingId(null));
+
   // Active project — null means "Unassigned"
   const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
   const setActiveProjectId = useCallback((id: string | null) => {
@@ -194,6 +212,21 @@ export default function PromptsPage() {
     await fetch(`/chris/api/prompts/${id}`, { method: "DELETE" });
   };
 
+  const patchPrompt = async (
+    id: string,
+    body: { content?: string; projectId?: string | null }
+  ) => {
+    const res = await fetch(`/chris/api/prompts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      const { prompt } = await res.json();
+      setPrompts((prev) => prev.map((p) => (p.id === id ? prompt : p)));
+    }
+  };
+
   const reassignPrompt = async (id: string, projectId: string | null) => {
     setPrompts((prev) =>
       prev.map((p) =>
@@ -268,7 +301,8 @@ export default function PromptsPage() {
         </header>
       )}
 
-      {/* Editor */}
+      {/* Composer — hidden while editing an existing prompt in-place */}
+      {editingId === null && (
       <section style={{ marginTop: deepWrite ? 0 : 28 }}>
         <div
           ref={editorWrapperRef}
@@ -450,6 +484,7 @@ export default function PromptsPage() {
           </>
         )}
       </section>
+      )}
 
       {/* Feed */}
       {!deepWrite && (
@@ -480,16 +515,34 @@ export default function PromptsPage() {
                     </span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {group.items.map((prompt) => (
-                      <PromptRow
-                        key={prompt.id}
-                        prompt={prompt}
-                        projects={projects}
-                        onDelete={() => deletePrompt(prompt.id)}
-                        onReassign={(pid) => reassignPrompt(prompt.id, pid)}
-                        onCopy={() => copyPrompt(prompt.content)}
-                      />
-                    ))}
+                    {group.items.map((prompt) =>
+                      editingId === prompt.id ? (
+                        <PromptEditingCard
+                          key={prompt.id}
+                          prompt={prompt}
+                          projects={projects}
+                          onSave={async (data) => {
+                            await patchPrompt(prompt.id, data);
+                            collapseEdit();
+                          }}
+                          onCancel={collapseEdit}
+                          onDelete={() => {
+                            deletePrompt(prompt.id);
+                            collapseEdit();
+                          }}
+                        />
+                      ) : (
+                        <PromptRow
+                          key={prompt.id}
+                          prompt={prompt}
+                          projects={projects}
+                          onDelete={() => deletePrompt(prompt.id)}
+                          onReassign={(pid) => reassignPrompt(prompt.id, pid)}
+                          onCopy={() => copyPrompt(prompt.content)}
+                          onEdit={() => expandEdit(prompt.id)}
+                        />
+                      )
+                    )}
                   </div>
                 </div>
               ))}
@@ -543,19 +596,19 @@ function PromptRow({
   onDelete,
   onReassign,
   onCopy,
+  onEdit,
 }: {
   prompt: Prompt;
   projects: Project[];
   onDelete: () => void;
   onReassign: (projectId: string | null) => void;
   onCopy: () => void;
+  onEdit: () => void;
 }) {
   const [hover, setHover] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const fullText = useMemo(() => extractPreview(prompt.content, 10_000), [prompt.content]);
   const preview = useMemo(() => extractPreview(prompt.content, 200), [prompt.content]);
 
   const handleCopy = async () => {
@@ -575,21 +628,23 @@ function PromptRow({
         background: hover ? C.cardHover : C.card,
         padding: "14px 16px",
         transition: "background 0.12s ease",
-      }}
+        // View transition: shared element between preview & editing card
+        viewTransitionName: `prompt-${prompt.id}`,
+      } as React.CSSProperties}
     >
       <div
-        onClick={() => setExpanded((x) => !x)}
+        onClick={onEdit}
+        title="Click to edit"
         style={{
           fontSize: 14,
           lineHeight: 1.55,
           color: C.text,
           cursor: "pointer",
-          whiteSpace: expanded ? "pre-wrap" : "normal",
           wordBreak: "break-word",
         }}
       >
-        {expanded ? fullText : preview}
-        {!expanded && fullText.length > preview.length && (
+        {preview}
+        {prompt.content.length > 200 && (
           <span style={{ color: C.textFaint }}> …</span>
         )}
       </div>
@@ -723,5 +778,279 @@ function PromptRow({
         </>
       )}
     </div>
+  );
+}
+
+// ── In-place editing card ────────────────────────────────────────────────────
+
+function PromptEditingCard({
+  prompt,
+  projects,
+  onSave,
+  onCancel,
+  onDelete,
+}: {
+  prompt: Prompt;
+  projects: Project[];
+  onSave: (data: { content: string; projectId: string | null }) => Promise<void>;
+  onCancel: () => void;
+  onDelete: () => void;
+}) {
+  const [content, setContent] = useState(prompt.content);
+  const [projectId, setProjectId] = useState<string | null>(prompt.projectId);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [deepWrite, setDeepWrite] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Sync deep write with browser fullscreen
+  useEffect(() => {
+    const handler = () => {
+      if (!document.fullscreenElement && deepWrite) setDeepWrite(false);
+    };
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, [deepWrite]);
+
+  const toggleDeepWrite = async () => {
+    if (deepWrite) {
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+      setDeepWrite(false);
+    } else {
+      try {
+        await wrapperRef.current?.requestFullscreen();
+        setDeepWrite(true);
+      } catch {
+        setDeepWrite(true);
+      }
+    }
+  };
+
+  const dirty =
+    content !== prompt.content || projectId !== prompt.projectId;
+  const canSave = dirty && !isContentEmpty(content);
+  const projectName =
+    projectId ? projects.find((p) => p.id === projectId)?.name ?? "Unassigned" : "Unassigned";
+
+  return (
+    <div
+      ref={wrapperRef}
+      className="chris-editor-wrap"
+      style={{
+        position: "relative",
+        background: deepWrite ? C.bg : C.card,
+        border: deepWrite ? "none" : `1px solid ${C.accent}55`,
+        borderRadius: deepWrite ? 0 : 14,
+        padding: deepWrite ? "56px 24px 24px" : "18px 20px 12px",
+        minHeight: deepWrite ? "100vh" : 220,
+        // Match preview row's view-transition-name so the browser animates one
+        // into the other smoothly.
+        viewTransitionName: `prompt-${prompt.id}`,
+      } as React.CSSProperties}
+    >
+      <div
+        style={{
+          maxWidth: deepWrite ? 720 : "none",
+          margin: deepWrite ? "0 auto" : 0,
+        }}
+      >
+        <IMWEditor
+          key={prompt.id}
+          initialContent={prompt.content}
+          placeholder="Edit prompt…"
+          fontSize={16}
+          lineWidth="100%"
+          onChange={setContent}
+          autoFocus
+        />
+      </div>
+
+      {/* Action bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginTop: 14,
+          flexWrap: "wrap",
+          position: deepWrite ? "fixed" : "static",
+          bottom: deepWrite ? 0 : undefined,
+          left: deepWrite ? 0 : undefined,
+          right: deepWrite ? 0 : undefined,
+          padding: deepWrite ? "14px 24px" : 0,
+          background: deepWrite ? C.bg : "transparent",
+          borderTop: deepWrite ? `1px solid ${C.border}` : "none",
+        }}
+      >
+        <button
+          onClick={toggleDeepWrite}
+          style={{
+            border: `1px solid ${C.border}`,
+            background: "transparent",
+            color: C.textDim,
+            borderRadius: 999,
+            padding: "5px 11px",
+            fontSize: 12,
+            cursor: "pointer",
+            fontFamily: MONO,
+          }}
+        >
+          {deepWrite ? "exit" : "deep write"}
+        </button>
+
+        {/* Project picker */}
+        <div style={{ position: "relative" }}>
+          <button
+            onClick={() => setPickerOpen((x) => !x)}
+            style={{
+              border: `1px solid ${C.border}`,
+              background: "transparent",
+              color: C.textDim,
+              borderRadius: 999,
+              padding: "5px 11px",
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+            title="Change project"
+          >
+            <span style={{ color: C.accent, marginRight: 5 }}>◆</span>
+            {projectName}
+          </button>
+          {pickerOpen && (
+            <ProjectPickerDropdown
+              projects={projects}
+              currentProjectId={projectId}
+              onPick={(pid) => {
+                setProjectId(pid);
+                setPickerOpen(false);
+              }}
+              onClose={() => setPickerOpen(false)}
+            />
+          )}
+        </div>
+
+        <div style={{ flex: 1 }} />
+
+        <button
+          onClick={onDelete}
+          style={{
+            border: "none",
+            background: "transparent",
+            color: C.danger,
+            cursor: "pointer",
+            fontFamily: MONO,
+            fontSize: 12,
+            padding: "5px 8px",
+          }}
+        >
+          delete
+        </button>
+        <button
+          onClick={onCancel}
+          style={{
+            border: "none",
+            background: "transparent",
+            color: C.textDim,
+            cursor: "pointer",
+            fontFamily: MONO,
+            fontSize: 12,
+            padding: "5px 10px",
+          }}
+        >
+          cancel
+        </button>
+        <button
+          onClick={() => onSave({ content, projectId })}
+          disabled={!canSave}
+          style={{
+            border: "none",
+            borderRadius: 10,
+            background: canSave ? C.accent : C.border,
+            color: canSave ? C.accentText : C.textFaint,
+            fontWeight: 600,
+            fontSize: 13,
+            padding: "8px 16px",
+            cursor: canSave ? "pointer" : "default",
+          }}
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Small shared dropdown — used by the editing card and the row pill
+const C_danger = "#e0736a";
+const _ = C_danger; // keep import-shape sane
+
+function ProjectPickerDropdown({
+  projects,
+  currentProjectId,
+  onPick,
+  onClose,
+}: {
+  projects: Project[];
+  currentProjectId: string | null;
+  onPick: (projectId: string | null) => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: "calc(100% + 6px)",
+          width: 220,
+          zIndex: 50,
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderRadius: 12,
+          boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+          maxHeight: 260,
+          overflowY: "auto",
+        }}
+      >
+        <button
+          onClick={() => onPick(null)}
+          style={{
+            display: "block",
+            width: "100%",
+            textAlign: "left",
+            background: currentProjectId === null ? C.cardHover : "transparent",
+            border: "none",
+            borderBottom: `1px solid ${C.borderSoft}`,
+            color: C.textDim,
+            fontStyle: "italic",
+            cursor: "pointer",
+            padding: "10px 14px",
+            fontSize: 13,
+          }}
+        >
+          Unassigned
+        </button>
+        {projects.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => onPick(p.id)}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "left",
+              background: currentProjectId === p.id ? C.cardHover : "transparent",
+              border: "none",
+              borderBottom: `1px solid ${C.borderSoft}`,
+              color: C.text,
+              cursor: "pointer",
+              padding: "10px 14px",
+              fontSize: 13,
+            }}
+          >
+            {p.name}
+          </button>
+        ))}
+      </div>
+    </>
   );
 }

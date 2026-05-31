@@ -81,6 +81,36 @@ export default function JournalPage() {
   const [deepWrite, setDeepWrite] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
+  // In-place editing of an existing entry
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const transitionTo = (apply: () => void) => {
+    const doc = document as unknown as {
+      startViewTransition?: (cb: () => void) => unknown;
+    };
+    if (typeof document !== "undefined" && doc.startViewTransition) {
+      doc.startViewTransition(apply);
+    } else {
+      apply();
+    }
+  };
+  const expandEdit = (id: string) => transitionTo(() => setEditingId(id));
+  const collapseEdit = () => transitionTo(() => setEditingId(null));
+
+  const patchEntry = async (
+    id: string,
+    body: { title?: string | null; content?: string; mood?: string | null; projectId?: string | null }
+  ) => {
+    const res = await fetch(`/api/entries/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setEntries((prev) => prev.map((e) => (e.id === id ? updated : e)));
+    }
+  };
+
   // Active project — same UX as other modules
   const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
   const setActiveProjectId = useCallback((id: string | null) => {
@@ -232,7 +262,8 @@ export default function JournalPage() {
         </header>
       )}
 
-      {/* Composer */}
+      {/* Composer — hidden while editing an existing entry in-place */}
+      {editingId === null && (
       <section style={{ marginTop: deepWrite ? 0 : 28 }}>
         <div
           ref={wrapperRef}
@@ -459,6 +490,7 @@ export default function JournalPage() {
           </>
         )}
       </section>
+      )}
 
       {/* Feed */}
       {!deepWrite && (
@@ -470,7 +502,18 @@ export default function JournalPage() {
               <p style={{ margin: 0, fontSize: 14 }}>No entries yet. Write one above.</p>
             </div>
           ) : (
-            <EntryFeed entries={entries} onDelete={deleteEntry} />
+            <EntryFeed
+              entries={entries}
+              projects={projects}
+              editingId={editingId}
+              onDelete={deleteEntry}
+              onEdit={expandEdit}
+              onCancelEdit={collapseEdit}
+              onSaveEdit={async (id, data) => {
+                await patchEntry(id, data);
+                collapseEdit();
+              }}
+            />
           )}
         </section>
       )}
@@ -516,21 +559,61 @@ function ProjectChip({
 
 function EntryFeed({
   entries,
+  projects,
+  editingId,
   onDelete,
+  onEdit,
+  onCancelEdit,
+  onSaveEdit,
 }: {
   entries: Entry[];
+  projects: Project[];
+  editingId: string | null;
   onDelete: (id: string) => void;
+  onEdit: (id: string) => void;
+  onCancelEdit: () => void;
+  onSaveEdit: (
+    id: string,
+    data: { title: string | null; content: string; mood: string | null; projectId: string | null }
+  ) => Promise<void>;
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {entries.map((entry) => (
-        <EntryRow key={entry.id} entry={entry} onDelete={() => onDelete(entry.id)} />
-      ))}
+      {entries.map((entry) =>
+        editingId === entry.id ? (
+          <EntryEditingCard
+            key={entry.id}
+            entry={entry}
+            projects={projects}
+            onSave={(data) => onSaveEdit(entry.id, data)}
+            onCancel={onCancelEdit}
+            onDelete={() => {
+              onDelete(entry.id);
+              onCancelEdit();
+            }}
+          />
+        ) : (
+          <EntryRow
+            key={entry.id}
+            entry={entry}
+            onDelete={() => onDelete(entry.id)}
+            onEdit={() => onEdit(entry.id)}
+          />
+        )
+      )}
     </div>
   );
 }
 
-function EntryRow({ entry, onDelete }: { entry: Entry; onDelete: () => void }) {
+function EntryRow({
+  entry,
+  onDelete,
+  onEdit,
+}: {
+  entry: Entry;
+  onDelete: () => void;
+  onEdit: () => void;
+}) {
   const [hover, setHover] = useState(false);
   const snippet = useMemo(() => snippetFromContent(entry.content, 240), [entry.content]);
 
@@ -538,6 +621,8 @@ function EntryRow({ entry, onDelete }: { entry: Entry; onDelete: () => void }) {
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onClick={onEdit}
+      title="Click to edit"
       style={{
         position: "relative",
         border: `1px solid ${C.border}`,
@@ -545,13 +630,13 @@ function EntryRow({ entry, onDelete }: { entry: Entry; onDelete: () => void }) {
         background: hover ? C.cardHover : C.card,
         padding: "16px 18px",
         transition: "background 0.12s ease",
-      }}
+        cursor: "pointer",
+        viewTransitionName: `entry-${entry.id}`,
+      } as React.CSSProperties}
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 6 }}>
-        <Link
-          href={`/entries/${entry.id}`}
+        <div
           style={{
-            textDecoration: "none",
             color: C.text,
             fontFamily: SERIF,
             fontSize: 18,
@@ -569,7 +654,7 @@ function EntryRow({ entry, onDelete }: { entry: Entry; onDelete: () => void }) {
               Untitled
             </span>
           )}
-        </Link>
+        </div>
         <span style={{ fontFamily: MONO, fontSize: 11.5, color: C.textFaint, whiteSpace: "nowrap" }}>
           {formatDate(entry.createdAt)}
         </span>
@@ -579,8 +664,7 @@ function EntryRow({ entry, onDelete }: { entry: Entry; onDelete: () => void }) {
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
         {entry.project && (
-          <Link
-            href="/chris/projects"
+          <span
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -591,12 +675,11 @@ function EntryRow({ entry, onDelete }: { entry: Entry; onDelete: () => void }) {
               borderRadius: 999,
               padding: "3px 10px",
               fontSize: 11.5,
-              textDecoration: "none",
             }}
           >
             <span style={{ color: C.accent }}>◆</span>
             {entry.project.name}
-          </Link>
+          </span>
         )}
         {entry.mood && (
           <span style={{ fontFamily: MONO, fontSize: 11, color: C.textFaint }}>
@@ -606,6 +689,7 @@ function EntryRow({ entry, onDelete }: { entry: Entry; onDelete: () => void }) {
         <div style={{ flex: 1 }} />
         <Link
           href={`/entries/${entry.id}`}
+          onClick={(e) => e.stopPropagation()}
           style={{
             fontFamily: MONO,
             fontSize: 11,
@@ -616,7 +700,10 @@ function EntryRow({ entry, onDelete }: { entry: Entry; onDelete: () => void }) {
           open →
         </Link>
         <button
-          onClick={onDelete}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
           aria-label="Delete entry"
           style={{
             border: "none",
@@ -634,5 +721,322 @@ function EntryRow({ entry, onDelete }: { entry: Entry; onDelete: () => void }) {
         </button>
       </div>
     </div>
+  );
+}
+
+// ── In-place editing card ────────────────────────────────────────────────────
+
+function EntryEditingCard({
+  entry,
+  projects,
+  onSave,
+  onCancel,
+  onDelete,
+}: {
+  entry: Entry;
+  projects: Project[];
+  onSave: (data: {
+    title: string | null;
+    content: string;
+    mood: string | null;
+    projectId: string | null;
+  }) => Promise<void>;
+  onCancel: () => void;
+  onDelete: () => void;
+}) {
+  const [title, setTitle] = useState(entry.title ?? "");
+  const [content, setContent] = useState(entry.content);
+  const [mood, setMood] = useState<string | null>(entry.mood);
+  const [projectId, setProjectId] = useState<string | null>(entry.projectId);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [deepWrite, setDeepWrite] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = () => {
+      if (!document.fullscreenElement && deepWrite) setDeepWrite(false);
+    };
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, [deepWrite]);
+
+  const toggleDeepWrite = async () => {
+    if (deepWrite) {
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+      setDeepWrite(false);
+    } else {
+      try {
+        await wrapperRef.current?.requestFullscreen();
+        setDeepWrite(true);
+      } catch {
+        setDeepWrite(true);
+      }
+    }
+  };
+
+  const titleClean = title.trim() || null;
+  const dirty =
+    titleClean !== (entry.title?.trim() || null) ||
+    content !== entry.content ||
+    mood !== entry.mood ||
+    projectId !== entry.projectId;
+  const canSave = dirty && !isContentEmpty(content);
+  const projectName =
+    projectId ? projects.find((p) => p.id === projectId)?.name ?? "Unassigned" : "Unassigned";
+
+  return (
+    <div
+      ref={wrapperRef}
+      className="chris-editor-wrap"
+      style={{
+        position: "relative",
+        background: deepWrite ? C.bg : C.card,
+        border: deepWrite ? "none" : `1px solid ${C.accent}55`,
+        borderRadius: deepWrite ? 0 : 14,
+        padding: deepWrite ? "56px 24px 24px" : "20px 22px 14px",
+        minHeight: deepWrite ? "100vh" : 260,
+        viewTransitionName: `entry-${entry.id}`,
+      } as React.CSSProperties}
+    >
+      <div
+        style={{
+          maxWidth: deepWrite ? 720 : "none",
+          margin: deepWrite ? "0 auto" : 0,
+        }}
+      >
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Title (optional)"
+          style={{
+            width: "100%",
+            background: "transparent",
+            border: "none",
+            outline: "none",
+            color: C.text,
+            fontFamily: SERIF,
+            fontSize: 22,
+            fontWeight: 600,
+            letterSpacing: "-0.01em",
+            padding: "0 0 10px",
+            marginBottom: 8,
+            borderBottom: `1px solid ${C.borderSoft}`,
+          }}
+        />
+        <IMWEditor
+          key={entry.id}
+          initialContent={entry.content}
+          placeholder="What did today actually feel like?"
+          fontSize={16}
+          lineWidth="100%"
+          onChange={setContent}
+          autoFocus
+        />
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          marginTop: 14,
+          flexWrap: "wrap",
+          position: deepWrite ? "fixed" : "static",
+          bottom: deepWrite ? 0 : undefined,
+          left: deepWrite ? 0 : undefined,
+          right: deepWrite ? 0 : undefined,
+          padding: deepWrite ? "14px 24px" : 0,
+          background: deepWrite ? C.bg : "transparent",
+          borderTop: deepWrite ? `1px solid ${C.border}` : "none",
+        }}
+      >
+        <button
+          onClick={toggleDeepWrite}
+          style={{
+            border: `1px solid ${C.border}`,
+            background: "transparent",
+            color: C.textDim,
+            borderRadius: 999,
+            padding: "5px 11px",
+            fontSize: 12,
+            cursor: "pointer",
+            fontFamily: MONO,
+          }}
+        >
+          {deepWrite ? "exit" : "deep write"}
+        </button>
+
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+          {MOODS.map((m) => {
+            const active = mood === m;
+            return (
+              <button
+                key={m}
+                onClick={() => setMood(active ? null : m)}
+                style={{
+                  border: `1px solid ${active ? C.accent : C.border}`,
+                  background: active ? `${C.accent}22` : "transparent",
+                  color: active ? C.text : C.textDim,
+                  borderRadius: 999,
+                  padding: "4px 10px",
+                  fontSize: 11.5,
+                  cursor: "pointer",
+                }}
+              >
+                {m}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ position: "relative" }}>
+          <button
+            onClick={() => setPickerOpen((x) => !x)}
+            style={{
+              border: `1px solid ${C.border}`,
+              background: "transparent",
+              color: C.textDim,
+              borderRadius: 999,
+              padding: "5px 11px",
+              fontSize: 12,
+              cursor: "pointer",
+            }}
+          >
+            <span style={{ color: C.accent, marginRight: 5 }}>◆</span>
+            {projectName}
+          </button>
+          {pickerOpen && (
+            <EntryProjectPickerDropdown
+              projects={projects}
+              currentProjectId={projectId}
+              onPick={(pid) => {
+                setProjectId(pid);
+                setPickerOpen(false);
+              }}
+              onClose={() => setPickerOpen(false)}
+            />
+          )}
+        </div>
+
+        <div style={{ flex: 1 }} />
+
+        <button
+          onClick={onDelete}
+          style={{
+            border: "none",
+            background: "transparent",
+            color: "#e0736a",
+            cursor: "pointer",
+            fontFamily: MONO,
+            fontSize: 12,
+            padding: "5px 8px",
+          }}
+        >
+          delete
+        </button>
+        <button
+          onClick={onCancel}
+          style={{
+            border: "none",
+            background: "transparent",
+            color: C.textDim,
+            cursor: "pointer",
+            fontFamily: MONO,
+            fontSize: 12,
+            padding: "5px 10px",
+          }}
+        >
+          cancel
+        </button>
+        <button
+          onClick={() => onSave({ title: titleClean, content, mood, projectId })}
+          disabled={!canSave}
+          style={{
+            border: "none",
+            borderRadius: 10,
+            background: canSave ? C.accent : C.border,
+            color: canSave ? C.accentText : C.textFaint,
+            fontWeight: 600,
+            fontSize: 13,
+            padding: "8px 16px",
+            cursor: canSave ? "pointer" : "default",
+          }}
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EntryProjectPickerDropdown({
+  projects,
+  currentProjectId,
+  onPick,
+  onClose,
+}: {
+  projects: Project[];
+  currentProjectId: string | null;
+  onPick: (projectId: string | null) => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: "calc(100% + 6px)",
+          width: 220,
+          zIndex: 50,
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderRadius: 12,
+          boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+          maxHeight: 260,
+          overflowY: "auto",
+        }}
+      >
+        <button
+          onClick={() => onPick(null)}
+          style={{
+            display: "block",
+            width: "100%",
+            textAlign: "left",
+            background: currentProjectId === null ? C.cardHover : "transparent",
+            border: "none",
+            borderBottom: `1px solid ${C.borderSoft}`,
+            color: C.textDim,
+            fontStyle: "italic",
+            cursor: "pointer",
+            padding: "10px 14px",
+            fontSize: 13,
+          }}
+        >
+          Unassigned
+        </button>
+        {projects.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => onPick(p.id)}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "left",
+              background: currentProjectId === p.id ? C.cardHover : "transparent",
+              border: "none",
+              borderBottom: `1px solid ${C.borderSoft}`,
+              color: C.text,
+              cursor: "pointer",
+              padding: "10px 14px",
+              fontSize: 13,
+            }}
+          >
+            {p.name}
+          </button>
+        ))}
+      </div>
+    </>
   );
 }
