@@ -205,7 +205,12 @@ const entries = await prisma.journalEntry.findMany();
 
 ## Design System
 
-The UI uses a "Structural Warmth" design language. Always use CSS tokens — never hardcode colors.
+> **Note:** A proposed redesign ("Style Kit v2", dark-first, derived from the
+> `/chris` playground look) is documented in `docs/style-kit-v2-plan.md` with a
+> live preview at `/chris/style-kit`. It is **deferred and not yet applied** — the
+> system below is still the live one. Don't start the rollout unless asked.
+
+The current UI uses a "Structural Warmth" design language. Always use CSS tokens — never hardcode colors.
 
 ### Key Tokens
 ```css
