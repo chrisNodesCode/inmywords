@@ -52,7 +52,7 @@ export async function GET() {
 
   const todos = await prisma.todo.findMany({
     where: { userId },
-    orderBy: [{ completed: "asc" }, { createdAt: "desc" }],
+    orderBy: [{ completed: "asc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
     include: {
       entry: { select: { id: true, title: true } },
       project: { select: { id: true, name: true } },

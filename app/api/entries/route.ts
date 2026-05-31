@@ -32,7 +32,7 @@ export async function GET() {
 
   const entries = await prisma.journalEntry.findMany({
     where: { userId },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     include: { project: { select: { id: true, name: true } } },
   });
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
+import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -339,51 +340,32 @@ export default function ShoppingPage() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            {grouped.map(({ list, items: groupItems }) => {
-              const open = groupItems.filter((i) => !i.completed);
-              const done = groupItems.filter((i) => i.completed);
-              return (
-                <div key={list.id}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "baseline",
-                      gap: 8,
-                      margin: "0 4px 10px",
-                    }}
-                  >
-                    <h3
-                      style={{
-                        margin: 0,
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: C.text,
-                        letterSpacing: "-0.005em",
-                      }}
-                    >
-                      {list.name}
-                    </h3>
-                    <span style={{ fontFamily: MONO, fontSize: 11, color: C.textFaint }}>
-                      {open.length} open
-                      {done.length > 0 && ` · ${done.length} done`}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {[...open, ...done].map((item) => (
-                      <ItemRow
-                        key={item.id}
-                        item={item}
-                        onToggle={() =>
-                          patchItem(item.id, { completed: !item.completed })
-                        }
-                        onEditName={(name) => patchItem(item.id, { name })}
-                        onDelete={() => deleteItem(item.id)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+            {grouped.map(({ list, items: groupItems }) => (
+              <ShoppingItemGroup
+                key={list.id}
+                list={list}
+                groupItems={groupItems}
+                onToggle={(id, completed) => patchItem(id, { completed })}
+                onEditName={(id, name) => patchItem(id, { name })}
+                onDelete={(id) => deleteItem(id)}
+                applyGroupReorder={(orderedIds) => {
+                  // Merge new order into global items array
+                  setItems((prev) => {
+                    const inGroup = new Set(orderedIds);
+                    const groupItemsOrdered = orderedIds
+                      .map((id) => prev.find((i) => i.id === id)!)
+                      .filter(Boolean);
+                    const others = prev.filter((i) => !inGroup.has(i.id));
+                    return [...groupItemsOrdered, ...others];
+                  });
+                  void fetch("/chris/api/shopping/items/reorder", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ids: orderedIds }),
+                  });
+                }}
+              />
+            ))}
           </div>
         )}
       </section>
@@ -617,13 +599,92 @@ function EditableChip({
 
 // ── Item row ─────────────────────────────────────────────────────────────────
 
+function ShoppingItemGroup({
+  list,
+  groupItems,
+  onToggle,
+  onEditName,
+  onDelete,
+  applyGroupReorder,
+}: {
+  list: List;
+  groupItems: Item[];
+  onToggle: (id: string, completed: boolean) => void;
+  onEditName: (id: string, name: string) => void;
+  onDelete: (id: string) => void;
+  applyGroupReorder: (orderedIds: string[]) => void;
+}) {
+  const open = groupItems.filter((i) => !i.completed);
+  const done = groupItems.filter((i) => i.completed);
+  // Only the open items are draggable; done items keep their completedAt-ish
+  // order at the bottom.
+  const { rowProps, rowStyle } = useDragReorder(open, (next) => {
+    // Persist [...openOrdered, ...done] for this list's items
+    applyGroupReorder([...next, ...done].map((i) => i.id));
+  });
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 8,
+          margin: "0 4px 10px",
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontSize: 14,
+            fontWeight: 600,
+            color: C.text,
+            letterSpacing: "-0.005em",
+          }}
+        >
+          {list.name}
+        </h3>
+        <span style={{ fontFamily: MONO, fontSize: 11, color: C.textFaint }}>
+          {open.length} open
+          {done.length > 0 && ` · ${done.length} done`}
+        </span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {open.map((item) => (
+          <ItemRow
+            key={item.id}
+            item={item}
+            dragProps={rowProps(item.id)}
+            dragStyle={rowStyle(item.id)}
+            onToggle={() => onToggle(item.id, !item.completed)}
+            onEditName={(name) => onEditName(item.id, name)}
+            onDelete={() => onDelete(item.id)}
+          />
+        ))}
+        {done.map((item) => (
+          <ItemRow
+            key={item.id}
+            item={item}
+            onToggle={() => onToggle(item.id, !item.completed)}
+            onEditName={(name) => onEditName(item.id, name)}
+            onDelete={() => onDelete(item.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ItemRow({
   item,
+  dragProps,
+  dragStyle,
   onToggle,
   onEditName,
   onDelete,
 }: {
   item: Item;
+  dragProps?: React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean };
+  dragStyle?: React.CSSProperties;
   onToggle: () => void;
   onEditName: (name: string) => void;
   onDelete: () => void;
@@ -641,6 +702,7 @@ function ItemRow({
 
   return (
     <div
+      {...(dragProps ?? {})}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -652,6 +714,7 @@ function ItemRow({
         background: hover ? C.cardHover : C.card,
         padding: "10px 12px",
         transition: "background 0.12s ease",
+        ...(dragStyle ?? {}),
       }}
     >
       <button

@@ -9,7 +9,7 @@ export async function GET() {
 
   const items = await prisma.shoppingItem.findMany({
     where: { userId },
-    orderBy: [{ completed: "asc" }, { createdAt: "desc" }],
+    orderBy: [{ completed: "asc" }, { sortOrder: "asc" }, { createdAt: "desc" }],
     include: { entry: { select: { id: true, title: true } } },
   });
   return NextResponse.json({ items });

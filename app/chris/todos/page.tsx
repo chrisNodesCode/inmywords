@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
+import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,11 @@ export default function TodosPage() {
   const [entries, setEntries] = useState<EntryLite[] | null>(null);
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [pickerForId, setPickerForId] = useState<string | null>(null);
+
+  // "+ new entry" modal: stub a new journal entry and link it to a todo
+  const [newEntryFor, setNewEntryFor] = useState<
+    { todoId: string; defaultText: string } | null
+  >(null);
 
   // Project state — same UX as shopping list active chip
   const [projects, setProjects] = useState<Project[]>([]);
@@ -527,11 +533,29 @@ export default function TodosPage() {
           </div>
         ) : (
           <>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {active.map((t) => (
+            <TodoGroupView
+              items={active}
+              applyGroupReorder={(orderedIds) => {
+                setTodos((prev) => {
+                  const inGroup = new Set(orderedIds);
+                  const reordered = orderedIds
+                    .map((id) => prev.find((x) => x.id === id)!)
+                    .filter(Boolean);
+                  const others = prev.filter((x) => !inGroup.has(x.id));
+                  return [...reordered, ...others];
+                });
+                void fetch("/chris/api/todos/reorder", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ ids: orderedIds }),
+                });
+              }}
+              renderRow={(t, dragProps, dragStyle) => (
                 <TodoRow
                   key={t.id}
                   todo={t}
+                  dragProps={dragProps}
+                  dragStyle={dragStyle}
                   onToggle={() => patchTodo(t.id, { completed: !t.completed })}
                   onCyclePriority={() => cyclePriority(t)}
                   onEditTitle={(title) => patchTodo(t.id, { title })}
@@ -547,9 +571,14 @@ export default function TodosPage() {
                   onOpenProjectPicker={() => setProjectPickerForId(t.id)}
                   onCloseProjectPicker={() => setProjectPickerForId(null)}
                   onAssignProject={(pid) => patchTodo(t.id, { projectId: pid } as Partial<Todo>)}
+                  onAddNewEntry={async () => {
+                    const projectName = t.project?.name ?? "(no project)";
+                    const text = `Stub - placeholder for journal entry related to: ${projectName}: ${t.title}`;
+                    setNewEntryFor({ todoId: t.id, defaultText: text });
+                  }}
                 />
-              ))}
-            </div>
+              )}
+            />
 
             {done.length > 0 && (
               <div style={{ marginTop: 28 }}>
@@ -585,6 +614,11 @@ export default function TodosPage() {
                       onOpenProjectPicker={() => setProjectPickerForId(t.id)}
                       onCloseProjectPicker={() => setProjectPickerForId(null)}
                       onAssignProject={(pid) => patchTodo(t.id, { projectId: pid } as Partial<Todo>)}
+                      onAddNewEntry={async () => {
+                        const projectName = t.project?.name ?? "(no project)";
+                        const text = `Stub - placeholder for journal entry related to: ${projectName}: ${t.title}`;
+                        setNewEntryFor({ todoId: t.id, defaultText: text });
+                      }}
                     />
                   ))}
                 </div>
@@ -593,6 +627,40 @@ export default function TodosPage() {
           </>
         )}
       </section>
+
+      {newEntryFor && (
+        <NewEntryModal
+          defaultText={newEntryFor.defaultText}
+          onCancel={() => setNewEntryFor(null)}
+          onSave={async (text) => {
+            // Create new journal entry
+            const content = JSON.stringify({
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: text ? [{ type: "text", text }] : [],
+                },
+              ],
+            });
+            const res = await fetch("/api/entries", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content }),
+            });
+            if (res.ok) {
+              const entry = await res.json();
+              // Link the todo to the new entry
+              await patchTodo(newEntryFor.todoId, {
+                entryId: entry.id,
+              } as Partial<Todo>);
+              // Refresh the entries cache so the picker can show it next time
+              setEntries(null);
+            }
+            setNewEntryFor(null);
+          }}
+        />
+      )}
     </main>
   );
 }
@@ -601,6 +669,8 @@ export default function TodosPage() {
 
 function TodoRow({
   todo,
+  dragProps,
+  dragStyle,
   onToggle,
   onCyclePriority,
   onEditTitle,
@@ -616,8 +686,11 @@ function TodoRow({
   onOpenProjectPicker,
   onCloseProjectPicker,
   onAssignProject,
+  onAddNewEntry,
 }: {
   todo: Todo;
+  dragProps?: React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean };
+  dragStyle?: React.CSSProperties;
   onToggle: () => void;
   onCyclePriority: () => void;
   onEditTitle: (title: string) => void;
@@ -633,6 +706,7 @@ function TodoRow({
   onOpenProjectPicker: () => void;
   onCloseProjectPicker: () => void;
   onAssignProject: (projectId: string | null) => void;
+  onAddNewEntry: () => void;
 }) {
   const [hover, setHover] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -650,6 +724,7 @@ function TodoRow({
 
   return (
     <div
+      {...(dragProps ?? {})}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -662,6 +737,7 @@ function TodoRow({
         background: hover ? C.cardHover : C.card,
         padding: "13px 14px",
         transition: "background 0.12s ease",
+        ...(dragStyle ?? {}),
       }}
     >
       {/* Checkbox */}
@@ -916,6 +992,10 @@ function TodoRow({
           currentEntryId={todo.entryId}
           onPick={onLink}
           onClose={onClosePicker}
+          onAddNewEntry={() => {
+            onClosePicker();
+            onAddNewEntry();
+          }}
         />
       )}
 
@@ -942,12 +1022,14 @@ function EntryPicker({
   currentEntryId,
   onPick,
   onClose,
+  onAddNewEntry,
 }: {
   entries: EntryLite[] | null;
   loading: boolean;
   currentEntryId: string | null;
   onPick: (entryId: string | null) => void;
   onClose: () => void;
+  onAddNewEntry: () => void;
 }) {
   const [q, setQ] = useState("");
 
@@ -979,6 +1061,24 @@ function EntryPicker({
           overflow: "hidden",
         }}
       >
+        <button
+          onClick={onAddNewEntry}
+          style={{
+            display: "block",
+            width: "100%",
+            textAlign: "left",
+            background: "transparent",
+            border: "none",
+            borderBottom: `1px solid ${C.borderSoft}`,
+            color: C.accent,
+            cursor: "pointer",
+            fontSize: 12.5,
+            padding: "10px 12px",
+            fontWeight: 600,
+          }}
+        >
+          + new journal entry
+        </button>
         <div style={{ padding: 10, borderBottom: `1px solid ${C.borderSoft}` }}>
           <input
             autoFocus
@@ -1153,5 +1253,178 @@ function ProjectPicker({
         )}
       </div>
     </>
+  );
+}
+
+// ── Drag-and-drop group ──────────────────────────────────────────────────────
+
+function TodoGroupView({
+  items,
+  applyGroupReorder,
+  renderRow,
+}: {
+  items: Todo[];
+  applyGroupReorder: (orderedIds: string[]) => void;
+  renderRow: (
+    t: Todo,
+    dragProps: React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean },
+    dragStyle: React.CSSProperties
+  ) => React.ReactNode;
+}) {
+  const { rowProps, rowStyle } = useDragReorder(items, (next) =>
+    applyGroupReorder(next.map((t) => t.id))
+  );
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {items.map((t) => renderRow(t, rowProps(t.id), rowStyle(t.id)))}
+    </div>
+  );
+}
+
+// ── New-entry modal ──────────────────────────────────────────────────────────
+
+function NewEntryModal({
+  defaultText,
+  onCancel,
+  onSave,
+}: {
+  defaultText: string;
+  onCancel: () => void;
+  onSave: (text: string) => Promise<void> | void;
+}) {
+  const [text, setText] = useState(defaultText);
+  const [saving, setSaving] = useState(false);
+
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 100,
+        background: "rgba(0,0,0,0.55)",
+        backdropFilter: "blur(3px)",
+        WebkitBackdropFilter: "blur(3px)",
+        display: "grid",
+        placeItems: "center",
+        padding: 24,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: 560,
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderRadius: 14,
+          padding: "22px 22px 14px",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.55)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 14,
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 600,
+              color: C.text,
+            }}
+          >
+            New journal entry
+          </h2>
+          <span style={{ fontFamily: MONO, fontSize: 11, color: C.textFaint }}>
+            (linked to this to-do)
+          </span>
+        </div>
+
+        <textarea
+          autoFocus
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={6}
+          style={{
+            width: "100%",
+            background: C.bg,
+            border: `1px solid ${C.border}`,
+            borderRadius: 10,
+            outline: "none",
+            color: C.text,
+            fontSize: 14,
+            lineHeight: 1.6,
+            padding: "12px 14px",
+            resize: "vertical",
+            fontFamily: "inherit",
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 14,
+          }}
+        >
+          <span
+            style={{
+              fontFamily: MONO,
+              fontSize: 11,
+              color: C.textFaint,
+              flex: 1,
+            }}
+          >
+            Accept the stub or write a full entry — either creates and links.
+          </span>
+          <button
+            onClick={onCancel}
+            disabled={saving}
+            style={{
+              border: "none",
+              background: "transparent",
+              color: C.textDim,
+              cursor: "pointer",
+              fontFamily: MONO,
+              fontSize: 12,
+              padding: "5px 10px",
+            }}
+          >
+            cancel
+          </button>
+          <button
+            onClick={async () => {
+              if (saving) return;
+              setSaving(true);
+              try {
+                await onSave(text.trim() || defaultText);
+              } finally {
+                setSaving(false);
+              }
+            }}
+            disabled={saving}
+            style={{
+              border: "none",
+              borderRadius: 10,
+              background: C.accent,
+              color: "#1a1710",
+              fontWeight: 600,
+              fontSize: 13,
+              padding: "8px 18px",
+              cursor: saving ? "default" : "pointer",
+              opacity: saving ? 0.6 : 1,
+            }}
+          >
+            {saving ? "Saving…" : "Save & link"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 
 type Project = {
   id: string;
@@ -165,28 +166,63 @@ export default function ProjectsPage() {
             </p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {projects.map((p) => (
-              <ProjectRow
-                key={p.id}
-                project={p}
-                onRename={(name) => renameProject(p.id, name)}
-                onDelete={() => deleteProject(p.id)}
-              />
-            ))}
-          </div>
+          <ProjectsDragList
+            projects={projects}
+            applyReorder={(next) => {
+              setProjects(next);
+              void fetch("/chris/api/projects/reorder", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ids: next.map((p) => p.id) }),
+              });
+            }}
+            onRename={renameProject}
+            onDelete={deleteProject}
+          />
         )}
       </section>
     </main>
   );
 }
 
+function ProjectsDragList({
+  projects,
+  applyReorder,
+  onRename,
+  onDelete,
+}: {
+  projects: Project[];
+  applyReorder: (next: Project[]) => void;
+  onRename: (id: string, name: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { rowProps, rowStyle } = useDragReorder(projects, applyReorder);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {projects.map((p) => (
+        <ProjectRow
+          key={p.id}
+          project={p}
+          dragProps={rowProps(p.id)}
+          dragStyle={rowStyle(p.id)}
+          onRename={(name) => onRename(p.id, name)}
+          onDelete={() => onDelete(p.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
 function ProjectRow({
   project,
+  dragProps,
+  dragStyle,
   onRename,
   onDelete,
 }: {
   project: Project;
+  dragProps: React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean };
+  dragStyle: React.CSSProperties;
   onRename: (name: string) => void;
   onDelete: () => void;
 }) {
@@ -203,6 +239,7 @@ function ProjectRow({
 
   return (
     <div
+      {...dragProps}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -214,6 +251,7 @@ function ProjectRow({
         background: hover ? C.cardHover : C.card,
         padding: "13px 14px",
         transition: "background 0.12s ease",
+        ...dragStyle,
       }}
     >
       {editing ? (

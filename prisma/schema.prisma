@@ -9,6 +9,7 @@ datasource db {
 model JournalEntry {
   id              String   @id @default(cuid())
   userId          String
+  sortOrder       Int      @default(0)
   content         String
   title           String?
   mood            String?
@@ -44,6 +45,7 @@ enum Priority {
 model Todo {
   id          String    @id @default(cuid())
   userId      String
+  sortOrder   Int       @default(0)
   title       String
   note        String?
   priority    Priority?
@@ -89,6 +91,7 @@ model Project {
 model Prompt {
   id        String   @id @default(cuid())
   userId    String
+  sortOrder Int      @default(0)
   projectId String?
   title     String?
   content   String   // TipTap JSON
@@ -120,6 +123,7 @@ model ShoppingItem {
   id          String    @id @default(cuid())
   userId      String
   listId      String
+  sortOrder   Int       @default(0)
   name        String
   completed   Boolean   @default(false)
   completedAt DateTime?

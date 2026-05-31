@@ -21,7 +21,7 @@ export async function GET() {
 
   const prompts = await prisma.prompt.findMany({
     where: { userId },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
     include: { project: { select: { id: true, name: true } } },
   });
   return NextResponse.json({ prompts });

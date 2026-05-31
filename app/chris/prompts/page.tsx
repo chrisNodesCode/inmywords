@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { IMWEditor } from "@/components/editor";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
+import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -498,53 +499,38 @@ export default function PromptsPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               {grouped.map((group) => (
-                <div key={group.id}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "baseline",
-                      gap: 8,
-                      margin: "0 4px 10px",
-                    }}
-                  >
-                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.text }}>
-                      {group.name}
-                    </h3>
-                    <span style={{ fontFamily: MONO, fontSize: 11, color: C.textFaint }}>
-                      {group.items.length}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {group.items.map((prompt) =>
-                      editingId === prompt.id ? (
-                        <PromptEditingCard
-                          key={prompt.id}
-                          prompt={prompt}
-                          projects={projects}
-                          onSave={async (data) => {
-                            await patchPrompt(prompt.id, data);
-                            collapseEdit();
-                          }}
-                          onCancel={collapseEdit}
-                          onDelete={() => {
-                            deletePrompt(prompt.id);
-                            collapseEdit();
-                          }}
-                        />
-                      ) : (
-                        <PromptRow
-                          key={prompt.id}
-                          prompt={prompt}
-                          projects={projects}
-                          onDelete={() => deletePrompt(prompt.id)}
-                          onReassign={(pid) => reassignPrompt(prompt.id, pid)}
-                          onCopy={() => copyPrompt(prompt.content)}
-                          onEdit={() => expandEdit(prompt.id)}
-                        />
-                      )
-                    )}
-                  </div>
-                </div>
+                <PromptGroupView
+                  key={group.id}
+                  group={group}
+                  projects={projects}
+                  editingId={editingId}
+                  applyGroupReorder={(orderedIds) => {
+                    // Merge new order back into the global prompts array,
+                    // preserving the order of items not in this group.
+                    setPrompts((prev) => {
+                      const inGroup = new Set(orderedIds);
+                      const groupItems = orderedIds
+                        .map((id) => prev.find((p) => p.id === id)!)
+                        .filter(Boolean);
+                      const others = prev.filter((p) => !inGroup.has(p.id));
+                      return [...groupItems, ...others];
+                    });
+                    void fetch("/chris/api/prompts/reorder", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ ids: orderedIds }),
+                    });
+                  }}
+                  onPatchSave={async (id, data) => {
+                    await patchPrompt(id, data);
+                    collapseEdit();
+                  }}
+                  onCancelEdit={collapseEdit}
+                  onDelete={deletePrompt}
+                  onReassign={reassignPrompt}
+                  onCopy={copyPrompt}
+                  onEdit={expandEdit}
+                />
               ))}
             </div>
           )}
@@ -590,9 +576,90 @@ function ProjectChip({
 
 // ── Prompt row ───────────────────────────────────────────────────────────────
 
+function PromptGroupView({
+  group,
+  projects,
+  editingId,
+  applyGroupReorder,
+  onPatchSave,
+  onCancelEdit,
+  onDelete,
+  onReassign,
+  onCopy,
+  onEdit,
+}: {
+  group: { id: string; name: string; items: Prompt[] };
+  projects: Project[];
+  editingId: string | null;
+  applyGroupReorder: (orderedIds: string[]) => void;
+  onPatchSave: (
+    id: string,
+    data: { content: string; projectId: string | null }
+  ) => Promise<void>;
+  onCancelEdit: () => void;
+  onDelete: (id: string) => void;
+  onReassign: (id: string, projectId: string | null) => void;
+  onCopy: (content: string) => void;
+  onEdit: (id: string) => void;
+}) {
+  const { rowProps, rowStyle } = useDragReorder(group.items, (next) =>
+    applyGroupReorder(next.map((p) => p.id))
+  );
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 8,
+          margin: "0 4px 10px",
+        }}
+      >
+        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.text }}>
+          {group.name}
+        </h3>
+        <span style={{ fontFamily: MONO, fontSize: 11, color: C.textFaint }}>
+          {group.items.length}
+        </span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {group.items.map((prompt) =>
+          editingId === prompt.id ? (
+            <PromptEditingCard
+              key={prompt.id}
+              prompt={prompt}
+              projects={projects}
+              onSave={(data) => onPatchSave(prompt.id, data)}
+              onCancel={onCancelEdit}
+              onDelete={() => {
+                onDelete(prompt.id);
+                onCancelEdit();
+              }}
+            />
+          ) : (
+            <PromptRow
+              key={prompt.id}
+              prompt={prompt}
+              projects={projects}
+              dragProps={rowProps(prompt.id)}
+              dragStyle={rowStyle(prompt.id)}
+              onDelete={() => onDelete(prompt.id)}
+              onReassign={(pid) => onReassign(prompt.id, pid)}
+              onCopy={() => onCopy(prompt.content)}
+              onEdit={() => onEdit(prompt.id)}
+            />
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PromptRow({
   prompt,
   projects,
+  dragProps,
+  dragStyle,
   onDelete,
   onReassign,
   onCopy,
@@ -600,6 +667,8 @@ function PromptRow({
 }: {
   prompt: Prompt;
   projects: Project[];
+  dragProps: React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean };
+  dragStyle: React.CSSProperties;
   onDelete: () => void;
   onReassign: (projectId: string | null) => void;
   onCopy: () => void;
@@ -619,6 +688,7 @@ function PromptRow({
 
   return (
     <div
+      {...dragProps}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -630,6 +700,7 @@ function PromptRow({
         transition: "background 0.12s ease",
         // View transition: shared element between preview & editing card
         viewTransitionName: `prompt-${prompt.id}`,
+        ...dragStyle,
       } as React.CSSProperties}
     >
       <div

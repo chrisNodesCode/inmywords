@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { IMWEditor } from "@/components/editor";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
+import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -513,6 +514,14 @@ export default function JournalPage() {
                 await patchEntry(id, data);
                 collapseEdit();
               }}
+              applyReorder={(next) => {
+                setEntries(next);
+                void fetch("/api/entries/reorder", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ ids: next.map((e) => e.id) }),
+                });
+              }}
             />
           )}
         </section>
@@ -565,6 +574,7 @@ function EntryFeed({
   onEdit,
   onCancelEdit,
   onSaveEdit,
+  applyReorder,
 }: {
   entries: Entry[];
   projects: Project[];
@@ -576,7 +586,9 @@ function EntryFeed({
     id: string,
     data: { title: string | null; content: string; mood: string | null; projectId: string | null }
   ) => Promise<void>;
+  applyReorder: (next: Entry[]) => void;
 }) {
+  const { rowProps, rowStyle } = useDragReorder(entries, applyReorder);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {entries.map((entry) =>
@@ -596,6 +608,8 @@ function EntryFeed({
           <EntryRow
             key={entry.id}
             entry={entry}
+            dragProps={rowProps(entry.id)}
+            dragStyle={rowStyle(entry.id)}
             onDelete={() => onDelete(entry.id)}
             onEdit={() => onEdit(entry.id)}
           />
@@ -607,10 +621,14 @@ function EntryFeed({
 
 function EntryRow({
   entry,
+  dragProps,
+  dragStyle,
   onDelete,
   onEdit,
 }: {
   entry: Entry;
+  dragProps: React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean };
+  dragStyle: React.CSSProperties;
   onDelete: () => void;
   onEdit: () => void;
 }) {
@@ -619,10 +637,11 @@ function EntryRow({
 
   return (
     <div
+      {...dragProps}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onClick={onEdit}
-      title="Click to edit"
+      title="Click to edit · drag to reorder"
       style={{
         position: "relative",
         border: `1px solid ${C.border}`,
@@ -630,8 +649,8 @@ function EntryRow({
         background: hover ? C.cardHover : C.card,
         padding: "16px 18px",
         transition: "background 0.12s ease",
-        cursor: "pointer",
         viewTransitionName: `entry-${entry.id}`,
+        ...dragStyle,
       } as React.CSSProperties}
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 6 }}>
