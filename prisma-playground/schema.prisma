@@ -1,0 +1,44 @@
+// ─────────────────────────────────────────────────────────────────────────
+// Chris's Playground — ISOLATED Prisma schema.
+//
+// This schema is completely separate from the InMyWords schema
+// (prisma/schema.prisma). It generates its own client into
+// lib/generated/playground and connects to its OWN database via
+// PLAYGROUND_DATABASE_URL — never the InMyWords `nameless-block` DB.
+//
+// Run migrations with the dedicated config:
+//   npm run playground:migrate
+//   npm run playground:generate
+// ─────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/playground"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// To-dos — the first real playground module. Deliberately light: only `title`
+// is required; everything else is optional context the user can add if useful.
+model Todo {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  note        String?
+  priority    Priority?
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+}
