@@ -51,11 +51,24 @@ export async function PATCH(
       data.entryId = entry.id;
     }
   }
+  if ("projectId" in body) {
+    const v = body.projectId;
+    if (v === null || v === "") {
+      data.projectId = null;
+    } else if (typeof v === "string") {
+      const p = await prisma.project.findFirst({ where: { id: v, userId }, select: { id: true } });
+      if (!p) return NextResponse.json({ error: "Invalid projectId" }, { status: 400 });
+      data.projectId = p.id;
+    }
+  }
 
   const todo = await prisma.todo.update({
     where: { id },
     data,
-    include: { entry: { select: { id: true, title: true } } },
+    include: {
+      entry: { select: { id: true, title: true } },
+      project: { select: { id: true, name: true } },
+    },
   });
   return NextResponse.json({ todo });
 }

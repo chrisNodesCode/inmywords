@@ -32,6 +32,19 @@ async function resolveEntryId(
   return entry ? entry.id : false;
 }
 
+async function resolveProjectId(
+  value: unknown,
+  userId: string
+): Promise<string | null | false> {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "string") return false;
+  const p = await prisma.project.findFirst({
+    where: { id: value, userId },
+    select: { id: true },
+  });
+  return p ? p.id : false;
+}
+
 // GET /chris/api/todos — list this user's todos (with any linked entry)
 export async function GET() {
   const userId = await getPlaygroundUserId();
@@ -40,7 +53,10 @@ export async function GET() {
   const todos = await prisma.todo.findMany({
     where: { userId },
     orderBy: [{ completed: "asc" }, { createdAt: "desc" }],
-    include: { entry: { select: { id: true, title: true } } },
+    include: {
+      entry: { select: { id: true, title: true } },
+      project: { select: { id: true, name: true } },
+    },
   });
   return NextResponse.json({ todos });
 }
@@ -58,6 +74,10 @@ export async function POST(req: NextRequest) {
   if (entryId === false) {
     return NextResponse.json({ error: "Invalid entryId" }, { status: 400 });
   }
+  const projectId = await resolveProjectId(body.projectId, userId);
+  if (projectId === false) {
+    return NextResponse.json({ error: "Invalid projectId" }, { status: 400 });
+  }
 
   const todo = await prisma.todo.create({
     data: {
@@ -67,8 +87,12 @@ export async function POST(req: NextRequest) {
       priority: parsePriority(body.priority),
       dueDate: parseDueDate(body.dueDate),
       entryId,
+      projectId,
     },
-    include: { entry: { select: { id: true, title: true } } },
+    include: {
+      entry: { select: { id: true, title: true } },
+      project: { select: { id: true, name: true } },
+    },
   });
   return NextResponse.json({ todo }, { status: 201 });
 }

@@ -20,10 +20,10 @@ type Module = {
 // playground is meant to hold. Edit freely.
 const MODULES: Module[] = [
   { key: "todos", name: "To-dos", blurb: "Quick capture + daily list", glyph: "✓", href: "/chris/todos" },
-  { key: "projects", name: "Projects", blurb: "Lightweight project tracking", glyph: "◳" },
+  { key: "projects", name: "Projects", blurb: "Organize prompts and to-dos", glyph: "◳", href: "/chris/projects" },
   { key: "ideas", name: "Idea Lab", blurb: "Webapp ideas & thought experiments", glyph: "✦" },
   { key: "shopping", name: "Shopping List", blurb: "Items grouped by retailer", glyph: "⟳", href: "/chris/shopping" },
-  { key: "notes", name: "Scratch Notes", blurb: "Fast, throwaway thinking space", glyph: "✎" },
+  { key: "prompts", name: "Prompts", blurb: "Drafting space for LLM prompts", glyph: "✎", href: "/chris/prompts" },
   { key: "automations", name: "Automations", blurb: "Little helpers & scripts", glyph: "⚙" },
 ];
 

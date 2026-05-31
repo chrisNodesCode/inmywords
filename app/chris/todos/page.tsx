@@ -19,6 +19,8 @@ type Todo = {
   updatedAt: string;
   entryId: string | null;
   entry: { id: string; title: string | null } | null;
+  projectId: string | null;
+  project: { id: string; name: string } | null;
 };
 
 type EntryLite = {
@@ -27,6 +29,11 @@ type EntryLite = {
   snippet: string;
   createdAt: string;
 };
+
+type Project = { id: string; name: string };
+
+const LAST_PROJECT_KEY = "chris.todos.lastProjectId";
+const UNASSIGNED = "__unassigned__";
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 
@@ -97,6 +104,52 @@ export default function TodosPage() {
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [pickerForId, setPickerForId] = useState<string | null>(null);
 
+  // Project state — same UX as shopping list active chip
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
+  const [projectPickerForId, setProjectPickerForId] = useState<string | null>(null);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+
+  const setActiveProjectId = useCallback((id: string | null) => {
+    setActiveProjectIdState(id);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(LAST_PROJECT_KEY, id ?? UNASSIGNED);
+    }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const res = await fetch("/chris/api/projects");
+      if (!res.ok) return;
+      const data = await res.json();
+      const loaded: Project[] = (data.projects ?? []).map(
+        (p: { id: string; name: string }) => ({ id: p.id, name: p.name })
+      );
+      setProjects(loaded);
+      const saved = localStorage.getItem(LAST_PROJECT_KEY);
+      if (saved === UNASSIGNED) setActiveProjectIdState(null);
+      else if (saved && loaded.some((p) => p.id === saved)) {
+        setActiveProjectIdState(saved);
+      }
+    })();
+  }, []);
+
+  const createProject = async (name: string): Promise<Project | null> => {
+    const t = name.trim();
+    if (!t) return null;
+    const res = await fetch("/chris/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: t }),
+    });
+    if (!res.ok) return null;
+    const { project } = await res.json();
+    const p = { id: project.id, name: project.name };
+    setProjects((prev) => [...prev, p]);
+    return p;
+  };
+
   const ensureEntries = useCallback(async () => {
     if (entries !== null || entriesLoading) return;
     setEntriesLoading(true);
@@ -131,13 +184,21 @@ export default function TodosPage() {
     setExpanded(false);
   };
 
-  const addTodo = async () => {
+  const addTodo = async (projectIdOverride?: string | null) => {
     const t = title.trim();
     if (!t) return;
+    const projectId =
+      projectIdOverride !== undefined ? projectIdOverride : activeProjectId;
     const res = await fetch("/chris/api/todos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: t, note, priority, dueDate: due || null }),
+      body: JSON.stringify({
+        title: t,
+        note,
+        priority,
+        dueDate: due || null,
+        projectId,
+      }),
     });
     if (res.ok) {
       const { todo } = await res.json();
@@ -145,6 +206,14 @@ export default function TodosPage() {
       resetAdd();
       inputRef.current?.focus();
     }
+  };
+
+  const handleProjectChipClick = async (projectId: string | null) => {
+    setActiveProjectId(projectId);
+    if (title.trim()) {
+      await addTodo(projectId);
+    }
+    inputRef.current?.focus();
   };
 
   const patchTodo = async (id: string, body: Partial<Todo>) => {
@@ -242,7 +311,7 @@ export default function TodosPage() {
             }}
           />
           <button
-            onClick={addTodo}
+            onClick={() => addTodo()}
             disabled={!title.trim()}
             style={{
               border: "none",
@@ -258,6 +327,108 @@ export default function TodosPage() {
           >
             Add
           </button>
+        </div>
+
+        {/* Project chips — always visible (mirrors shopping list) */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 6,
+            padding: "12px 4px 0",
+          }}
+        >
+          <button
+            onClick={() => handleProjectChipClick(null)}
+            style={{
+              border: `1px solid ${activeProjectId === null ? C.accent : C.border}`,
+              background: activeProjectId === null ? C.accent : "transparent",
+              color: activeProjectId === null ? "#1a1710" : C.textFaint,
+              borderRadius: 999,
+              padding: "5px 12px",
+              fontSize: 12.5,
+              fontWeight: activeProjectId === null ? 600 : 400,
+              fontStyle: activeProjectId === null ? "normal" : "italic",
+              cursor: "pointer",
+              transition: "background 0.15s ease, color 0.15s ease",
+            }}
+          >
+            Unassigned
+          </button>
+          {projects.map((p) => {
+            const active = activeProjectId === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => handleProjectChipClick(p.id)}
+                style={{
+                  border: `1px solid ${active ? C.accent : C.border}`,
+                  background: active ? C.accent : "transparent",
+                  color: active ? "#1a1710" : C.textDim,
+                  borderRadius: 999,
+                  padding: "5px 12px",
+                  fontSize: 12.5,
+                  fontWeight: active ? 600 : 400,
+                  cursor: "pointer",
+                  transition: "background 0.15s ease, color 0.15s ease",
+                }}
+              >
+                {p.name}
+              </button>
+            );
+          })}
+          {creatingProject ? (
+            <input
+              autoFocus
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              onBlur={async () => {
+                const p = await createProject(newProjectName);
+                if (p) setActiveProjectId(p.id);
+                setNewProjectName("");
+                setCreatingProject(false);
+              }}
+              onKeyDown={async (e) => {
+                if (e.key === "Enter") {
+                  const p = await createProject(newProjectName);
+                  if (p) setActiveProjectId(p.id);
+                  setNewProjectName("");
+                  setCreatingProject(false);
+                }
+                if (e.key === "Escape") {
+                  setNewProjectName("");
+                  setCreatingProject(false);
+                }
+              }}
+              placeholder="Project name"
+              style={{
+                background: "transparent",
+                border: `1px solid ${C.accent}`,
+                borderRadius: 999,
+                outline: "none",
+                color: C.text,
+                fontSize: 12.5,
+                padding: "5px 11px",
+                minWidth: 120,
+              }}
+            />
+          ) : (
+            <button
+              onClick={() => setCreatingProject(true)}
+              style={{
+                border: `1px dashed ${C.border}`,
+                background: "transparent",
+                color: C.textDim,
+                borderRadius: 999,
+                padding: "5px 12px",
+                fontSize: 12.5,
+                cursor: "pointer",
+              }}
+            >
+              + project
+            </button>
+          )}
         </div>
 
         {/* Optional details — appear once the field is engaged */}
@@ -371,6 +542,11 @@ export default function TodosPage() {
                   onOpenPicker={() => openPicker(t.id)}
                   onClosePicker={() => setPickerForId(null)}
                   onLink={(entryId) => linkEntry(t.id, entryId)}
+                  projects={projects}
+                  projectPickerOpen={projectPickerForId === t.id}
+                  onOpenProjectPicker={() => setProjectPickerForId(t.id)}
+                  onCloseProjectPicker={() => setProjectPickerForId(null)}
+                  onAssignProject={(pid) => patchTodo(t.id, { projectId: pid } as Partial<Todo>)}
                 />
               ))}
             </div>
@@ -404,6 +580,11 @@ export default function TodosPage() {
                       onOpenPicker={() => openPicker(t.id)}
                       onClosePicker={() => setPickerForId(null)}
                       onLink={(entryId) => linkEntry(t.id, entryId)}
+                      projects={projects}
+                      projectPickerOpen={projectPickerForId === t.id}
+                      onOpenProjectPicker={() => setProjectPickerForId(t.id)}
+                      onCloseProjectPicker={() => setProjectPickerForId(null)}
+                      onAssignProject={(pid) => patchTodo(t.id, { projectId: pid } as Partial<Todo>)}
                     />
                   ))}
                 </div>
@@ -430,6 +611,11 @@ function TodoRow({
   onOpenPicker,
   onClosePicker,
   onLink,
+  projects,
+  projectPickerOpen,
+  onOpenProjectPicker,
+  onCloseProjectPicker,
+  onAssignProject,
 }: {
   todo: Todo;
   onToggle: () => void;
@@ -442,6 +628,11 @@ function TodoRow({
   onOpenPicker: () => void;
   onClosePicker: () => void;
   onLink: (entryId: string | null) => void;
+  projects: Project[];
+  projectPickerOpen: boolean;
+  onOpenProjectPicker: () => void;
+  onCloseProjectPicker: () => void;
+  onAssignProject: (projectId: string | null) => void;
 }) {
   const [hover, setHover] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -545,8 +736,8 @@ function TodoRow({
         )}
 
         {/* Meta row */}
-        {(pri || dueInfo) && (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 7 }}>
+        {(pri || dueInfo || todo.project) && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 7, flexWrap: "wrap" }}>
             {dueInfo && (
               <span
                 style={{
@@ -557,6 +748,24 @@ function TodoRow({
               >
                 {dueInfo.label}
               </span>
+            )}
+            {todo.project && (
+              <button
+                onClick={() => (projectPickerOpen ? onCloseProjectPicker() : onOpenProjectPicker())}
+                style={{
+                  border: `1px solid ${C.border}`,
+                  background: "transparent",
+                  color: C.textDim,
+                  borderRadius: 999,
+                  padding: "2px 9px",
+                  fontSize: 11.5,
+                  cursor: "pointer",
+                }}
+                title="Change project"
+              >
+                <span style={{ color: C.accent, marginRight: 4 }}>◆</span>
+                {todo.project.name}
+              </button>
             )}
           </div>
         )}
@@ -629,6 +838,30 @@ function TodoRow({
         }}
       />
 
+      {/* Project assignment */}
+      <button
+        onClick={() => (projectPickerOpen ? onCloseProjectPicker() : onOpenProjectPicker())}
+        title={todo.project ? `Project: ${todo.project.name}` : "Assign to project"}
+        aria-label="Assign project"
+        style={{
+          flexShrink: 0,
+          marginTop: 3,
+          width: 18,
+          height: 18,
+          borderRadius: 999,
+          border: "none",
+          background: "transparent",
+          color: todo.project || projectPickerOpen ? C.accent : C.textFaint,
+          cursor: "pointer",
+          fontSize: 11,
+          lineHeight: 1,
+          opacity: todo.project || hover || projectPickerOpen ? 1 : 0,
+          transition: "opacity 0.12s ease",
+        }}
+      >
+        ◆
+      </button>
+
       {/* Link to entry */}
       <button
         onClick={() => (pickerOpen ? onClosePicker() : onOpenPicker())}
@@ -683,6 +916,18 @@ function TodoRow({
           currentEntryId={todo.entryId}
           onPick={onLink}
           onClose={onClosePicker}
+        />
+      )}
+
+      {projectPickerOpen && (
+        <ProjectPicker
+          projects={projects}
+          currentProjectId={todo.projectId}
+          onPick={(pid) => {
+            onAssignProject(pid);
+            onCloseProjectPicker();
+          }}
+          onClose={onCloseProjectPicker}
         />
       )}
     </div>
@@ -826,6 +1071,86 @@ function EntryPicker({
             })
           )}
         </div>
+      </div>
+    </>
+  );
+}
+
+// ── Project picker dropdown ──────────────────────────────────────────────────
+
+function ProjectPicker({
+  projects,
+  currentProjectId,
+  onPick,
+  onClose,
+}: {
+  projects: Project[];
+  currentProjectId: string | null;
+  onPick: (projectId: string | null) => void;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+      <div
+        style={{
+          position: "absolute",
+          top: "calc(100% + 6px)",
+          right: 0,
+          width: 240,
+          maxWidth: "calc(100vw - 48px)",
+          zIndex: 50,
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderRadius: 12,
+          boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+          overflow: "hidden",
+        }}
+      >
+        <button
+          onClick={() => onPick(null)}
+          style={{
+            display: "block",
+            width: "100%",
+            textAlign: "left",
+            background: currentProjectId === null ? C.cardHover : "transparent",
+            border: "none",
+            borderBottom: `1px solid ${C.borderSoft}`,
+            color: C.textDim,
+            fontStyle: "italic",
+            cursor: "pointer",
+            padding: "10px 14px",
+            fontSize: 13,
+          }}
+        >
+          Unassigned
+        </button>
+        {projects.length === 0 ? (
+          <p style={{ color: C.textFaint, fontSize: 12.5, padding: "14px 12px", margin: 0 }}>
+            No projects yet — create one in the chip row above.
+          </p>
+        ) : (
+          projects.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => onPick(p.id)}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                background: currentProjectId === p.id ? C.cardHover : "transparent",
+                border: "none",
+                borderBottom: `1px solid ${C.borderSoft}`,
+                color: C.text,
+                cursor: "pointer",
+                padding: "10px 14px",
+                fontSize: 13,
+              }}
+            >
+              {p.name}
+            </button>
+          ))
+        )}
       </div>
     </>
   );

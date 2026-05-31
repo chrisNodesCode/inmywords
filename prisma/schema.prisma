@@ -52,8 +52,46 @@ model Todo {
   entryId String?
   entry   JournalEntry? @relation(fields: [entryId], references: [id], onDelete: SetNull)
 
+  // Optional project association (playground Project module).
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
   @@index([userId])
   @@index([entryId])
+  @@index([projectId])
+}
+
+// Playground Project — lightweight organizer that Prompts and Todos can be
+// linked to. Right now just a name; will get richer fields later.
+model Project {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  prompts Prompt[]
+  todos   Todo[]
+
+  @@index([userId])
+}
+
+// Playground Prompt — LLM prompt drafts. Content is TipTap JSON (same as
+// JournalEntry) so we can reuse the IMWEditor.
+model Prompt {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String?
+  title     String?
+  content   String   // TipTap JSON
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([projectId])
 }
 
 // Shopping lists — playground module. Each list is typically a retailer
