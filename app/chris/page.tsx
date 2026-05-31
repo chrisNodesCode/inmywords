@@ -22,7 +22,7 @@ const MODULES: Module[] = [
   { key: "todos", name: "To-dos", blurb: "Quick capture + daily list", glyph: "✓", href: "/chris/todos" },
   { key: "projects", name: "Projects", blurb: "Lightweight project tracking", glyph: "◳" },
   { key: "ideas", name: "Idea Lab", blurb: "Webapp ideas & thought experiments", glyph: "✦" },
-  { key: "orders", name: "Recurring Orders", blurb: "Re-order routines in a click", glyph: "⟳" },
+  { key: "shopping", name: "Shopping List", blurb: "Items grouped by retailer", glyph: "⟳", href: "/chris/shopping" },
   { key: "notes", name: "Scratch Notes", blurb: "Fast, throwaway thinking space", glyph: "✎" },
   { key: "automations", name: "Automations", blurb: "Little helpers & scripts", glyph: "⚙" },
 ];
