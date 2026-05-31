@@ -42,4 +42,5 @@ next-env.d.ts
 
 /lib/generated/prisma
 
-/lib/generated/playground
+# local migration backup (personal data — do not commit)
+/_migration_backup

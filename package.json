@@ -4,13 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma generate --config ./prisma-playground.config.ts && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint",
-    "playground:generate": "prisma generate --config ./prisma-playground.config.ts",
-    "playground:migrate": "prisma migrate dev --config ./prisma-playground.config.ts",
-    "playground:deploy": "prisma migrate deploy --config ./prisma-playground.config.ts",
-    "playground:studio": "prisma studio --config ./prisma-playground.config.ts"
+    "lint": "eslint"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.58",

@@ -25,6 +25,29 @@ model JournalEntry {
   @@index([userId])
 }
 
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// Playground To-dos — co-located with journal data so tools can cross-reference
+// entries/tags down the road. Scoped by userId like JournalEntry.
+model Todo {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  note        String?
+  priority    Priority?
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+}
+
 model UserPreferences {
   id               String   @id @default(cuid())
   userId           String   @unique

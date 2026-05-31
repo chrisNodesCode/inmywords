@@ -13,27 +13,22 @@ This project uses a dedicated Neon serverless Postgres database.
 
 - **InMyWords DB identifier:** `nameless-block`
 - **BaseTracer DB identifier:** `broad-math`
-- **Chris's Playground DB identifier:** `bitter-queen` (separate Neon project, `us-east-1`)
 
 These are completely separate databases. **Never share or swap DATABASE_URL between projects.**
 Before running any `prisma migrate` or `prisma db push`, verify the connection string in `.env.local`
 contains `nameless-block`. If you are unsure, stop and ask.
 
-### Chris's Playground (`/chris`) — separate area + DB
+### Chris's Playground (`/chris`) — owner-only area, same DB
 
-`/chris` is a deliberately isolated personal playground. It ships as a route in
-this same Next.js app and Vercel project (no new hosting charge), but everything
-else is separate:
+`/chris` is a personal playground (to-dos and future tools), gated to the owner.
+It now shares the **main `nameless-block` database** (merged 2026-05-31 from the
+former standalone `bitter-queen` project) so playground data can cross-reference
+journal entries and tags. It is NOT a separate DB anymore.
 
-- **Schema:** `prisma-playground/schema.prisma` → generates to `lib/generated/playground`
-- **Config:** `prisma-playground.config.ts` (migrations use the unpooled `PLAYGROUND_DIRECT_URL`)
-- **Client:** `import { playgroundDb } from "@/lib/playground-db"` — never `@/lib/prisma`
-- **Env:** `PLAYGROUND_DATABASE_URL` (pooled, runtime) + `PLAYGROUND_DIRECT_URL` (unpooled, migrate) — DB `bitter-queen`
-- **Scripts:** `npm run playground:migrate | playground:generate | playground:deploy | playground:studio` (all pass `--config ./prisma-playground.config.ts`, so they can never touch `nameless-block`)
+- **Models:** `Todo` (+ `Priority` enum) live in `prisma/schema.prisma` alongside `JournalEntry`.
+- **Client:** uses the standard `import { prisma } from "@/lib/prisma"`.
+- **Owner gate:** `lib/playground-auth.ts` (`getPlaygroundUserId()` returns a userId only for `PLAYGROUND_OWNER_EMAIL`) + `app/chris/OwnerGate.tsx` (client redirect). Non-owners are blocked at both the UI and the API.
 - **Layout:** `app/chris/layout.tsx` is self-contained — no IMW sidebar/theme. `SidebarWrapper` hides the IMW sidebar on `/chris*`.
-
-⚠️ Never run a playground migration without `--config ./prisma-playground.config.ts`,
-and never point `PLAYGROUND_*` env vars at `nameless-block` (or vice versa).
 
 ---
 

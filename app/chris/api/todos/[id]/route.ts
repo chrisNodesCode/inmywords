@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { playgroundDb } from "@/lib/playground-db";
+import { prisma } from "@/lib/prisma";
 import { getPlaygroundUserId } from "@/lib/playground-auth";
-import type { Priority } from "@/lib/generated/playground";
+import type { Priority } from "@prisma/client";
 
 const PRIORITIES: Priority[] = ["LOW", "MEDIUM", "HIGH"];
 
@@ -14,7 +14,7 @@ export async function PATCH(
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const existing = await playgroundDb.todo.findFirst({ where: { id, userId } });
+  const existing = await prisma.todo.findFirst({ where: { id, userId } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
@@ -39,7 +39,7 @@ export async function PATCH(
     data.completedAt = body.completed ? new Date() : null;
   }
 
-  const todo = await playgroundDb.todo.update({ where: { id }, data });
+  const todo = await prisma.todo.update({ where: { id }, data });
   return NextResponse.json({ todo });
 }
 
@@ -52,9 +52,9 @@ export async function DELETE(
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const existing = await playgroundDb.todo.findFirst({ where: { id, userId } });
+  const existing = await prisma.todo.findFirst({ where: { id, userId } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await playgroundDb.todo.delete({ where: { id } });
+  await prisma.todo.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

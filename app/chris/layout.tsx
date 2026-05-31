@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OwnerGate } from "./OwnerGate";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Chris's Playground — a deliberately separate area from InMyWords.
@@ -33,7 +34,7 @@ export default function PlaygroundLayout({
           'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
       }}
     >
-      {children}
+      <OwnerGate>{children}</OwnerGate>
     </div>
   );
 }

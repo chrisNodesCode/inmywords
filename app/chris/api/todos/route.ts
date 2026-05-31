@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { playgroundDb } from "@/lib/playground-db";
+import { prisma } from "@/lib/prisma";
 import { getPlaygroundUserId } from "@/lib/playground-auth";
-import type { Priority } from "@/lib/generated/playground";
+import type { Priority } from "@prisma/client";
 
 const PRIORITIES: Priority[] = ["LOW", "MEDIUM", "HIGH"];
 
@@ -22,7 +22,7 @@ export async function GET() {
   const userId = await getPlaygroundUserId();
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const todos = await playgroundDb.todo.findMany({
+  const todos = await prisma.todo.findMany({
     where: { userId },
     orderBy: [{ completed: "asc" }, { createdAt: "desc" }],
   });
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   const title = typeof body.title === "string" ? body.title.trim() : "";
   if (!title) return NextResponse.json({ error: "Title is required" }, { status: 400 });
 
-  const todo = await playgroundDb.todo.create({
+  const todo = await prisma.todo.create({
     data: {
       userId,
       title,
