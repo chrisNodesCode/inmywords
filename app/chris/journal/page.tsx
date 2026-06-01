@@ -5,6 +5,7 @@ import Link from "next/link";
 import { IMWEditor } from "@/components/editor";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
+import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -770,6 +771,7 @@ function EntryEditingCard({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [deepWrite, setDeepWrite] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const projectBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handler = () => {
@@ -910,6 +912,7 @@ function EntryEditingCard({
 
         <div style={{ position: "relative" }}>
           <button
+            ref={projectBtnRef}
             onClick={() => setPickerOpen((x) => !x)}
             style={{
               border: `1px solid ${C.border}`,
@@ -926,6 +929,7 @@ function EntryEditingCard({
           </button>
           {pickerOpen && (
             <EntryProjectPickerDropdown
+              anchorRef={projectBtnRef}
               projects={projects}
               currentProjectId={projectId}
               onPick={(pid) => {
@@ -993,69 +997,43 @@ function EntryProjectPickerDropdown({
   currentProjectId,
   onPick,
   onClose,
+  anchorRef,
 }: {
   projects: Project[];
   currentProjectId: string | null;
   onPick: (projectId: string | null) => void;
   onClose: () => void;
+  anchorRef: React.RefObject<HTMLElement | null>;
 }) {
   return (
-    <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-      <div
+    <FixedDropdown anchorRef={anchorRef} onClose={onClose} width={220} maxHeight={260}>
+      <button
+        onClick={() => onPick(null)}
         style={{
-          position: "absolute",
-          left: 0,
-          top: "calc(100% + 6px)",
-          width: 220,
-          zIndex: 50,
-          background: C.card,
-          border: `1px solid ${C.border}`,
-          borderRadius: 12,
-          boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
-          maxHeight: 260,
-          overflowY: "auto",
+          display: "block", width: "100%", textAlign: "left",
+          background: currentProjectId === null ? C.cardHover : "transparent",
+          border: "none", borderBottom: `1px solid ${C.borderSoft}`,
+          color: C.textDim, fontStyle: "italic", cursor: "pointer",
+          padding: "10px 14px", fontSize: 13,
         }}
       >
+        Unassigned
+      </button>
+      {projects.map((p) => (
         <button
-          onClick={() => onPick(null)}
+          key={p.id}
+          onClick={() => onPick(p.id)}
           style={{
-            display: "block",
-            width: "100%",
-            textAlign: "left",
-            background: currentProjectId === null ? C.cardHover : "transparent",
-            border: "none",
-            borderBottom: `1px solid ${C.borderSoft}`,
-            color: C.textDim,
-            fontStyle: "italic",
-            cursor: "pointer",
-            padding: "10px 14px",
-            fontSize: 13,
+            display: "block", width: "100%", textAlign: "left",
+            background: currentProjectId === p.id ? C.cardHover : "transparent",
+            border: "none", borderBottom: `1px solid ${C.borderSoft}`,
+            color: C.text, cursor: "pointer",
+            padding: "10px 14px", fontSize: 13,
           }}
         >
-          Unassigned
+          {p.name}
         </button>
-        {projects.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => onPick(p.id)}
-            style={{
-              display: "block",
-              width: "100%",
-              textAlign: "left",
-              background: currentProjectId === p.id ? C.cardHover : "transparent",
-              border: "none",
-              borderBottom: `1px solid ${C.borderSoft}`,
-              color: C.text,
-              cursor: "pointer",
-              padding: "10px 14px",
-              fontSize: 13,
-            }}
-          >
-            {p.name}
-          </button>
-        ))}
-      </div>
-    </>
+      ))}
+    </FixedDropdown>
   );
 }

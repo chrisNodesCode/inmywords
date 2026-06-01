@@ -5,6 +5,7 @@ import Link from "next/link";
 import { IMWEditor } from "@/components/editor";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
+import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -677,6 +678,7 @@ function PromptRow({
   const [hover, setHover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const projectBtnRef = useRef<HTMLButtonElement>(null);
 
   const preview = useMemo(() => extractPreview(prompt.content, 200), [prompt.content]);
 
@@ -733,6 +735,7 @@ function PromptRow({
         </span>
         <div style={{ flex: 1 }} />
         <button
+          ref={projectBtnRef}
           onClick={() => setPickerOpen((x) => !x)}
           style={{
             border: `1px solid ${C.border}`,
@@ -783,70 +786,18 @@ function PromptRow({
       </div>
 
       {pickerOpen && (
-        <>
-          <div onClick={() => setPickerOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-          <div
-            style={{
-              position: "absolute",
-              right: 16,
-              bottom: -8,
-              transform: "translateY(100%)",
-              zIndex: 50,
-              background: C.card,
-              border: `1px solid ${C.border}`,
-              borderRadius: 12,
-              boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
-              minWidth: 220,
-              maxHeight: 280,
-              overflowY: "auto",
-            }}
-          >
-            <button
-              onClick={() => {
-                onReassign(null);
-                setPickerOpen(false);
-              }}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                background: prompt.projectId === null ? C.cardHover : "transparent",
-                border: "none",
-                borderBottom: `1px solid ${C.borderSoft}`,
-                color: C.textDim,
-                fontStyle: "italic",
-                cursor: "pointer",
-                padding: "10px 14px",
-                fontSize: 13,
-              }}
-            >
-              Unassigned
-            </button>
-            {projects.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => {
-                  onReassign(p.id);
-                  setPickerOpen(false);
-                }}
-                style={{
-                  display: "block",
-                  width: "100%",
-                  textAlign: "left",
-                  background: prompt.projectId === p.id ? C.cardHover : "transparent",
-                  border: "none",
-                  borderBottom: `1px solid ${C.borderSoft}`,
-                  color: C.text,
-                  cursor: "pointer",
-                  padding: "10px 14px",
-                  fontSize: 13,
-                }}
-              >
-                {p.name}
-              </button>
-            ))}
-          </div>
-        </>
+        <FixedDropdown
+          anchorRef={projectBtnRef}
+          onClose={() => setPickerOpen(false)}
+          width={220}
+          maxHeight={280}
+        >
+          <ProjectOptionsList
+            currentProjectId={prompt.projectId}
+            projects={projects}
+            onPick={(pid) => { onReassign(pid); setPickerOpen(false); }}
+          />
+        </FixedDropdown>
       )}
     </div>
   );
@@ -872,6 +823,7 @@ function PromptEditingCard({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [deepWrite, setDeepWrite] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const projectBtnRef = useRef<HTMLButtonElement>(null);
 
   // Sync deep write with browser fullscreen
   useEffect(() => {
@@ -971,6 +923,7 @@ function PromptEditingCard({
         {/* Project picker */}
         <div style={{ position: "relative" }}>
           <button
+            ref={projectBtnRef}
             onClick={() => setPickerOpen((x) => !x)}
             style={{
               border: `1px solid ${C.border}`,
@@ -990,6 +943,7 @@ function PromptEditingCard({
             <ProjectPickerDropdown
               projects={projects}
               currentProjectId={projectId}
+              anchorRef={projectBtnRef}
               onPick={(pid) => {
                 setProjectId(pid);
                 setPickerOpen(false);
@@ -1050,78 +1004,69 @@ function PromptEditingCard({
   );
 }
 
-// Small shared dropdown — used by the editing card and the row pill
-const C_danger = "#e0736a";
-const _ = C_danger; // keep import-shape sane
+// Shared project option list — rendered inside FixedDropdown
+function ProjectOptionsList({
+  projects,
+  currentProjectId,
+  onPick,
+}: {
+  projects: Project[];
+  currentProjectId: string | null;
+  onPick: (projectId: string | null) => void;
+}) {
+  return (
+    <>
+      <button
+        onClick={() => onPick(null)}
+        style={{
+          display: "block", width: "100%", textAlign: "left",
+          background: currentProjectId === null ? C.cardHover : "transparent",
+          border: "none", borderBottom: `1px solid ${C.borderSoft}`,
+          color: C.textDim, fontStyle: "italic", cursor: "pointer",
+          padding: "10px 14px", fontSize: 13,
+        }}
+      >
+        Unassigned
+      </button>
+      {projects.map((p) => (
+        <button
+          key={p.id}
+          onClick={() => onPick(p.id)}
+          style={{
+            display: "block", width: "100%", textAlign: "left",
+            background: currentProjectId === p.id ? C.cardHover : "transparent",
+            border: "none", borderBottom: `1px solid ${C.borderSoft}`,
+            color: C.text, cursor: "pointer",
+            padding: "10px 14px", fontSize: 13,
+          }}
+        >
+          {p.name}
+        </button>
+      ))}
+    </>
+  );
+}
 
 function ProjectPickerDropdown({
   projects,
   currentProjectId,
   onPick,
   onClose,
+  anchorRef,
 }: {
   projects: Project[];
   currentProjectId: string | null;
   onPick: (projectId: string | null) => void;
   onClose: () => void;
+  anchorRef: React.RefObject<HTMLElement | null>;
 }) {
   return (
-    <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          top: "calc(100% + 6px)",
-          width: 220,
-          zIndex: 50,
-          background: C.card,
-          border: `1px solid ${C.border}`,
-          borderRadius: 12,
-          boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
-          maxHeight: 260,
-          overflowY: "auto",
-        }}
-      >
-        <button
-          onClick={() => onPick(null)}
-          style={{
-            display: "block",
-            width: "100%",
-            textAlign: "left",
-            background: currentProjectId === null ? C.cardHover : "transparent",
-            border: "none",
-            borderBottom: `1px solid ${C.borderSoft}`,
-            color: C.textDim,
-            fontStyle: "italic",
-            cursor: "pointer",
-            padding: "10px 14px",
-            fontSize: 13,
-          }}
-        >
-          Unassigned
-        </button>
-        {projects.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => onPick(p.id)}
-            style={{
-              display: "block",
-              width: "100%",
-              textAlign: "left",
-              background: currentProjectId === p.id ? C.cardHover : "transparent",
-              border: "none",
-              borderBottom: `1px solid ${C.borderSoft}`,
-              color: C.text,
-              cursor: "pointer",
-              padding: "10px 14px",
-              fontSize: 13,
-            }}
-          >
-            {p.name}
-          </button>
-        ))}
-      </div>
-    </>
+    <FixedDropdown anchorRef={anchorRef} onClose={onClose} width={220} maxHeight={260}>
+      <ProjectOptionsList
+        currentProjectId={currentProjectId}
+        projects={projects}
+        onPick={onPick}
+      />
+    </FixedDropdown>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
+import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -711,6 +712,8 @@ function TodoRow({
   const [hover, setHover] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(todo.title);
+  const linkBtnRef = useRef<HTMLButtonElement>(null);
+  const projectBtnRef = useRef<HTMLButtonElement>(null);
 
   const pri = todo.priority ? PRIORITY_META[todo.priority] : null;
   const dueInfo = todo.dueDate ? formatDue(todo.dueDate) : null;
@@ -827,6 +830,7 @@ function TodoRow({
             )}
             {todo.project && (
               <button
+                ref={projectBtnRef}
                 onClick={() => (projectPickerOpen ? onCloseProjectPicker() : onOpenProjectPicker())}
                 style={{
                   border: `1px solid ${C.border}`,
@@ -940,6 +944,7 @@ function TodoRow({
 
       {/* Link to entry */}
       <button
+        ref={linkBtnRef}
         onClick={() => (pickerOpen ? onClosePicker() : onOpenPicker())}
         title={todo.entry ? "Change linked entry" : "Link a journal entry"}
         aria-label="Link a journal entry"
@@ -987,6 +992,7 @@ function TodoRow({
 
       {pickerOpen && (
         <EntryPicker
+          anchorRef={linkBtnRef}
           entries={entries}
           loading={entriesLoading}
           currentEntryId={todo.entryId}
@@ -1001,6 +1007,7 @@ function TodoRow({
 
       {projectPickerOpen && (
         <ProjectPicker
+          anchorRef={projectBtnRef}
           projects={projects}
           currentProjectId={todo.projectId}
           onPick={(pid) => {
@@ -1017,6 +1024,7 @@ function TodoRow({
 // ── Entry picker dropdown ────────────────────────────────────────────────────
 
 function EntryPicker({
+  anchorRef,
   entries,
   loading,
   currentEntryId,
@@ -1024,6 +1032,7 @@ function EntryPicker({
   onClose,
   onAddNewEntry,
 }: {
+  anchorRef: React.RefObject<HTMLElement | null>;
   entries: EntryLite[] | null;
   loading: boolean;
   currentEntryId: string | null;
@@ -1040,27 +1049,8 @@ function EntryPicker({
   });
 
   return (
-    <>
-      {/* click-away backdrop */}
-      <div
-        onClick={onClose}
-        style={{ position: "fixed", inset: 0, zIndex: 40 }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          top: "calc(100% + 6px)",
-          right: 0,
-          width: 320,
-          maxWidth: "calc(100vw - 48px)",
-          zIndex: 50,
-          background: C.card,
-          border: `1px solid ${C.border}`,
-          borderRadius: 12,
-          boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
-          overflow: "hidden",
-        }}
-      >
+    <FixedDropdown anchorRef={anchorRef} onClose={onClose} width={320} maxHeight={380}>
+      <div>
         <button
           onClick={onAddNewEntry}
           style={{
@@ -1172,41 +1162,28 @@ function EntryPicker({
           )}
         </div>
       </div>
-    </>
+    </FixedDropdown>
   );
 }
 
 // ── Project picker dropdown ──────────────────────────────────────────────────
 
 function ProjectPicker({
+  anchorRef,
   projects,
   currentProjectId,
   onPick,
   onClose,
 }: {
+  anchorRef: React.RefObject<HTMLElement | null>;
   projects: Project[];
   currentProjectId: string | null;
   onPick: (projectId: string | null) => void;
   onClose: () => void;
 }) {
   return (
-    <>
-      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-      <div
-        style={{
-          position: "absolute",
-          top: "calc(100% + 6px)",
-          right: 0,
-          width: 240,
-          maxWidth: "calc(100vw - 48px)",
-          zIndex: 50,
-          background: C.card,
-          border: `1px solid ${C.border}`,
-          borderRadius: 12,
-          boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
-          overflow: "hidden",
-        }}
-      >
+    <FixedDropdown anchorRef={anchorRef} onClose={onClose} width={240} maxHeight={300}>
+      <div>
         <button
           onClick={() => onPick(null)}
           style={{
@@ -1252,7 +1229,7 @@ function ProjectPicker({
           ))
         )}
       </div>
-    </>
+    </FixedDropdown>
   );
 }
 
