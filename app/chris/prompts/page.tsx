@@ -6,6 +6,7 @@ import { IMWEditor } from "@/components/editor";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
+import { ProjectFilterBar, ALL, UNASSIGNED as UNASSIGNED_FILTER, type FilterValue } from "@/app/chris/_lib/ProjectFilterBar";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -112,18 +113,11 @@ export default function PromptsPage() {
   const expandEdit = (id: string) => transitionTo(() => setEditingId(id));
   const collapseEdit = () => transitionTo(() => setEditingId(null));
 
-  // Active project — null means "Unassigned"
-  const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
-  const setActiveProjectId = useCallback((id: string | null) => {
-    setActiveProjectIdState(id);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(LAST_PROJECT_KEY, id ?? UNASSIGNED);
-    }
+  const [filterValue, setFilterValueState] = useState<FilterValue>(ALL);
+  const setFilterValue = useCallback((v: FilterValue) => {
+    setFilterValueState(v);
+    if (typeof window !== "undefined") localStorage.setItem(LAST_PROJECT_KEY, v);
   }, []);
-
-  // List management
-  const [creatingProject, setCreatingProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState("");
 
   // Load initial data
   useEffect(() => {
@@ -143,9 +137,9 @@ export default function PromptsPage() {
         setPrompts(prd.prompts ?? []);
 
         const saved = localStorage.getItem(LAST_PROJECT_KEY);
-        if (saved === UNASSIGNED) setActiveProjectIdState(null);
+        if (saved === ALL || saved === UNASSIGNED_FILTER) setFilterValueState(saved as FilterValue);
         else if (saved && loadedProjects.some((p) => p.id === saved)) {
-          setActiveProjectIdState(saved);
+          setFilterValueState(saved);
         }
       } finally {
         setLoading(false);
@@ -179,6 +173,8 @@ export default function PromptsPage() {
 
   // ── Save & chip actions ───────────────────────────────────────────────────
 
+  const activeProjectId = filterValue === ALL || filterValue === UNASSIGNED_FILTER ? null : filterValue;
+
   const savePrompt = async (projectIdOverride?: string | null) => {
     if (isContentEmpty(draftContent)) return;
     const projectId = projectIdOverride !== undefined ? projectIdOverride : activeProjectId;
@@ -195,10 +191,11 @@ export default function PromptsPage() {
     }
   };
 
-  const handleChipClick = async (projectId: string | null) => {
-    setActiveProjectId(projectId);
+  const handleFilterChange = async (v: FilterValue) => {
+    setFilterValue(v);
+    const pid = v === ALL || v === UNASSIGNED_FILTER ? null : v;
     if (!isContentEmpty(draftContent)) {
-      await savePrompt(projectId);
+      await savePrompt(pid);
     }
   };
 
@@ -276,18 +273,24 @@ export default function PromptsPage() {
     }
   };
 
-  // ── Derived: group prompts by project ─────────────────────────────────────
+  // ── Derived: filter then group prompts by project ─────────────────────────
 
   const grouped = useMemo(() => {
+    const filtered = filterValue === ALL
+      ? prompts
+      : filterValue === UNASSIGNED_FILTER
+        ? prompts.filter((p) => !p.projectId)
+        : prompts.filter((p) => p.projectId === filterValue);
+
     const groups: { id: string; name: string; items: Prompt[] }[] = [];
-    const unassigned = prompts.filter((p) => !p.projectId);
+    const unassigned = filtered.filter((p) => !p.projectId);
     if (unassigned.length) groups.push({ id: UNASSIGNED, name: "Unassigned", items: unassigned });
     for (const proj of projects) {
-      const items = prompts.filter((p) => p.projectId === proj.id);
+      const items = filtered.filter((p) => p.projectId === proj.id);
       if (items.length) groups.push({ id: proj.id, name: proj.name, items });
     }
     return groups;
-  }, [prompts, projects]);
+  }, [prompts, projects, filterValue]);
 
   const draftEmpty = isContentEmpty(draftContent);
 
@@ -403,106 +406,15 @@ export default function PromptsPage() {
           </button>
         </div>
 
-        {/* Project chip row — hidden in deep write */}
+        {/* Project filter — hidden in deep write */}
         {!deepWrite && (
-          <>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: 6,
-                padding: "12px 4px 0",
-              }}
-            >
-              <ProjectChip
-                name="Unassigned"
-                active={activeProjectId === null}
-                onClick={() => handleChipClick(null)}
-                muted
-              />
-              {projects.map((p) => (
-                <ProjectChip
-                  key={p.id}
-                  name={p.name}
-                  active={activeProjectId === p.id}
-                  onClick={() => handleChipClick(p.id)}
-                />
-              ))}
-              {creatingProject ? (
-                <input
-                  autoFocus
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  onBlur={async () => {
-                    const p = await createProject(newProjectName);
-                    if (p) setActiveProjectId(p.id);
-                    setNewProjectName("");
-                    setCreatingProject(false);
-                  }}
-                  onKeyDown={async (e) => {
-                    if (e.key === "Enter") {
-                      const p = await createProject(newProjectName);
-                      if (p) setActiveProjectId(p.id);
-                      setNewProjectName("");
-                      setCreatingProject(false);
-                    }
-                    if (e.key === "Escape") {
-                      setNewProjectName("");
-                      setCreatingProject(false);
-                    }
-                  }}
-                  placeholder="Project name"
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${C.accent}`,
-                    borderRadius: 999,
-                    outline: "none",
-                    color: C.text,
-                    fontSize: 12.5,
-                    padding: "5px 11px",
-                    minWidth: 120,
-                  }}
-                />
-              ) : (
-                <button
-                  onClick={() => setCreatingProject(true)}
-                  style={{
-                    border: `1px dashed ${C.border}`,
-                    background: "transparent",
-                    color: C.textDim,
-                    borderRadius: 999,
-                    padding: "5px 12px",
-                    fontSize: 12.5,
-                    cursor: "pointer",
-                  }}
-                >
-                  + project
-                </button>
-              )}
-              <Link
-                href="/chris/projects"
-                style={{
-                  marginLeft: "auto",
-                  fontFamily: MONO,
-                  fontSize: 11,
-                  color: C.textFaint,
-                  textDecoration: "none",
-                }}
-              >
-                manage →
-              </Link>
-            </div>
-            {/* Save target hint */}
-            <p style={{ margin: "12px 4px 0", fontFamily: MONO, fontSize: 11.5, color: C.textFaint }}>
-              saves to{" "}
-              <span style={{ color: C.accent }}>
-                {activeProjectId
-                  ? projects.find((p) => p.id === activeProjectId)?.name ?? "Unassigned"
-                  : "Unassigned"}
-              </span>
-            </p>
-          </>
+          <ProjectFilterBar
+            projects={projects}
+            value={filterValue}
+            onChange={handleFilterChange}
+            onCreateProject={createProject}
+            storageKey={LAST_PROJECT_KEY}
+          />
         )}
       </section>
       )}
@@ -558,40 +470,6 @@ export default function PromptsPage() {
         </section>
       )}
     </main>
-  );
-}
-
-// ── Chip ─────────────────────────────────────────────────────────────────────
-
-function ProjectChip({
-  name,
-  active,
-  onClick,
-  muted,
-}: {
-  name: string;
-  active: boolean;
-  onClick: () => void;
-  muted?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        border: `1px solid ${active ? C.accent : C.border}`,
-        background: active ? C.accent : "transparent",
-        color: active ? C.accentText : muted ? C.textFaint : C.textDim,
-        borderRadius: 999,
-        padding: "5px 12px",
-        fontSize: 12.5,
-        fontWeight: active ? 600 : 400,
-        cursor: "pointer",
-        fontStyle: muted && !active ? "italic" : "normal",
-        transition: "background 0.15s ease, color 0.15s ease",
-      }}
-    >
-      {name}
-    </button>
   );
 }
 

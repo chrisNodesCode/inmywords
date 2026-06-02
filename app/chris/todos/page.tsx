@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
+import { ProjectFilterBar, ALL, UNASSIGNED as UNASSIGNED_FILTER, type FilterValue } from "@/app/chris/_lib/ProjectFilterBar";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -35,7 +36,6 @@ type EntryLite = {
 type Project = { id: string; name: string };
 
 const LAST_PROJECT_KEY = "chris.todos.lastProjectId";
-const UNASSIGNED = "__unassigned__";
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 
@@ -111,18 +111,13 @@ export default function TodosPage() {
     { todoId: string; defaultText: string } | null
   >(null);
 
-  // Project state — same UX as shopping list active chip
   const [projects, setProjects] = useState<Project[]>([]);
-  const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
+  const [filterValue, setFilterValueState] = useState<FilterValue>(ALL);
   const [projectPickerForId, setProjectPickerForId] = useState<string | null>(null);
-  const [creatingProject, setCreatingProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState("");
 
-  const setActiveProjectId = useCallback((id: string | null) => {
-    setActiveProjectIdState(id);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(LAST_PROJECT_KEY, id ?? UNASSIGNED);
-    }
+  const setFilterValue = useCallback((v: FilterValue) => {
+    setFilterValueState(v);
+    if (typeof window !== "undefined") localStorage.setItem(LAST_PROJECT_KEY, v);
   }, []);
 
   useEffect(() => {
@@ -135,9 +130,9 @@ export default function TodosPage() {
       );
       setProjects(loaded);
       const saved = localStorage.getItem(LAST_PROJECT_KEY);
-      if (saved === UNASSIGNED) setActiveProjectIdState(null);
+      if (saved === ALL || saved === UNASSIGNED_FILTER) setFilterValueState(saved as FilterValue);
       else if (saved && loaded.some((p) => p.id === saved)) {
-        setActiveProjectIdState(saved);
+        setFilterValueState(saved);
       }
     })();
   }, []);
@@ -191,6 +186,8 @@ export default function TodosPage() {
     setExpanded(false);
   };
 
+  const activeProjectId = filterValue === ALL || filterValue === UNASSIGNED_FILTER ? null : filterValue;
+
   const addTodo = async (projectIdOverride?: string | null) => {
     const t = title.trim();
     if (!t) return;
@@ -215,10 +212,11 @@ export default function TodosPage() {
     }
   };
 
-  const handleProjectChipClick = async (projectId: string | null) => {
-    setActiveProjectId(projectId);
+  const handleFilterChange = async (v: FilterValue) => {
+    setFilterValue(v);
+    const pid = v === ALL || v === UNASSIGNED_FILTER ? null : v;
     if (title.trim()) {
-      await addTodo(projectId);
+      await addTodo(pid);
     }
     inputRef.current?.focus();
   };
@@ -260,8 +258,13 @@ export default function TodosPage() {
     await patchTodo(todoId, { entryId });
   };
 
-  const active = todos.filter((t) => !t.completed);
-  const done = todos.filter((t) => t.completed);
+  const filtered = filterValue === ALL
+    ? todos
+    : filterValue === UNASSIGNED_FILTER
+      ? todos.filter((t) => !t.projectId)
+      : todos.filter((t) => t.projectId === filterValue);
+  const active = filtered.filter((t) => !t.completed);
+  const done = filtered.filter((t) => t.completed);
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px 96px" }}>
@@ -336,107 +339,15 @@ export default function TodosPage() {
           </button>
         </div>
 
-        {/* Project chips — always visible (mirrors shopping list) */}
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 6,
-            padding: "12px 4px 0",
-          }}
-        >
-          <button
-            onClick={() => handleProjectChipClick(null)}
-            style={{
-              border: `1px solid ${activeProjectId === null ? C.accent : C.border}`,
-              background: activeProjectId === null ? C.accent : "transparent",
-              color: activeProjectId === null ? "#1a1710" : C.textFaint,
-              borderRadius: 999,
-              padding: "5px 12px",
-              fontSize: 12.5,
-              fontWeight: activeProjectId === null ? 600 : 400,
-              fontStyle: activeProjectId === null ? "normal" : "italic",
-              cursor: "pointer",
-              transition: "background 0.15s ease, color 0.15s ease",
-            }}
-          >
-            Unassigned
-          </button>
-          {projects.map((p) => {
-            const active = activeProjectId === p.id;
-            return (
-              <button
-                key={p.id}
-                onClick={() => handleProjectChipClick(p.id)}
-                style={{
-                  border: `1px solid ${active ? C.accent : C.border}`,
-                  background: active ? C.accent : "transparent",
-                  color: active ? "#1a1710" : C.textDim,
-                  borderRadius: 999,
-                  padding: "5px 12px",
-                  fontSize: 12.5,
-                  fontWeight: active ? 600 : 400,
-                  cursor: "pointer",
-                  transition: "background 0.15s ease, color 0.15s ease",
-                }}
-              >
-                {p.name}
-              </button>
-            );
-          })}
-          {creatingProject ? (
-            <input
-              autoFocus
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              onBlur={async () => {
-                const p = await createProject(newProjectName);
-                if (p) setActiveProjectId(p.id);
-                setNewProjectName("");
-                setCreatingProject(false);
-              }}
-              onKeyDown={async (e) => {
-                if (e.key === "Enter") {
-                  const p = await createProject(newProjectName);
-                  if (p) setActiveProjectId(p.id);
-                  setNewProjectName("");
-                  setCreatingProject(false);
-                }
-                if (e.key === "Escape") {
-                  setNewProjectName("");
-                  setCreatingProject(false);
-                }
-              }}
-              placeholder="Project name"
-              style={{
-                background: "transparent",
-                border: `1px solid ${C.accent}`,
-                borderRadius: 999,
-                outline: "none",
-                color: C.text,
-                fontSize: 12.5,
-                padding: "5px 11px",
-                minWidth: 120,
-              }}
-            />
-          ) : (
-            <button
-              onClick={() => setCreatingProject(true)}
-              style={{
-                border: `1px dashed ${C.border}`,
-                background: "transparent",
-                color: C.textDim,
-                borderRadius: 999,
-                padding: "5px 12px",
-                fontSize: 12.5,
-                cursor: "pointer",
-              }}
-            >
-              + project
-            </button>
-          )}
-        </div>
+        {/* Project filter */}
+        <ProjectFilterBar
+          projects={projects}
+          value={filterValue}
+          onChange={handleFilterChange}
+          onCreateProject={createProject}
+          storageKey={LAST_PROJECT_KEY}
+          showManageLink={false}
+        />
 
         {/* Optional details — appear once the field is engaged */}
         {expanded && (

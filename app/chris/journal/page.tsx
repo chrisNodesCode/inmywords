@@ -6,6 +6,7 @@ import { IMWEditor } from "@/components/editor";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
+import { ProjectFilterBar, ALL, UNASSIGNED, type FilterValue } from "@/app/chris/_lib/ProjectFilterBar";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,6 @@ const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
 const SERIF = 'ui-serif, Georgia, "Times New Roman", serif';
 
 const LAST_PROJECT_KEY = "chris.journal.lastProjectId";
-const UNASSIGNED = "__unassigned__";
 const MOODS = ["Neutral", "Anxious", "Excited", "Mad", "Happy", "Not Sure"];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -113,17 +113,11 @@ export default function JournalPage() {
     }
   };
 
-  // Active project — same UX as other modules
-  const [activeProjectId, setActiveProjectIdState] = useState<string | null>(null);
-  const setActiveProjectId = useCallback((id: string | null) => {
-    setActiveProjectIdState(id);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(LAST_PROJECT_KEY, id ?? UNASSIGNED);
-    }
+  const [filterValue, setFilterValueState] = useState<FilterValue>(ALL);
+  const setFilterValue = useCallback((v: FilterValue) => {
+    setFilterValueState(v);
+    if (typeof window !== "undefined") localStorage.setItem(LAST_PROJECT_KEY, v);
   }, []);
-
-  const [creatingProject, setCreatingProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState("");
 
   // ── Load initial data ──
   useEffect(() => {
@@ -142,9 +136,9 @@ export default function JournalPage() {
         setEntries(Array.isArray(ed) ? ed : []);
 
         const saved = localStorage.getItem(LAST_PROJECT_KEY);
-        if (saved === UNASSIGNED) setActiveProjectIdState(null);
+        if (saved === ALL || saved === UNASSIGNED) setFilterValueState(saved as FilterValue);
         else if (saved && loadedProjects.some((p) => p.id === saved)) {
-          setActiveProjectIdState(saved);
+          setFilterValueState(saved);
         }
       } finally {
         setLoading(false);
@@ -191,6 +185,8 @@ export default function JournalPage() {
     return p;
   };
 
+  const activeProjectId = filterValue === ALL || filterValue === UNASSIGNED ? null : filterValue;
+
   // ── Save entry ──
   const saveEntry = async (projectIdOverride?: string | null) => {
     if (isContentEmpty(content)) return;
@@ -216,13 +212,20 @@ export default function JournalPage() {
     }
   };
 
-  // Click a project chip — switch active; if there's drafted content, also save
-  const handleProjectChipClick = async (projectId: string | null) => {
-    setActiveProjectId(projectId);
+  const handleFilterChange = async (v: FilterValue) => {
+    setFilterValue(v);
+    const pid = v === ALL || v === UNASSIGNED ? null : v;
     if (!isContentEmpty(content)) {
-      await saveEntry(projectId);
+      await saveEntry(pid);
     }
   };
+
+  // ── Filtered entries ──
+  const filteredEntries = useMemo(() => {
+    if (filterValue === ALL) return entries;
+    if (filterValue === UNASSIGNED) return entries.filter((e) => !e.projectId);
+    return entries.filter((e) => e.projectId === filterValue);
+  }, [entries, filterValue]);
 
   // ── Entry actions ──
   const deleteEntry = async (id: string) => {
@@ -259,7 +262,7 @@ export default function JournalPage() {
             <span style={{ color: C.text }}>journal</span>
           </Link>
           <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
-            {entries.length} entr{entries.length === 1 ? "y" : "ies"}
+            {filteredEntries.length} entr{filteredEntries.length === 1 ? "y" : "ies"}
           </span>
         </header>
       )}
@@ -391,105 +394,15 @@ export default function JournalPage() {
           </button>
         </div>
 
-        {/* Project chip row */}
+        {/* Project filter */}
         {!deepWrite && (
-          <>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: 6,
-                padding: "12px 4px 0",
-              }}
-            >
-              <ProjectChip
-                name="Unassigned"
-                active={activeProjectId === null}
-                onClick={() => handleProjectChipClick(null)}
-                muted
-              />
-              {projects.map((p) => (
-                <ProjectChip
-                  key={p.id}
-                  name={p.name}
-                  active={activeProjectId === p.id}
-                  onClick={() => handleProjectChipClick(p.id)}
-                />
-              ))}
-              {creatingProject ? (
-                <input
-                  autoFocus
-                  value={newProjectName}
-                  onChange={(e) => setNewProjectName(e.target.value)}
-                  onBlur={async () => {
-                    const p = await createProject(newProjectName);
-                    if (p) setActiveProjectId(p.id);
-                    setNewProjectName("");
-                    setCreatingProject(false);
-                  }}
-                  onKeyDown={async (e) => {
-                    if (e.key === "Enter") {
-                      const p = await createProject(newProjectName);
-                      if (p) setActiveProjectId(p.id);
-                      setNewProjectName("");
-                      setCreatingProject(false);
-                    }
-                    if (e.key === "Escape") {
-                      setNewProjectName("");
-                      setCreatingProject(false);
-                    }
-                  }}
-                  placeholder="Project name"
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${C.accent}`,
-                    borderRadius: 999,
-                    outline: "none",
-                    color: C.text,
-                    fontSize: 12.5,
-                    padding: "5px 11px",
-                    minWidth: 120,
-                  }}
-                />
-              ) : (
-                <button
-                  onClick={() => setCreatingProject(true)}
-                  style={{
-                    border: `1px dashed ${C.border}`,
-                    background: "transparent",
-                    color: C.textDim,
-                    borderRadius: 999,
-                    padding: "5px 12px",
-                    fontSize: 12.5,
-                    cursor: "pointer",
-                  }}
-                >
-                  + project
-                </button>
-              )}
-              <Link
-                href="/chris/projects"
-                style={{
-                  marginLeft: "auto",
-                  fontFamily: MONO,
-                  fontSize: 11,
-                  color: C.textFaint,
-                  textDecoration: "none",
-                }}
-              >
-                manage →
-              </Link>
-            </div>
-            <p style={{ margin: "12px 4px 0", fontFamily: MONO, fontSize: 11.5, color: C.textFaint }}>
-              saves to{" "}
-              <span style={{ color: C.accent }}>
-                {activeProjectId
-                  ? projects.find((p) => p.id === activeProjectId)?.name ?? "Unassigned"
-                  : "Unassigned"}
-              </span>
-            </p>
-          </>
+          <ProjectFilterBar
+            projects={projects}
+            value={filterValue}
+            onChange={handleFilterChange}
+            onCreateProject={createProject}
+            storageKey={LAST_PROJECT_KEY}
+          />
         )}
       </section>
       )}
@@ -499,13 +412,13 @@ export default function JournalPage() {
         <section style={{ marginTop: 32 }}>
           {loading ? (
             <p style={{ color: C.textFaint, fontFamily: MONO, fontSize: 13 }}>loading…</p>
-          ) : entries.length === 0 ? (
+          ) : filteredEntries.length === 0 ? (
             <div style={{ textAlign: "center", padding: "48px 0", color: C.textFaint }}>
               <p style={{ margin: 0, fontSize: 14 }}>No entries yet. Write one above.</p>
             </div>
           ) : (
             <EntryFeed
-              entries={entries}
+              entries={filteredEntries}
               projects={projects}
               editingId={editingId}
               onDelete={deleteEntry}
@@ -528,40 +441,6 @@ export default function JournalPage() {
         </section>
       )}
     </main>
-  );
-}
-
-// ── Chip ─────────────────────────────────────────────────────────────────────
-
-function ProjectChip({
-  name,
-  active,
-  onClick,
-  muted,
-}: {
-  name: string;
-  active: boolean;
-  onClick: () => void;
-  muted?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        border: `1px solid ${active ? C.accent : C.border}`,
-        background: active ? C.accent : "transparent",
-        color: active ? C.accentText : muted ? C.textFaint : C.textDim,
-        borderRadius: 999,
-        padding: "5px 12px",
-        fontSize: 12.5,
-        fontWeight: active ? 600 : 400,
-        cursor: "pointer",
-        fontStyle: muted && !active ? "italic" : "normal",
-        transition: "background 0.15s ease, color 0.15s ease",
-      }}
-    >
-      {name}
-    </button>
   );
 }
 
