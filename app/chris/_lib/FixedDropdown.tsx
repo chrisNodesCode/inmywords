@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 const C_BG = "#15171c";
 const C_BORDER = "#23262d";
@@ -80,7 +81,7 @@ export function FixedDropdown({
     };
   }, [anchorRef, maxHeight, prefer, width]);
 
-  return (
+  return createPortal(
     <>
       {/* click-away backdrop */}
       <div
@@ -108,6 +109,7 @@ export function FixedDropdown({
       >
         {children}
       </div>
-    </>
+    </>,
+    document.body
   );
 }
