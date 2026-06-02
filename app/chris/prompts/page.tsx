@@ -6,7 +6,10 @@ import { IMWEditor } from "@/components/editor";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
-import { ProjectFilterBar, ALL, UNASSIGNED as UNASSIGNED_FILTER, type FilterValue } from "@/app/chris/_lib/ProjectFilterBar";
+// Filter constants
+const ALL_PROJECTS = "__all__";
+const UNASSIGNED_PROJECT = "__unassigned__";
+const ALL_STATUSES = "__all_statuses__";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,6 +55,7 @@ const C = {
 };
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
 const LAST_PROJECT_KEY = "chris.prompts.lastProjectId";
+const LAST_STATUS_KEY = "chris.prompts.lastStatusFilter";
 const UNASSIGNED = "__unassigned__";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -113,10 +117,15 @@ export default function PromptsPage() {
   const expandEdit = (id: string) => transitionTo(() => setEditingId(id));
   const collapseEdit = () => transitionTo(() => setEditingId(null));
 
-  const [filterValue, setFilterValueState] = useState<FilterValue>(ALL);
-  const setFilterValue = useCallback((v: FilterValue) => {
-    setFilterValueState(v);
+  const [projectFilter, setProjectFilterState] = useState(ALL_PROJECTS);
+  const setProjectFilter = useCallback((v: string) => {
+    setProjectFilterState(v);
     if (typeof window !== "undefined") localStorage.setItem(LAST_PROJECT_KEY, v);
+  }, []);
+  const [statusFilter, setStatusFilterState] = useState(ALL_STATUSES);
+  const setStatusFilter = useCallback((v: string) => {
+    setStatusFilterState(v);
+    if (typeof window !== "undefined") localStorage.setItem(LAST_STATUS_KEY, v);
   }, []);
 
   // Load initial data
@@ -137,9 +146,13 @@ export default function PromptsPage() {
         setPrompts(prd.prompts ?? []);
 
         const saved = localStorage.getItem(LAST_PROJECT_KEY);
-        if (saved === ALL || saved === UNASSIGNED_FILTER) setFilterValueState(saved as FilterValue);
+        if (saved === ALL_PROJECTS || saved === UNASSIGNED_PROJECT) setProjectFilterState(saved);
         else if (saved && loadedProjects.some((p) => p.id === saved)) {
-          setFilterValueState(saved);
+          setProjectFilterState(saved);
+        }
+        const savedStatus = localStorage.getItem(LAST_STATUS_KEY);
+        if (savedStatus === ALL_STATUSES || PROMPT_STATUSES.some((s) => s.value === savedStatus)) {
+          setStatusFilterState(savedStatus!);
         }
       } finally {
         setLoading(false);
@@ -173,7 +186,7 @@ export default function PromptsPage() {
 
   // ── Save & chip actions ───────────────────────────────────────────────────
 
-  const activeProjectId = filterValue === ALL || filterValue === UNASSIGNED_FILTER ? null : filterValue;
+  const activeProjectId = projectFilter === ALL_PROJECTS || projectFilter === UNASSIGNED_PROJECT ? null : projectFilter;
 
   const savePrompt = async (projectIdOverride?: string | null) => {
     if (isContentEmpty(draftContent)) return;
@@ -191,9 +204,9 @@ export default function PromptsPage() {
     }
   };
 
-  const handleFilterChange = async (v: FilterValue) => {
-    setFilterValue(v);
-    const pid = v === ALL || v === UNASSIGNED_FILTER ? null : v;
+  const handleProjectFilterChange = async (v: string) => {
+    setProjectFilter(v);
+    const pid = v === ALL_PROJECTS || v === UNASSIGNED_PROJECT ? null : v;
     if (!isContentEmpty(draftContent)) {
       await savePrompt(pid);
     }
@@ -276,21 +289,24 @@ export default function PromptsPage() {
   // ── Derived: filter then group prompts by project ─────────────────────────
 
   const grouped = useMemo(() => {
-    const filtered = filterValue === ALL
-      ? prompts
-      : filterValue === UNASSIGNED_FILTER
-        ? prompts.filter((p) => !p.projectId)
-        : prompts.filter((p) => p.projectId === filterValue);
+    let list = prompts;
+
+    // Project filter
+    if (projectFilter === UNASSIGNED_PROJECT) list = list.filter((p) => !p.projectId);
+    else if (projectFilter !== ALL_PROJECTS) list = list.filter((p) => p.projectId === projectFilter);
+
+    // Status filter
+    if (statusFilter !== ALL_STATUSES) list = list.filter((p) => p.status === statusFilter);
 
     const groups: { id: string; name: string; items: Prompt[] }[] = [];
-    const unassigned = filtered.filter((p) => !p.projectId);
+    const unassigned = list.filter((p) => !p.projectId);
     if (unassigned.length) groups.push({ id: UNASSIGNED, name: "Unassigned", items: unassigned });
     for (const proj of projects) {
-      const items = filtered.filter((p) => p.projectId === proj.id);
+      const items = list.filter((p) => p.projectId === proj.id);
       if (items.length) groups.push({ id: proj.id, name: proj.name, items });
     }
     return groups;
-  }, [prompts, projects, filterValue]);
+  }, [prompts, projects, projectFilter, statusFilter]);
 
   const draftEmpty = isContentEmpty(draftContent);
 
@@ -406,15 +422,85 @@ export default function PromptsPage() {
           </button>
         </div>
 
-        {/* Project filter — hidden in deep write */}
+        {/* Filters — hidden in deep write */}
         {!deepWrite && (
-          <ProjectFilterBar
-            projects={projects}
-            value={filterValue}
-            onChange={handleFilterChange}
-            onCreateProject={createProject}
-            storageKey={LAST_PROJECT_KEY}
-          />
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 10,
+              padding: "12px 4px 0",
+            }}
+          >
+            {/* Project dropdown */}
+            <select
+              value={projectFilter}
+              onChange={(e) => handleProjectFilterChange(e.target.value)}
+              style={{
+                background: C.card,
+                border: `1px solid ${C.border}`,
+                borderRadius: 8,
+                color: C.text,
+                fontSize: 12.5,
+                fontFamily: MONO,
+                padding: "6px 28px 6px 10px",
+                cursor: "pointer",
+                outline: "none",
+                appearance: "none",
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 10px center",
+              }}
+            >
+              <option value={ALL_PROJECTS}>All Projects</option>
+              <option value={UNASSIGNED_PROJECT}>Unassigned</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+
+            {/* Status dropdown */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{
+                background: C.card,
+                border: `1px solid ${C.border}`,
+                borderRadius: 8,
+                color: statusFilter === ALL_STATUSES
+                  ? C.text
+                  : (PROMPT_STATUSES.find((s) => s.value === statusFilter)?.color ?? C.text),
+                fontSize: 12.5,
+                fontFamily: MONO,
+                padding: "6px 28px 6px 10px",
+                cursor: "pointer",
+                outline: "none",
+                appearance: "none",
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 10px center",
+              }}
+            >
+              <option value={ALL_STATUSES}>All Statuses</option>
+              {PROMPT_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+
+            <Link
+              href="/chris/projects"
+              style={{
+                marginLeft: "auto",
+                fontFamily: MONO,
+                fontSize: 11,
+                color: C.textFaint,
+                textDecoration: "none",
+              }}
+            >
+              manage →
+            </Link>
+          </div>
         )}
       </section>
       )}
