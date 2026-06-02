@@ -20,6 +20,10 @@ export async function PATCH(
   if ("title" in body) {
     data.title = typeof body.title === "string" && body.title.trim() ? body.title.trim() : null;
   }
+  const VALID_STATUSES = ["draft", "in-progress", "done", "wont-do"];
+  if (typeof body.status === "string" && VALID_STATUSES.includes(body.status)) {
+    data.status = body.status;
+  }
   if ("projectId" in body) {
     const v = body.projectId;
     if (v === null || v === "") {

@@ -95,6 +95,7 @@ model Prompt {
   projectId String?
   title     String?
   content   String   // TipTap JSON
+  status    String   @default("draft")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

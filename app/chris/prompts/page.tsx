@@ -14,15 +14,25 @@ type Project = {
   name: string;
 };
 
+type PromptStatus = "draft" | "in-progress" | "done" | "wont-do";
+
 type Prompt = {
   id: string;
   title: string | null;
   content: string;
+  status: PromptStatus;
   projectId: string | null;
   project: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
 };
+
+const PROMPT_STATUSES: { value: PromptStatus; label: string; color: string }[] = [
+  { value: "draft", label: "Draft", color: "#6b7280" },
+  { value: "in-progress", label: "In Progress", color: "#60a5fa" },
+  { value: "done", label: "Done", color: "#34d399" },
+  { value: "wont-do", label: "Won't Do", color: "#f87171" },
+];
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 
@@ -216,7 +226,7 @@ export default function PromptsPage() {
 
   const patchPrompt = async (
     id: string,
-    body: { content?: string; projectId?: string | null }
+    body: { content?: string; projectId?: string | null; status?: PromptStatus }
   ) => {
     const res = await fetch(`/chris/api/prompts/${id}`, {
       method: "PATCH",
@@ -245,6 +255,15 @@ export default function PromptsPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectId }),
+    });
+  };
+
+  const setPromptStatus = async (id: string, status: PromptStatus) => {
+    setPrompts((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+    await fetch(`/chris/api/prompts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
     });
   };
 
@@ -529,6 +548,7 @@ export default function PromptsPage() {
                   onCancelEdit={collapseEdit}
                   onDelete={deletePrompt}
                   onReassign={reassignPrompt}
+                  onStatusChange={setPromptStatus}
                   onCopy={copyPrompt}
                   onEdit={expandEdit}
                 />
@@ -586,6 +606,7 @@ function PromptGroupView({
   onCancelEdit,
   onDelete,
   onReassign,
+  onStatusChange,
   onCopy,
   onEdit,
 }: {
@@ -600,6 +621,7 @@ function PromptGroupView({
   onCancelEdit: () => void;
   onDelete: (id: string) => void;
   onReassign: (id: string, projectId: string | null) => void;
+  onStatusChange: (id: string, status: PromptStatus) => void;
   onCopy: (content: string) => void;
   onEdit: (id: string) => void;
 }) {
@@ -646,6 +668,7 @@ function PromptGroupView({
               dragStyle={rowStyle(prompt.id)}
               onDelete={() => onDelete(prompt.id)}
               onReassign={(pid) => onReassign(prompt.id, pid)}
+              onStatusChange={(s) => onStatusChange(prompt.id, s)}
               onCopy={() => onCopy(prompt.content)}
               onEdit={() => onEdit(prompt.id)}
             />
@@ -663,6 +686,7 @@ function PromptRow({
   dragStyle,
   onDelete,
   onReassign,
+  onStatusChange,
   onCopy,
   onEdit,
 }: {
@@ -672,15 +696,19 @@ function PromptRow({
   dragStyle: React.CSSProperties;
   onDelete: () => void;
   onReassign: (projectId: string | null) => void;
+  onStatusChange: (status: PromptStatus) => void;
   onCopy: () => void;
   onEdit: () => void;
 }) {
   const [hover, setHover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const projectBtnRef = useRef<HTMLButtonElement>(null);
+  const statusBtnRef = useRef<HTMLButtonElement>(null);
 
   const preview = useMemo(() => extractPreview(prompt.content, 200), [prompt.content]);
+  const statusInfo = PROMPT_STATUSES.find((s) => s.value === prompt.status) ?? PROMPT_STATUSES[0];
 
   const handleCopy = async () => {
     await onCopy();
@@ -733,6 +761,54 @@ function PromptRow({
         <span style={{ fontFamily: MONO, fontSize: 11, color: C.textFaint }}>
           {formatRelative(prompt.updatedAt)}
         </span>
+        <div style={{ position: "relative" }}>
+          <button
+            ref={statusBtnRef}
+            onClick={() => setStatusOpen((x) => !x)}
+            style={{
+              border: `1px solid ${statusInfo.color}44`,
+              background: `${statusInfo.color}15`,
+              color: statusInfo.color,
+              borderRadius: 999,
+              padding: "3px 10px",
+              fontSize: 11,
+              cursor: "pointer",
+              fontFamily: MONO,
+            }}
+            title="Change status"
+          >
+            {statusInfo.label}
+          </button>
+          {statusOpen && (
+            <FixedDropdown
+              anchorRef={statusBtnRef}
+              onClose={() => setStatusOpen(false)}
+              width={160}
+              maxHeight={200}
+            >
+              {PROMPT_STATUSES.map((s) => (
+                <button
+                  key={s.value}
+                  onClick={() => { onStatusChange(s.value); setStatusOpen(false); }}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    border: "none",
+                    background: prompt.status === s.value ? `${s.color}22` : "transparent",
+                    color: s.color,
+                    padding: "8px 14px",
+                    fontSize: 12.5,
+                    cursor: "pointer",
+                    fontFamily: MONO,
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </FixedDropdown>
+          )}
+        </div>
         <div style={{ flex: 1 }} />
         <button
           ref={projectBtnRef}
@@ -814,16 +890,19 @@ function PromptEditingCard({
 }: {
   prompt: Prompt;
   projects: Project[];
-  onSave: (data: { content: string; projectId: string | null }) => Promise<void>;
+  onSave: (data: { content: string; projectId: string | null; status?: PromptStatus }) => Promise<void>;
   onCancel: () => void;
   onDelete: () => void;
 }) {
   const [content, setContent] = useState(prompt.content);
   const [projectId, setProjectId] = useState<string | null>(prompt.projectId);
+  const [status, setStatus] = useState<PromptStatus>(prompt.status);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
   const [deepWrite, setDeepWrite] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const projectBtnRef = useRef<HTMLButtonElement>(null);
+  const statusBtnRef = useRef<HTMLButtonElement>(null);
 
   // Sync deep write with browser fullscreen
   useEffect(() => {
@@ -849,8 +928,9 @@ function PromptEditingCard({
   };
 
   const dirty =
-    content !== prompt.content || projectId !== prompt.projectId;
+    content !== prompt.content || projectId !== prompt.projectId || status !== prompt.status;
   const canSave = dirty && !isContentEmpty(content);
+  const editStatusInfo = PROMPT_STATUSES.find((s) => s.value === status) ?? PROMPT_STATUSES[0];
   const projectName =
     projectId ? projects.find((p) => p.id === projectId)?.name ?? "Unassigned" : "Unassigned";
 
@@ -953,6 +1033,56 @@ function PromptEditingCard({
           )}
         </div>
 
+        {/* Status picker */}
+        <div style={{ position: "relative" }}>
+          <button
+            ref={statusBtnRef}
+            onClick={() => setStatusOpen((x) => !x)}
+            style={{
+              border: `1px solid ${editStatusInfo.color}44`,
+              background: `${editStatusInfo.color}15`,
+              color: editStatusInfo.color,
+              borderRadius: 999,
+              padding: "5px 11px",
+              fontSize: 12,
+              cursor: "pointer",
+              fontFamily: MONO,
+            }}
+            title="Change status"
+          >
+            {editStatusInfo.label}
+          </button>
+          {statusOpen && (
+            <FixedDropdown
+              anchorRef={statusBtnRef}
+              onClose={() => setStatusOpen(false)}
+              width={160}
+              maxHeight={200}
+            >
+              {PROMPT_STATUSES.map((s) => (
+                <button
+                  key={s.value}
+                  onClick={() => { setStatus(s.value); setStatusOpen(false); }}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    border: "none",
+                    background: status === s.value ? `${s.color}22` : "transparent",
+                    color: s.color,
+                    padding: "8px 14px",
+                    fontSize: 12.5,
+                    cursor: "pointer",
+                    fontFamily: MONO,
+                  }}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </FixedDropdown>
+          )}
+        </div>
+
         <div style={{ flex: 1 }} />
 
         <button
@@ -984,7 +1114,7 @@ function PromptEditingCard({
           cancel
         </button>
         <button
-          onClick={() => onSave({ content, projectId })}
+          onClick={() => onSave({ content, projectId, status })}
           disabled={!canSave}
           style={{
             border: "none",
