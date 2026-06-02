@@ -167,7 +167,7 @@ export default function JournalPage() {
       setDeepWrite(false);
     } else {
       try {
-        await wrapperRef.current?.requestFullscreen();
+        await document.documentElement.requestFullscreen();
         setDeepWrite(true);
       } catch {
         setDeepWrite(true);
@@ -274,7 +274,7 @@ export default function JournalPage() {
             background: deepWrite ? C.bg : C.card,
             border: deepWrite ? "none" : `1px solid ${C.border}`,
             borderRadius: deepWrite ? 0 : 14,
-            padding: deepWrite ? "56px 24px 24px" : "22px 24px 14px",
+            padding: deepWrite ? "56px 24px 96px" : "22px 24px 14px",
             minHeight: deepWrite ? "100vh" : 260,
           }}
         >
@@ -787,7 +787,7 @@ function EntryEditingCard({
       setDeepWrite(false);
     } else {
       try {
-        await wrapperRef.current?.requestFullscreen();
+        await document.documentElement.requestFullscreen();
         setDeepWrite(true);
       } catch {
         setDeepWrite(true);
@@ -814,7 +814,7 @@ function EntryEditingCard({
         background: deepWrite ? C.bg : C.card,
         border: deepWrite ? "none" : `1px solid ${C.accent}55`,
         borderRadius: deepWrite ? 0 : 14,
-        padding: deepWrite ? "56px 24px 24px" : "20px 22px 14px",
+        padding: deepWrite ? "56px 24px 96px" : "20px 22px 14px",
         minHeight: deepWrite ? "100vh" : 260,
         viewTransitionName: `entry-${entry.id}`,
       } as React.CSSProperties}

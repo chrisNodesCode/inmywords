@@ -158,7 +158,7 @@ export default function PromptsPage() {
       setDeepWrite(false);
     } else {
       try {
-        await editorWrapperRef.current?.requestFullscreen();
+        await document.documentElement.requestFullscreen();
         setDeepWrite(true);
       } catch {
         // fullscreen denied; still toggle visual mode
@@ -313,7 +313,7 @@ export default function PromptsPage() {
             background: deepWrite ? C.bg : C.card,
             border: deepWrite ? "none" : `1px solid ${C.border}`,
             borderRadius: deepWrite ? 0 : 14,
-            padding: deepWrite ? "56px 24px 24px" : "20px 22px 8px",
+            padding: deepWrite ? "56px 24px 96px" : "20px 22px 8px",
             minHeight: deepWrite ? "100vh" : 200,
           }}
         >
@@ -840,7 +840,7 @@ function PromptEditingCard({
       setDeepWrite(false);
     } else {
       try {
-        await wrapperRef.current?.requestFullscreen();
+        await document.documentElement.requestFullscreen();
         setDeepWrite(true);
       } catch {
         setDeepWrite(true);
@@ -863,7 +863,7 @@ function PromptEditingCard({
         background: deepWrite ? C.bg : C.card,
         border: deepWrite ? "none" : `1px solid ${C.accent}55`,
         borderRadius: deepWrite ? 0 : 14,
-        padding: deepWrite ? "56px 24px 24px" : "18px 20px 12px",
+        padding: deepWrite ? "56px 24px 96px" : "18px 20px 12px",
         minHeight: deepWrite ? "100vh" : 220,
         // Match preview row's view-transition-name so the browser animates one
         // into the other smoothly.
