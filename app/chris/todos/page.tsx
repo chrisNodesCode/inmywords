@@ -1520,7 +1520,7 @@ function TodoDetailModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: 540,
+          maxWidth: 900,
           maxHeight: "86vh",
           overflowY: "auto",
           background: C.card,
