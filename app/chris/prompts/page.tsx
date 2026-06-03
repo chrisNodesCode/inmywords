@@ -7,6 +7,7 @@ import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
+import { useAutosave } from "@/app/chris/_lib/useAutosave";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
 // Filter constants
 const ALL_PROJECTS = "__all__";
@@ -240,21 +241,6 @@ export default function PromptsPage() {
     if (!isContentEmpty(draftContent)) {
       await savePrompt(pid);
     }
-  };
-
-  const createProject = async (name: string): Promise<Project | null> => {
-    const t = name.trim();
-    if (!t) return null;
-    const res = await fetch("/chris/api/projects", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: t }),
-    });
-    if (!res.ok) return null;
-    const { project } = await res.json();
-    const p: Project = { id: project.id, name: project.name };
-    setProjects((prev) => [...prev, p]);
-    return p;
   };
 
   // ── Prompt row actions ────────────────────────────────────────────────────
@@ -579,6 +565,7 @@ export default function PromptsPage() {
                     // Re-name on content edits while still untitled.
                     if (existing && !existing.title) void autoNamePrompt(id);
                   }}
+                  onAutosave={(id, data) => patchPrompt(id, data)}
                   onCancelEdit={collapseEdit}
                   onDelete={deletePrompt}
                   onReassign={reassignPrompt}
@@ -603,6 +590,7 @@ function PromptGroupView({
   editingId,
   applyGroupReorder,
   onPatchSave,
+  onAutosave,
   onCancelEdit,
   onDelete,
   onReassign,
@@ -618,6 +606,10 @@ function PromptGroupView({
     id: string,
     data: { content: string; projectId: string | null }
   ) => Promise<void>;
+  onAutosave: (
+    id: string,
+    data: { content: string; projectId: string | null; status?: PromptStatus }
+  ) => void;
   onCancelEdit: () => void;
   onDelete: (id: string) => void;
   onReassign: (id: string, projectId: string | null) => void;
@@ -653,6 +645,7 @@ function PromptGroupView({
               prompt={prompt}
               projects={projects}
               onSave={(data) => onPatchSave(prompt.id, data)}
+              onAutosave={(data) => onAutosave(prompt.id, data)}
               onCancel={onCancelEdit}
               onDelete={() => {
                 onDelete(prompt.id);
@@ -897,18 +890,23 @@ function PromptEditingCard({
   prompt,
   projects,
   onSave,
+  onAutosave,
   onCancel,
   onDelete,
 }: {
   prompt: Prompt;
   projects: Project[];
   onSave: (data: { content: string; projectId: string | null; status?: PromptStatus }) => Promise<void>;
+  onAutosave: (data: { content: string; projectId: string | null; status?: PromptStatus }) => void;
   onCancel: () => void;
   onDelete: () => void;
 }) {
   const [content, setContent] = useState(prompt.content);
   const [projectId, setProjectId] = useState<string | null>(prompt.projectId);
   const [status, setStatus] = useState<PromptStatus>(prompt.status);
+
+  // Autosave edits; the Save button also collapses the card.
+  useAutosave([content, projectId, status], () => onAutosave({ content, projectId, status }));
   const [pickerOpen, setPickerOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [deepWrite, setDeepWrite] = useState(false);

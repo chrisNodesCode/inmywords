@@ -7,6 +7,7 @@ import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
+import { useAutosave } from "@/app/chris/_lib/useAutosave";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
 import { ProjectSelect } from "@/app/chris/_lib/ProjectSelect";
 import { ALL, UNASSIGNED, type FilterValue } from "@/app/chris/_lib/ProjectFilterBar";
@@ -452,6 +453,7 @@ export default function JournalPage() {
                   void autoNameEntry(id);
                 }
               }}
+              onAutosave={(id, data) => patchEntry(id, data)}
               applyReorder={(next) => {
                 setEntries(next);
                 void fetch("/api/entries/reorder", {
@@ -478,6 +480,7 @@ function EntryFeed({
   onEdit,
   onCancelEdit,
   onSaveEdit,
+  onAutosave,
   applyReorder,
 }: {
   entries: Entry[];
@@ -490,6 +493,10 @@ function EntryFeed({
     id: string,
     data: { title: string | null; content: string; mood: string | null; projectId: string | null }
   ) => Promise<void>;
+  onAutosave: (
+    id: string,
+    data: { title: string | null; content: string; mood: string | null; projectId: string | null }
+  ) => void;
   applyReorder: (next: Entry[]) => void;
 }) {
   const { rowProps, rowStyle } = useDragReorder(entries, applyReorder);
@@ -502,6 +509,7 @@ function EntryFeed({
             entry={entry}
             projects={projects}
             onSave={(data) => onSaveEdit(entry.id, data)}
+            onAutosave={(data) => onAutosave(entry.id, data)}
             onCancel={onCancelEdit}
             onDelete={() => {
               onDelete(entry.id);
@@ -653,6 +661,7 @@ function EntryEditingCard({
   entry,
   projects,
   onSave,
+  onAutosave,
   onCancel,
   onDelete,
 }: {
@@ -664,6 +673,12 @@ function EntryEditingCard({
     mood: string | null;
     projectId: string | null;
   }) => Promise<void>;
+  onAutosave: (data: {
+    title: string | null;
+    content: string;
+    mood: string | null;
+    projectId: string | null;
+  }) => void;
   onCancel: () => void;
   onDelete: () => void;
 }) {
@@ -671,6 +686,11 @@ function EntryEditingCard({
   const [content, setContent] = useState(entry.content);
   const [mood, setMood] = useState<string | null>(entry.mood);
   const [projectId, setProjectId] = useState<string | null>(entry.projectId);
+
+  // Autosave edits; the Save button also collapses the card.
+  useAutosave([title, content, mood, projectId], () =>
+    onAutosave({ title: title.trim() || null, content, mood, projectId })
+  );
   const [pickerOpen, setPickerOpen] = useState(false);
   const [deepWrite, setDeepWrite] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);

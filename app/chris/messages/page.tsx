@@ -7,6 +7,7 @@ import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
+import { useAutosave } from "@/app/chris/_lib/useAutosave";
 import {
   ProjectSelect,
   PROJECT_ALL,
@@ -680,6 +681,13 @@ function PromptModal({
     setTimeout(() => setSavedFlash(false), 1400);
   };
 
+  // Autosave edits to the active preset prompt (only when actually changed).
+  useAutosave([draft], () => {
+    if (current && draft !== current.prompt) {
+      void onSave(current.id, draft).then((u) => u && flash());
+    }
+  });
+
   const handleSave = async () => {
     if (!current || !dirty || working) return;
     setWorking(true);
@@ -1258,6 +1266,11 @@ function MessageWorkspace({
     setFinalContent(response);
     setFinalKey((k) => k + 1);
   };
+
+  // Autosave draft / final-draft / channel edits; Save also closes the workspace.
+  useAutosave([draft, finalContent, channel], () => {
+    void onPatch(message.id, { draft, finalDraft: finalContent, channel });
+  });
 
   const saveFinal = async () => {
     setSavingFinal(true);

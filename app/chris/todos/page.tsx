@@ -7,6 +7,7 @@ import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
 import { ProjectSelect } from "@/app/chris/_lib/ProjectSelect";
+import { useAutosave } from "@/app/chris/_lib/useAutosave";
 import { ALL, UNASSIGNED as UNASSIGNED_FILTER, type FilterValue } from "@/app/chris/_lib/ProjectFilterBar";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -1420,18 +1421,25 @@ function TodoDetailModal({
       return n;
     });
 
+  const persist = () => {
+    onSave({
+      title: title.trim() || todo.title,
+      note: note.trim() || null,
+      priority,
+      dueDate: due || null,
+      phone: phone.trim() || null,
+      url: url.trim() || null,
+      projectId,
+    });
+  };
+
+  // Autosave on any field change; the Save button still persists + closes.
+  useAutosave([title, note, priority, due, phone, url, projectId], persist);
+
   const save = async () => {
     setSaving(true);
     try {
-      await onSave({
-        title: title.trim() || todo.title,
-        note: note.trim() || null,
-        priority,
-        dueDate: due || null,
-        phone: phone.trim() || null,
-        url: url.trim() || null,
-        projectId,
-      });
+      await persist();
       onClose();
     } finally {
       setSaving(false);
