@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { IMWEditor } from "@/components/editor";
-import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
+import { parseEntryContent, extractPlainText, tiptapToMarkdown } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
@@ -1031,9 +1031,9 @@ function MessageRow({
   }, [message]);
 
   const copyText = useMemo(() => {
-    if (message.finalDraft && !isJSONEmpty(message.finalDraft)) return previewJSON(message.finalDraft, 10000);
+    if (message.finalDraft && !isJSONEmpty(message.finalDraft)) return tiptapToMarkdown(message.finalDraft);
     if (message.response) return message.response;
-    return previewJSON(message.draft, 10000);
+    return tiptapToMarkdown(message.draft);
   }, [message]);
 
   const handleCopy = async () => {
@@ -1507,7 +1507,7 @@ function MessageWorkspace({
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
           <button
-            onClick={() => copy(previewJSON(finalContent, 10000), "final")}
+            onClick={() => copy(tiptapToMarkdown(finalContent), "final")}
             disabled={finalEmpty}
             style={{
               border: `1px solid ${C.border}`,

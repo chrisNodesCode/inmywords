@@ -296,7 +296,7 @@ export default function JournalPage() {
       <section style={{ marginTop: deepWrite ? 0 : 28 }}>
         <div
           ref={wrapperRef}
-          className="chris-editor-wrap"
+          className={deepWrite ? "chris-editor-wrap chris-editor-wrap--deep" : "chris-editor-wrap"}
           style={{
             background: deepWrite ? C.bg : C.card,
             border: deepWrite ? "none" : `1px solid ${C.border}`,
@@ -733,7 +733,7 @@ function EntryEditingCard({
   return (
     <div
       ref={wrapperRef}
-      className="chris-editor-wrap"
+      className={deepWrite ? "chris-editor-wrap chris-editor-wrap--deep" : "chris-editor-wrap"}
       style={{
         position: "relative",
         background: deepWrite ? C.bg : C.card,

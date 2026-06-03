@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { IMWEditor } from "@/components/editor";
-import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
+import { parseEntryContent, extractPlainText, tiptapToMarkdown } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
@@ -295,7 +295,7 @@ export default function PromptsPage() {
   };
 
   const copyPrompt = async (content: string) => {
-    const text = extractPreview(content, 10_000);
+    const text = tiptapToMarkdown(content);
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -367,7 +367,7 @@ export default function PromptsPage() {
       <section style={{ marginTop: deepWrite ? 0 : 28 }}>
         <div
           ref={editorWrapperRef}
-          className="chris-editor-wrap"
+          className={deepWrite ? "chris-editor-wrap chris-editor-wrap--deep" : "chris-editor-wrap"}
           style={{
             background: deepWrite ? C.bg : C.card,
             border: deepWrite ? "none" : `1px solid ${C.border}`,
@@ -949,7 +949,7 @@ function PromptEditingCard({
   return (
     <div
       ref={wrapperRef}
-      className="chris-editor-wrap"
+      className={deepWrite ? "chris-editor-wrap chris-editor-wrap--deep" : "chris-editor-wrap"}
       style={{
         position: "relative",
         background: deepWrite ? C.bg : C.card,
