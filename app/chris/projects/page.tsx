@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
+import { Spinner } from "@/app/chris/_lib/Spinner";
+import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 
 type Project = {
   id: string;
@@ -100,9 +102,12 @@ export default function ProjectsPage() {
           <span style={{ color: C.textFaint }}>~/chris/</span>
           <span style={{ color: C.text }}>projects</span>
         </Link>
-        <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
-          {projects.length} project{projects.length === 1 ? "" : "s"}
-        </span>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
+            {projects.length} project{projects.length === 1 ? "" : "s"}
+          </span>
+          <FullscreenButton />
+        </div>
       </header>
 
       <section style={{ marginTop: 28 }}>
@@ -157,7 +162,7 @@ export default function ProjectsPage() {
 
       <section style={{ marginTop: 24 }}>
         {loading ? (
-          <p style={{ color: C.textFaint, fontFamily: MONO, fontSize: 13 }}>loading…</p>
+          <Spinner label="loading…" />
         ) : projects.length === 0 ? (
           <div style={{ textAlign: "center", padding: "56px 0", color: C.textFaint }}>
             <div style={{ fontSize: 28, marginBottom: 12 }}>◜◝</div>

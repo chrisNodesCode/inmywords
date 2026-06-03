@@ -5,6 +5,8 @@ import Link from "next/link";
 import { IMWEditor } from "@/components/editor";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
+import { Spinner } from "@/app/chris/_lib/Spinner";
+import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
 // Filter constants
 const ALL_PROJECTS = "__all__";
@@ -363,9 +365,12 @@ export default function PromptsPage() {
             <span style={{ color: C.textFaint }}>~/chris/</span>
             <span style={{ color: C.text }}>prompts</span>
           </Link>
-          <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
-            {prompts.length} prompt{prompts.length === 1 ? "" : "s"}
-          </span>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
+              {prompts.length} prompt{prompts.length === 1 ? "" : "s"}
+            </span>
+            <FullscreenButton />
+          </div>
         </header>
       )}
 
@@ -537,7 +542,7 @@ export default function PromptsPage() {
       {!deepWrite && (
         <section style={{ marginTop: 32 }}>
           {loading ? (
-            <p style={{ color: C.textFaint, fontFamily: MONO, fontSize: 13 }}>loading…</p>
+            <Spinner label="loading…" />
           ) : grouped.length === 0 ? (
             <div style={{ textAlign: "center", padding: "48px 0", color: C.textFaint }}>
               <p style={{ margin: 0, fontSize: 14 }}>No prompts yet. Write one above.</p>

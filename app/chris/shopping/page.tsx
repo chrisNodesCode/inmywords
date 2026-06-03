@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
+import { Spinner } from "@/app/chris/_lib/Spinner";
+import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -256,15 +258,18 @@ export default function ShoppingPage() {
           <span style={{ color: C.textFaint }}>~/chris/</span>
           <span style={{ color: C.text }}>shopping</span>
         </Link>
-        <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
-          {openCount} item{openCount === 1 ? "" : "s"}
-          {grandTotal > 0 && (
-            <>
-              <span style={{ color: C.borderSoft, margin: "0 6px" }}>|</span>
-              <span style={{ color: C.accent }}>{fmtMoney(grandTotal)}</span>
-            </>
-          )}
-        </span>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
+            {openCount} item{openCount === 1 ? "" : "s"}
+            {grandTotal > 0 && (
+              <>
+                <span style={{ color: C.borderSoft, margin: "0 6px" }}>|</span>
+                <span style={{ color: C.accent }}>{fmtMoney(grandTotal)}</span>
+              </>
+            )}
+          </span>
+          <FullscreenButton />
+        </div>
       </header>
 
       {/* Quick add */}
@@ -432,7 +437,7 @@ export default function ShoppingPage() {
       {/* Feed (grouped by list) */}
       <section style={{ marginTop: 28 }}>
         {loading ? (
-          <p style={{ color: C.textFaint, fontFamily: MONO, fontSize: 13 }}>loading…</p>
+          <Spinner label="loading…" />
         ) : lists.length === 0 ? (
           <EmptyNoLists
             onPick={async (name) => {

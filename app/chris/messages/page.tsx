@@ -5,6 +5,8 @@ import Link from "next/link";
 import { IMWEditor } from "@/components/editor";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
+import { Spinner } from "@/app/chris/_lib/Spinner";
+import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -366,9 +368,12 @@ export default function MessagesPage() {
           <span style={{ color: C.textFaint }}>~/chris/</span>
           <span style={{ color: C.text }}>messages</span>
         </Link>
-        <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
-          {messages.length} message{messages.length === 1 ? "" : "s"}
-        </span>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
+            {messages.length} message{messages.length === 1 ? "" : "s"}
+          </span>
+          <FullscreenButton />
+        </div>
       </header>
 
       {/* Composer — hidden while a workspace is open */}
@@ -498,7 +503,7 @@ export default function MessagesPage() {
       {/* Feed */}
       <section style={{ marginTop: editingId === null ? 30 : 28 }}>
         {loading ? (
-          <p style={{ color: C.textFaint, fontFamily: MONO, fontSize: 13 }}>loading…</p>
+          <Spinner label="loading…" />
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "48px 0", color: C.textFaint }}>
             <p style={{ margin: 0, fontSize: 14 }}>

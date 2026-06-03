@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
+import { Spinner } from "@/app/chris/_lib/Spinner";
+import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
 import { ProjectFilterBar, ALL, UNASSIGNED as UNASSIGNED_FILTER, type FilterValue } from "@/app/chris/_lib/ProjectFilterBar";
 
@@ -282,9 +284,12 @@ export default function TodosPage() {
           <span style={{ color: C.textFaint }}>~/chris/</span>
           <span style={{ color: C.text }}>todos</span>
         </Link>
-        <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
-          {active.length} open
-        </span>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
+            {active.length} open
+          </span>
+          <FullscreenButton />
+        </div>
       </header>
 
       {/* Quick add */}
@@ -437,7 +442,7 @@ export default function TodosPage() {
       {/* List */}
       <section style={{ marginTop: 28 }}>
         {loading ? (
-          <p style={{ color: C.textFaint, fontFamily: MONO, fontSize: 13 }}>loading…</p>
+          <Spinner label="loading…" />
         ) : active.length === 0 && done.length === 0 ? (
           <div style={{ textAlign: "center", padding: "56px 0", color: C.textFaint }}>
             <div style={{ fontSize: 28, marginBottom: 12 }}>◜◝</div>

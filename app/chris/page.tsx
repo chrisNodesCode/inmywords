@@ -4,6 +4,7 @@
 // placeholders. When you're ready to build one, give the details and we'll turn
 // the tile into a real route under /chris/<module>.
 import Link from "next/link";
+import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 
 const MONO =
   'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
@@ -45,18 +46,21 @@ export default function PlaygroundHome() {
           <span style={{ color: "#e7e9ee" }}>chris</span>
           <span style={{ color: "#6b7280" }}>/playground</span>
         </span>
-        <span
-          style={{
-            fontFamily: MONO,
-            fontSize: 11,
-            color: "#6b7280",
-            border: "1px solid #23262d",
-            borderRadius: 999,
-            padding: "3px 10px",
-          }}
-        >
-          scaffold · v0
-        </span>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
+          <span
+            style={{
+              fontFamily: MONO,
+              fontSize: 11,
+              color: "#6b7280",
+              border: "1px solid #23262d",
+              borderRadius: 999,
+              padding: "3px 10px",
+            }}
+          >
+            live
+          </span>
+          <FullscreenButton />
+        </div>
       </header>
 
       {/* Hero */}
@@ -81,9 +85,10 @@ export default function PlaygroundHome() {
             lineHeight: 1.6,
           }}
         >
-          A separate corner of the repo with its own database — for to-dos,
-          project tracking, half-formed ideas, and the little automations you
-          want everywhere you go. Nothing here is wired up yet.
+          A private corner of InMyWords — to-dos, projects, journaling,
+          shopping lists, prompt drafts, and a message composer that tunes
+          how things land. Everything shares one database, so the tools can
+          cross-reference each other.
         </p>
       </section>
 
@@ -169,7 +174,7 @@ export default function PlaygroundHome() {
           color: "#5a6066",
         }}
       >
-        db: playground (isolated) · auth: inherited · ready for instructions →
+        db: nameless-block (shared with InMyWords) · auth: owner-gated
       </p>
     </main>
   );
