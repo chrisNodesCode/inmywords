@@ -6,7 +6,8 @@ import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
-import { ProjectFilterBar, ALL, UNASSIGNED as UNASSIGNED_FILTER, type FilterValue } from "@/app/chris/_lib/ProjectFilterBar";
+import { ProjectSelect } from "@/app/chris/_lib/ProjectSelect";
+import { ALL, UNASSIGNED as UNASSIGNED_FILTER, type FilterValue } from "@/app/chris/_lib/ProjectFilterBar";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -141,21 +142,6 @@ export default function TodosPage() {
       }
     })();
   }, []);
-
-  const createProject = async (name: string): Promise<Project | null> => {
-    const t = name.trim();
-    if (!t) return null;
-    const res = await fetch("/chris/api/projects", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: t }),
-    });
-    if (!res.ok) return null;
-    const { project } = await res.json();
-    const p = { id: project.id, name: project.name };
-    setProjects((prev) => [...prev, p]);
-    return p;
-  };
 
   const ensureEntries = useCallback(async () => {
     if (entries !== null || entriesLoading) return;
@@ -348,13 +334,10 @@ export default function TodosPage() {
         </div>
 
         {/* Project filter */}
-        <ProjectFilterBar
+        <ProjectSelect
           projects={projects}
           value={filterValue}
           onChange={handleFilterChange}
-          onCreateProject={createProject}
-          storageKey={LAST_PROJECT_KEY}
-          showManageLink={false}
         />
 
         {/* Optional details — appear once the field is engaged */}
