@@ -7,12 +7,20 @@ import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
+import {
+  ProjectSelect,
+  PROJECT_ALL,
+  PROJECT_UNASSIGNED,
+  type ProjectFilterValue,
+} from "@/app/chris/_lib/ProjectSelect";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
 type Channel = "slack" | "email" | "text";
 type Status = "draft" | "response" | "final";
 type Mode = "professional" | "dating" | "friends";
+
+type Project = { id: string; name: string };
 
 type Message = {
   id: string;
@@ -21,6 +29,8 @@ type Message = {
   response: string | null; // plain text
   finalDraft: string | null; // TipTap JSON
   status: Status;
+  projectId: string | null;
+  project: Project | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -76,6 +86,7 @@ const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
 const LAST_CHANNEL_KEY = "chris.messages.lastChannel";
 const LAST_STATUS_KEY = "chris.messages.lastStatusFilter";
 const LAST_MODE_KEY = "chris.messages.mode";
+const LAST_PROJECT_KEY = "chris.messages.lastProjectId";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -200,18 +211,42 @@ export default function MessagesPage() {
     if (typeof window !== "undefined") localStorage.setItem(LAST_STATUS_KEY, v);
   }, []);
 
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectFilter, setProjectFilterState] = useState<ProjectFilterValue>(PROJECT_ALL);
+  const setProjectFilter = useCallback((v: ProjectFilterValue) => {
+    setProjectFilterState(v);
+    if (typeof window !== "undefined") localStorage.setItem(LAST_PROJECT_KEY, v);
+  }, []);
+  const activeProjectId =
+    projectFilter === PROJECT_ALL || projectFilter === PROJECT_UNASSIGNED ? null : projectFilter;
+
   // Load
   useEffect(() => {
     (async () => {
       try {
-        const [msgRes, presetRes] = await Promise.all([
+        const [msgRes, presetRes, projRes] = await Promise.all([
           fetch("/chris/api/messages"),
           fetch("/chris/api/message-presets"),
+          fetch("/chris/api/projects"),
         ]);
         const data = await msgRes.json();
         setMessages(data.messages ?? []);
         const pdata = await presetRes.json();
         setPresets(pdata.presets ?? []);
+        const projData = await projRes.json();
+        const loadedProjects: Project[] = (projData.projects ?? []).map(
+          (p: { id: string; name: string }) => ({ id: p.id, name: p.name })
+        );
+        setProjects(loadedProjects);
+
+        const savedProject = localStorage.getItem(LAST_PROJECT_KEY);
+        if (
+          savedProject === PROJECT_ALL ||
+          savedProject === PROJECT_UNASSIGNED ||
+          (savedProject && loadedProjects.some((p) => p.id === savedProject))
+        ) {
+          setProjectFilterState(savedProject as ProjectFilterValue);
+        }
 
         const savedChannel = localStorage.getItem(LAST_CHANNEL_KEY);
         if (savedChannel === ALL_CHANNELS || CHANNELS.some((c) => c.value === savedChannel)) {
@@ -257,7 +292,7 @@ export default function MessagesPage() {
     const res = await fetch("/chris/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ draft: draftContent, channel }),
+      body: JSON.stringify({ draft: draftContent, channel, projectId: activeProjectId }),
     });
     if (!res.ok) return null;
     const { message } = await res.json();
@@ -346,8 +381,10 @@ export default function MessagesPage() {
     let list = messages;
     if (channelFilter !== ALL_CHANNELS) list = list.filter((m) => m.channel === channelFilter);
     if (statusFilter !== ALL_STATUSES) list = list.filter((m) => m.status === statusFilter);
+    if (projectFilter === PROJECT_UNASSIGNED) list = list.filter((m) => !m.projectId);
+    else if (projectFilter !== PROJECT_ALL) list = list.filter((m) => m.projectId === projectFilter);
     return list;
-  }, [messages, channelFilter, statusFilter]);
+  }, [messages, channelFilter, statusFilter, projectFilter]);
 
   const draftEmpty = isJSONEmpty(draftContent);
 
@@ -497,6 +534,11 @@ export default function MessagesPage() {
               ]}
             />
           </div>
+          <ProjectSelect
+            projects={projects}
+            value={projectFilter}
+            onChange={setProjectFilter}
+          />
         </section>
       )}
 
@@ -1037,6 +1079,20 @@ function MessageRow({
         >
           {si.label}
         </span>
+        {message.project && (
+          <span
+            style={{
+              fontSize: 11,
+              color: C.textDim,
+              border: `1px solid ${C.border}`,
+              borderRadius: 999,
+              padding: "2px 9px",
+            }}
+          >
+            <span style={{ color: C.accent, marginRight: 4 }}>◆</span>
+            {message.project.name}
+          </span>
+        )}
         <div style={{ flex: 1 }} />
         <span style={{ fontFamily: MONO, fontSize: 11, color: C.textFaint }}>
           {formatRelative(message.updatedAt)}

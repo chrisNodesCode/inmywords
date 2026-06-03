@@ -55,6 +55,7 @@ export async function POST(
         // Don't downgrade a message that already has a final draft.
         status: existing.status === "final" ? "final" : "response",
       },
+      include: { project: { select: { id: true, name: true } } },
     });
     return NextResponse.json({ message });
   } catch (err) {

@@ -38,7 +38,22 @@ export async function PATCH(
     data.status = body.status;
   }
 
-  const message = await prisma.message.update({ where: { id }, data });
+  if ("projectId" in body) {
+    const v = body.projectId;
+    if (v === null || v === "") {
+      data.projectId = null;
+    } else if (typeof v === "string") {
+      const p = await prisma.project.findFirst({ where: { id: v, userId }, select: { id: true } });
+      if (!p) return NextResponse.json({ error: "Invalid projectId" }, { status: 400 });
+      data.projectId = p.id;
+    }
+  }
+
+  const message = await prisma.message.update({
+    where: { id },
+    data,
+    include: { project: { select: { id: true, name: true } } },
+  });
   return NextResponse.json({ message });
 }
 

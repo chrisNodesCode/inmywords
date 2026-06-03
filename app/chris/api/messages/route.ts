@@ -11,8 +11,16 @@ export async function GET() {
   const messages = await prisma.message.findMany({
     where: { userId },
     orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
+    include: { project: { select: { id: true, name: true } } },
   });
   return NextResponse.json({ messages });
+}
+
+async function resolveProjectId(value: unknown, userId: string): Promise<string | null | false> {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value !== "string") return false;
+  const project = await prisma.project.findFirst({ where: { id: value, userId }, select: { id: true } });
+  return project ? project.id : false;
 }
 
 // POST /chris/api/messages — create a draft. Body: { draft, channel? }
@@ -27,8 +35,14 @@ export async function POST(req: NextRequest) {
   }
   const channel = isMessageChannel(body.channel) ? body.channel : "email";
 
+  const projectId = await resolveProjectId(body.projectId, userId);
+  if (projectId === false) {
+    return NextResponse.json({ error: "Invalid projectId" }, { status: 400 });
+  }
+
   const message = await prisma.message.create({
-    data: { userId, draft, channel, status: "draft" },
+    data: { userId, draft, channel, status: "draft", projectId },
+    include: { project: { select: { id: true, name: true } } },
   });
   return NextResponse.json({ message }, { status: 201 });
 }
