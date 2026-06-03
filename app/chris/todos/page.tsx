@@ -735,6 +735,8 @@ function TodoRow({
             }}
             title={todo.completed ? undefined : "Click to rename"}
             style={{
+              display: "inline-block",
+              maxWidth: "100%",
               fontSize: 15,
               lineHeight: 1.4,
               color: todo.completed ? C.textFaint : C.text,
