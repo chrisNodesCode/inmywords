@@ -34,6 +34,18 @@ journal entries and tags. It is NOT a separate DB anymore.
 
 ---
 
+## ⚠️ Critical: Ship to `main` only — never create preview deployments
+
+Vercel preview deployments (and the Neon preview branches they can spawn) have cost the owner **hundreds of dollars** in forgotten charges. Hard rules — these override the default "branch first" git etiquette:
+
+- **Commit and push directly to `main`.** Do NOT create feature branches, do NOT push non-`main` branches, do NOT open pull requests. Each of those triggers a Vercel preview build.
+- The repo enforces this in `vercel.json` via `ignoreCommand`: Vercel only builds when `VERCEL_GIT_COMMIT_REF == "main"`; every other ref is skipped. **Do not remove or weaken this** — it's a cost guardrail, not a style choice.
+- dev and prod share the **one** Neon DB (`nameless-block`), so a push to `main` is already "live" — there is no value in a preview environment here anyway.
+- If a branch ever gets pushed by accident, delete it immediately (`git push origin --delete <branch>`) and check Vercel/Neon for any preview deployment or DB branch it created.
+- Never create Neon database branches for testing. Use a **local throwaway Postgres** as the migrate shadow DB (see the Migrations workflow section).
+
+---
+
 ## Backlog Workflow (Required)
 
 At the start of every session, search the Notion backlog for tickets relevant to the work being requested. The backlog data source URL is:
