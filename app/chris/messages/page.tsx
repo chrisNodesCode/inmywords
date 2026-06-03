@@ -10,7 +10,6 @@ import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 import { ThemeControls } from "@/app/chris/_lib/ThemeControls";
 import { useAutosave } from "@/app/chris/_lib/useAutosave";
 import {
-  ProjectSelect,
   PROJECT_ALL,
   PROJECT_UNASSIGNED,
   type ProjectFilterValue,
@@ -536,12 +535,28 @@ export default function MessagesPage() {
                 ...STATUSES.map((s) => ({ value: s.value, label: s.label })),
               ]}
             />
+            <FilterSelect
+              value={projectFilter}
+              onChange={(v) => setProjectFilter(v as ProjectFilterValue)}
+              options={[
+                { value: PROJECT_ALL, label: "All Projects" },
+                { value: PROJECT_UNASSIGNED, label: "Unassigned" },
+                ...projects.map((p) => ({ value: p.id, label: p.name })),
+              ]}
+            />
+            <Link
+              href="/chris/projects"
+              style={{
+                marginLeft: "auto",
+                fontFamily: MONO,
+                fontSize: 11,
+                color: C.textFaint,
+                textDecoration: "none",
+              }}
+            >
+              manage →
+            </Link>
           </div>
-          <ProjectSelect
-            projects={projects}
-            value={projectFilter}
-            onChange={setProjectFilter}
-          />
         </section>
       )}
 
