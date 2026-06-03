@@ -462,6 +462,7 @@ export default function TodosPage() {
                   onToggle={() => patchTodo(t.id, { completed: !t.completed })}
                   onCyclePriority={() => cyclePriority(t)}
                   onOpenDetail={() => setDetailForId(t.id)}
+                  onEditTitle={(title) => patchTodo(t.id, { title })}
                   onDelete={() => deleteTodo(t.id)}
                   pickerOpen={pickerForId === t.id}
                   entries={entries}
@@ -505,6 +506,7 @@ export default function TodosPage() {
                       onToggle={() => patchTodo(t.id, { completed: !t.completed })}
                       onCyclePriority={() => cyclePriority(t)}
                       onOpenDetail={() => setDetailForId(t.id)}
+                      onEditTitle={(title) => patchTodo(t.id, { title })}
                       onDelete={() => deleteTodo(t.id)}
                       pickerOpen={pickerForId === t.id}
                       entries={entries}
@@ -594,6 +596,7 @@ function TodoRow({
   onToggle,
   onCyclePriority,
   onOpenDetail,
+  onEditTitle,
   onDelete,
   pickerOpen,
   entries,
@@ -614,6 +617,7 @@ function TodoRow({
   onToggle: () => void;
   onCyclePriority: () => void;
   onOpenDetail: () => void;
+  onEditTitle: (title: string) => void;
   onDelete: () => void;
   pickerOpen: boolean;
   entries: EntryLite[] | null;
@@ -629,15 +633,34 @@ function TodoRow({
   onAddNewEntry: () => void;
 }) {
   const [hover, setHover] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(todo.title);
   const linkBtnRef = useRef<HTMLButtonElement>(null);
   const projectBtnRef = useRef<HTMLButtonElement>(null);
 
   const pri = todo.priority ? PRIORITY_META[todo.priority] : null;
   const dueInfo = todo.dueDate ? formatDue(todo.dueDate) : null;
 
+  const commitEdit = () => {
+    const v = draft.trim();
+    if (v && v !== todo.title) onEditTitle(v);
+    else setDraft(todo.title);
+    setEditing(false);
+  };
+
+  // Clicking the card background opens the modal — but not when the click lands
+  // on an interactive child (buttons, links, inputs) or the title (inline edit).
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (editing) return;
+    const el = e.target as HTMLElement;
+    if (el.closest("button, a, input, textarea, [data-todo-title]")) return;
+    onOpenDetail();
+  };
+
   return (
     <div
       {...(dragProps ?? {})}
+      onClick={handleCardClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -650,6 +673,7 @@ function TodoRow({
         background: hover ? C.cardHover : C.card,
         padding: "13px 14px",
         transition: "background 0.12s ease",
+        cursor: "pointer",
         ...(dragStyle ?? {}),
       }}
     >
@@ -678,20 +702,50 @@ function TodoRow({
 
       {/* Body */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          onClick={onOpenDetail}
-          title="Open details"
-          style={{
-            fontSize: 15,
-            lineHeight: 1.4,
-            color: todo.completed ? C.textFaint : C.text,
-            textDecoration: todo.completed ? "line-through" : "none",
-            cursor: "pointer",
-            wordBreak: "break-word",
-          }}
-        >
-          {todo.title}
-        </div>
+        {editing ? (
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitEdit();
+              if (e.key === "Escape") {
+                setDraft(todo.title);
+                setEditing(false);
+              }
+            }}
+            style={{
+              width: "100%",
+              background: "transparent",
+              border: "none",
+              borderBottom: `1px solid ${C.accent}`,
+              outline: "none",
+              color: C.text,
+              fontSize: 15,
+              padding: "1px 0",
+            }}
+          />
+        ) : (
+          <div
+            data-todo-title
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!todo.completed) setEditing(true);
+            }}
+            title={todo.completed ? undefined : "Click to rename"}
+            style={{
+              fontSize: 15,
+              lineHeight: 1.4,
+              color: todo.completed ? C.textFaint : C.text,
+              textDecoration: todo.completed ? "line-through" : "none",
+              cursor: todo.completed ? "default" : "text",
+              wordBreak: "break-word",
+            }}
+          >
+            {todo.title}
+          </div>
+        )}
 
         {todo.note && (
           <div style={{ fontSize: 13, color: C.textDim, marginTop: 3, lineHeight: 1.4 }}>
