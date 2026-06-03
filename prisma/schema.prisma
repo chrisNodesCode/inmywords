@@ -105,6 +105,45 @@ model Prompt {
   @@index([projectId])
 }
 
+// Playground Messaging — drafts of Slack/email/text messages that Claude
+// "translates" into a neurotypical-professional register, then the writer edits
+// into a final draft. Three stages: draft → response → finalDraft.
+//   - draft:      the writer's raw message (TipTap JSON)
+//   - response:   Claude's suggested rewrite (plain text)
+//   - finalDraft: the writer's edited, send-ready version (TipTap JSON)
+model Message {
+  id         String   @id @default(cuid())
+  userId     String
+  sortOrder  Int      @default(0)
+  channel    String   @default("email") // "slack" | "email" | "text"
+  draft      String   // TipTap JSON
+  response   String?  // plain text from Claude
+  finalDraft String?  // TipTap JSON
+  status     String   @default("draft") // "draft" | "response" | "final"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Editable persona presets for Messaging translation. One row per (user, key);
+// `key` is a stable MessageMode ("professional" | "dating" | "friends"). `prompt`
+// is the system prompt the owner can edit in the UI. Seeded from defaults in
+// lib/translate-message.ts on first load.
+model MessagePreset {
+  id        String   @id @default(cuid())
+  userId    String
+  key       String
+  label     String
+  prompt    String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId])
+}
+
 // Shopping lists — playground module. Each list is typically a retailer
 // (Target, Walmart, Amazon, etc.). Items belong to exactly one list.
 model ShoppingList {

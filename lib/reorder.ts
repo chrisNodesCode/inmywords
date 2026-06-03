@@ -9,6 +9,7 @@ type ReorderModel =
   | "shoppingList"
   | "project"
   | "prompt"
+  | "message"
   | "journalEntry";
 
 export async function reorderForUser(
