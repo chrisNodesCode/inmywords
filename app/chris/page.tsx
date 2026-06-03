@@ -63,41 +63,13 @@ export default function PlaygroundHome() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section style={{ padding: "56px 0 40px" }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: 34,
-            lineHeight: 1.15,
-            fontWeight: 650,
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Your personal playground.
-        </h1>
-        <p
-          style={{
-            margin: "14px 0 0",
-            maxWidth: 540,
-            color: "#9aa0aa",
-            fontSize: 15.5,
-            lineHeight: 1.6,
-          }}
-        >
-          A private corner of InMyWords — to-dos, projects, journaling,
-          shopping lists, prompt drafts, and a message composer that tunes
-          how things land. Everything shares one database, so the tools can
-          cross-reference each other.
-        </p>
-      </section>
-
       {/* Module grid */}
       <section
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
           gap: 16,
+          marginTop: 40,
         }}
       >
         {MODULES.map((m) => {
