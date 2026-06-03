@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
+import { ThemeControls } from "@/app/chris/_lib/ThemeControls";
 
 type Project = {
   id: string;
@@ -16,15 +17,15 @@ type Project = {
 };
 
 const C = {
-  bg: "#0e0f12",
-  card: "#15171c",
-  cardHover: "#181b21",
-  border: "#23262d",
-  text: "#e7e9ee",
-  textDim: "#9aa0aa",
-  textFaint: "#6b7280",
-  accent: "#c9a86a",
-  accentText: "#1a1710",
+  bg: "var(--pg-bg)",
+  card: "var(--pg-card)",
+  cardHover: "var(--pg-card-hover)",
+  border: "var(--pg-border)",
+  text: "var(--pg-text)",
+  textDim: "var(--pg-text-dim)",
+  textFaint: "var(--pg-text-faint)",
+  accent: "var(--pg-accent)",
+  accentText: "var(--pg-accent-text)",
   danger: "#e0736a",
 };
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
@@ -106,6 +107,7 @@ export default function ProjectsPage() {
           <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
             {projects.length} project{projects.length === 1 ? "" : "s"}
           </span>
+          <ThemeControls />
           <FullscreenButton />
         </div>
       </header>

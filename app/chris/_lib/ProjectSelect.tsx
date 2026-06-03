@@ -11,10 +11,10 @@ const UNASSIGNED = "__unassigned__";
 export type ProjectFilterValue = typeof ALL | typeof UNASSIGNED | string;
 
 const C = {
-  card: "#15171c",
-  border: "#23262d",
-  text: "#e7e9ee",
-  textFaint: "#6b7280",
+  card: "var(--pg-card)",
+  border: "var(--pg-border)",
+  text: "var(--pg-text)",
+  textFaint: "var(--pg-text-faint)",
 };
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
 

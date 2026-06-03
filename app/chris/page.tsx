@@ -5,6 +5,7 @@
 // the tile into a real route under /chris/<module>.
 import Link from "next/link";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
+import { ThemeControls } from "@/app/chris/_lib/ThemeControls";
 
 const MONO =
   'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
@@ -38,27 +39,28 @@ export default function PlaygroundHome() {
           alignItems: "center",
           justifyContent: "space-between",
           height: 64,
-          borderBottom: "1px solid #23262d",
+          borderBottom: "1px solid var(--pg-border)",
         }}
       >
         <span style={{ fontFamily: MONO, fontSize: 14, letterSpacing: "0.02em" }}>
-          <span style={{ color: "#6b7280" }}>~/</span>
-          <span style={{ color: "#e7e9ee" }}>chris</span>
-          <span style={{ color: "#6b7280" }}>/playground</span>
+          <span style={{ color: "var(--pg-text-faint)" }}>~/</span>
+          <span style={{ color: "var(--pg-text)" }}>chris</span>
+          <span style={{ color: "var(--pg-text-faint)" }}>/playground</span>
         </span>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
           <span
             style={{
               fontFamily: MONO,
               fontSize: 11,
-              color: "#6b7280",
-              border: "1px solid #23262d",
+              color: "var(--pg-text-faint)",
+              border: "1px solid var(--pg-border)",
               borderRadius: 999,
               padding: "3px 10px",
             }}
           >
             live
           </span>
+          <ThemeControls />
           <FullscreenButton />
         </div>
       </header>
@@ -79,10 +81,9 @@ export default function PlaygroundHome() {
               style={{
                 position: "relative",
                 height: "100%",
-                border: `1px solid ${live ? "#33373f" : "#23262d"}`,
+                border: `1px solid var(--pg-border)`,
                 borderRadius: 14,
-                background:
-                  "linear-gradient(180deg, #15171c 0%, #121317 100%)",
+                background: "var(--pg-card)",
                 padding: "20px 20px 22px",
                 minHeight: 132,
                 cursor: live ? "pointer" : "default",
@@ -96,10 +97,10 @@ export default function PlaygroundHome() {
                   borderRadius: 10,
                   display: "grid",
                   placeItems: "center",
-                  background: "#1d2026",
-                  border: "1px solid #2a2e36",
+                  background: "var(--pg-card-hover)",
+                  border: "1px solid var(--pg-border)",
                   fontSize: 18,
-                  color: live ? "#c9a86a" : "#c7ccd6",
+                  color: live ? "var(--pg-accent)" : "var(--pg-text-dim)",
                 }}
               >
                 {m.glyph}
@@ -107,7 +108,7 @@ export default function PlaygroundHome() {
               <h2 style={{ margin: "16px 0 4px", fontSize: 16, fontWeight: 600 }}>
                 {m.name}
               </h2>
-              <p style={{ margin: 0, color: "#8b919b", fontSize: 13.5, lineHeight: 1.5 }}>
+              <p style={{ margin: 0, color: "var(--pg-text-dim)", fontSize: 13.5, lineHeight: 1.5 }}>
                 {m.blurb}
               </p>
               <span
@@ -119,7 +120,7 @@ export default function PlaygroundHome() {
                   fontSize: 10,
                   letterSpacing: "0.08em",
                   textTransform: "uppercase",
-                  color: live ? "#c9a86a" : "#5a6066",
+                  color: live ? "var(--pg-accent)" : "var(--pg-text-faint)",
                 }}
               >
                 {live ? "open →" : "stub"}
@@ -143,7 +144,7 @@ export default function PlaygroundHome() {
           marginTop: 40,
           fontFamily: MONO,
           fontSize: 12,
-          color: "#5a6066",
+          color: "var(--pg-text-faint)",
         }}
       >
         db: nameless-block (shared with InMyWords) · auth: owner-gated

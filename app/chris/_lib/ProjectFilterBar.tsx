@@ -6,12 +6,12 @@ import Link from "next/link";
 type Project = { id: string; name: string };
 
 const C = {
-  border: "#23262d",
-  text: "#e7e9ee",
-  textDim: "#9aa0aa",
-  textFaint: "#6b7280",
-  accent: "#c9a86a",
-  accentText: "#1a1710",
+  border: "var(--pg-border)",
+  text: "var(--pg-text)",
+  textDim: "var(--pg-text-dim)",
+  textFaint: "var(--pg-text-faint)",
+  accent: "var(--pg-accent)",
+  accentText: "var(--pg-accent-text)",
 };
 
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
+import { ThemeControls } from "@/app/chris/_lib/ThemeControls";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
 import { ProjectSelect } from "@/app/chris/_lib/ProjectSelect";
 import { useAutosave } from "@/app/chris/_lib/useAutosave";
@@ -46,15 +47,15 @@ const LAST_PROJECT_KEY = "chris.todos.lastProjectId";
 // ── Palette ──────────────────────────────────────────────────────────────────
 
 const C = {
-  bg: "#0e0f12",
-  card: "#15171c",
-  cardHover: "#181b21",
-  border: "#23262d",
-  borderSoft: "#1f2228",
-  text: "#e7e9ee",
-  textDim: "#9aa0aa",
-  textFaint: "#6b7280",
-  accent: "#c9a86a", // sand — quiet InMyWords nod
+  bg: "var(--pg-bg)",
+  card: "var(--pg-card)",
+  cardHover: "var(--pg-card-hover)",
+  border: "var(--pg-border)",
+  borderSoft: "var(--pg-border-soft)",
+  text: "var(--pg-text)",
+  textDim: "var(--pg-text-dim)",
+  textFaint: "var(--pg-text-faint)",
+  accent: "var(--pg-accent)", // sand — quiet InMyWords nod
 };
 
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
@@ -278,6 +279,7 @@ export default function TodosPage() {
           <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
             {active.length} open
           </span>
+          <ThemeControls />
           <FullscreenButton />
         </div>
       </header>
@@ -322,7 +324,7 @@ export default function TodosPage() {
               border: "none",
               borderRadius: 10,
               background: title.trim() ? C.accent : C.border,
-              color: title.trim() ? "#1a1710" : C.textFaint,
+              color: title.trim() ? "var(--pg-accent-text)" : C.textFaint,
               fontWeight: 600,
               fontSize: 14,
               padding: "10px 16px",
@@ -690,7 +692,7 @@ function TodoRow({
           borderRadius: 999,
           border: `1.5px solid ${todo.completed ? C.accent : "#3a3e46"}`,
           background: todo.completed ? C.accent : "transparent",
-          color: "#1a1710",
+          color: "var(--pg-accent-text)",
           display: "grid",
           placeItems: "center",
           cursor: "pointer",
@@ -1332,7 +1334,7 @@ function NewEntryModal({
               border: "none",
               borderRadius: 10,
               background: C.accent,
-              color: "#1a1710",
+              color: "var(--pg-accent-text)",
               fontWeight: 600,
               fontSize: 13,
               padding: "8px 18px",
@@ -1731,7 +1733,7 @@ function TodoDetailModal({
               border: "none",
               borderRadius: 10,
               background: C.accent,
-              color: "#1a1710",
+              color: "var(--pg-accent-text)",
               fontWeight: 600,
               fontSize: 13,
               padding: "8px 18px",

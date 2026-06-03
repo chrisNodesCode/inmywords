@@ -7,7 +7,7 @@ const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
 export function Spinner({
   size = 18,
   label,
-  color = "#c9a86a",
+  color = "var(--pg-accent)",
 }: {
   size?: number;
   label?: string;
@@ -28,7 +28,7 @@ export function Spinner({
         }}
       />
       {label && (
-        <span style={{ fontFamily: MONO, fontSize: 13, color: "#6b7280" }}>{label}</span>
+        <span style={{ fontFamily: MONO, fontSize: 13, color: "var(--pg-text-faint)" }}>{label}</span>
       )}
       <style>{"@keyframes pg-spin{to{transform:rotate(360deg)}}"}</style>
     </span>

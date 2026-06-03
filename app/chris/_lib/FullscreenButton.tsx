@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 // the editors' "deep write" uses, but available from the top bar everywhere.
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
 
-export function FullscreenButton({ color = "#9aa0aa" }: { color?: string }) {
+export function FullscreenButton({ color = "var(--pg-text-dim)" }: { color?: string }) {
   const [fs, setFs] = useState(false);
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export function FullscreenButton({ color = "#9aa0aa" }: { color?: string }) {
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
-        border: "1px solid #23262d",
+        border: "1px solid var(--pg-border)",
         background: "transparent",
         color,
         borderRadius: 8,
