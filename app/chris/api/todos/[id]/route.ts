@@ -34,6 +34,12 @@ export async function PATCH(
     const d = body.dueDate ? new Date(body.dueDate) : null;
     data.dueDate = d && !isNaN(d.getTime()) ? d : null;
   }
+  if ("phone" in body) {
+    data.phone = typeof body.phone === "string" && body.phone.trim() ? body.phone.trim() : null;
+  }
+  if ("url" in body) {
+    data.url = typeof body.url === "string" && body.url.trim() ? body.url.trim() : null;
+  }
   if (typeof body.completed === "boolean") {
     data.completed = body.completed;
     data.completedAt = body.completed ? new Date() : null;

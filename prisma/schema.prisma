@@ -50,6 +50,8 @@ model Todo {
   note        String?
   priority    Priority?
   dueDate     DateTime?
+  phone       String?
+  url         String?
   completed   Boolean   @default(false)
   completedAt DateTime?
   createdAt   DateTime  @default(now())
