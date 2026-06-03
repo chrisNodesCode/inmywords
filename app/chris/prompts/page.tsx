@@ -201,6 +201,34 @@ export default function PromptsPage() {
       setPrompts((prev) => [prompt, ...prev]);
       setDraftContent("");
       setEditorKey((k) => k + 1);
+      // Auto-name in the background, claude.ai-style. Best-effort; never blocks.
+      if (!prompt.title) void autoNamePrompt(prompt.id);
+    }
+  };
+
+  // Ask Claude for a title based on the saved content, then persist it — but
+  // only if the user hasn't typed their own title in the meantime.
+  const autoNamePrompt = async (id: string) => {
+    try {
+      const res = await fetch(`/chris/api/prompts/${id}/generate-title`, {
+        method: "POST",
+      });
+      if (!res.ok) return;
+      const { title } = await res.json();
+      if (!title) return;
+
+      const patchRes = await fetch(`/chris/api/prompts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (!patchRes.ok) return;
+      const { prompt: updated } = await patchRes.json();
+      setPrompts((prev) =>
+        prev.map((p) => (p.id === id && !p.title ? updated : p))
+      );
+    } catch {
+      // best-effort — leave the prompt untitled on failure
     }
   };
 
@@ -540,8 +568,11 @@ export default function PromptsPage() {
                     });
                   }}
                   onPatchSave={async (id, data) => {
+                    const existing = prompts.find((p) => p.id === id);
                     await patchPrompt(id, data);
                     collapseEdit();
+                    // Re-name on content edits while still untitled.
+                    if (existing && !existing.title) void autoNamePrompt(id);
                   }}
                   onCancelEdit={collapseEdit}
                   onDelete={deletePrompt}
@@ -697,21 +728,33 @@ function PromptRow({
         ...dragStyle,
       } as React.CSSProperties}
     >
-      <div
-        onClick={onEdit}
-        title="Click to edit"
-        style={{
-          fontSize: 14,
-          lineHeight: 1.55,
-          color: C.text,
-          cursor: "pointer",
-          wordBreak: "break-word",
-        }}
-      >
-        {preview}
-        {prompt.content.length > 200 && (
-          <span style={{ color: C.textFaint }}> …</span>
+      <div onClick={onEdit} title="Click to edit" style={{ cursor: "pointer" }}>
+        {prompt.title && (
+          <div
+            style={{
+              fontSize: 14.5,
+              fontWeight: 600,
+              color: C.text,
+              marginBottom: 5,
+              wordBreak: "break-word",
+            }}
+          >
+            {prompt.title}
+          </div>
         )}
+        <div
+          style={{
+            fontSize: prompt.title ? 13 : 14,
+            lineHeight: 1.55,
+            color: prompt.title ? C.textDim : C.text,
+            wordBreak: "break-word",
+          }}
+        >
+          {preview}
+          {prompt.content.length > 200 && (
+            <span style={{ color: C.textFaint }}> …</span>
+          )}
+        </div>
       </div>
 
       <div

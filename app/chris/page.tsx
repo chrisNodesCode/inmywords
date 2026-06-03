@@ -24,7 +24,7 @@ const MODULES: Module[] = [
   { key: "journal", name: "Journal", blurb: "Write entries — shared with InMyWords", glyph: "✦", href: "/chris/journal" },
   { key: "shopping", name: "Shopping List", blurb: "Items grouped by retailer", glyph: "⟳", href: "/chris/shopping" },
   { key: "prompts", name: "Prompts", blurb: "Drafting space for LLM prompts", glyph: "✎", href: "/chris/prompts" },
-  { key: "automations", name: "Automations", blurb: "Little helpers & scripts", glyph: "⚙" },
+  { key: "messages", name: "Messaging", blurb: "Draft messages → tune how they land", glyph: "✉", href: "/chris/messages" },
 ];
 
 export default function PlaygroundHome() {

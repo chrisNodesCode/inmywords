@@ -26,7 +26,9 @@ former standalone `bitter-queen` project) so playground data can cross-reference
 journal entries and tags. It is NOT a separate DB anymore.
 
 - **Models:** `Todo` (+ `Priority` enum) live in `prisma/schema.prisma` alongside `JournalEntry`. A `Todo` may optionally link to a `JournalEntry` via `entryId` (relation `Todo.entry` / `JournalEntry.todos`, `onDelete: SetNull`). The to-dos UI links/unlinks entries via a picker fed by `GET /chris/api/entries`.
+- **Modules:** To-dos, Projects, Journal (shared with IMW), Shopping, Prompts, and **Messaging** (`/chris/messages`). Module cards are listed in `app/chris/page.tsx`.
 - **Client:** uses the standard `import { prisma } from "@/lib/prisma"`.
+- **Migrations workflow (`migrate dev` — the canonical path):** migration history is back in sync with the live DB as of `20260602184246_add_prompt_status_and_messaging` (that migration baselined earlier `db push` drift — `Prompt.status` + the `Message` table). **Use `prisma migrate dev` for all schema changes; do NOT use `db push`** (it silently re-introduces drift that later forces a destructive reset). See the "Prisma Migrations" section below for the required shadow-DB step on Neon and the dev-server restart gotcha.
 - **Owner gate:** `lib/playground-auth.ts` (`getPlaygroundUserId()` returns a userId only for `PLAYGROUND_OWNER_EMAIL`) + `app/chris/OwnerGate.tsx` (client redirect). Non-owners are blocked at both the UI and the API.
 - **Layout:** `app/chris/layout.tsx` is self-contained — no IMW sidebar/theme. `SidebarWrapper` hides the IMW sidebar on `/chris*`.
 
@@ -84,8 +86,29 @@ The next milestone is **Phase 4 — Quiet Beta** (3–5 trusted ND users).
 | Node | 24.x |
 
 ### Key Prisma Notes
-- Prisma 7 no longer accepts `DATABASE_URL` inside `schema.prisma`. Connection string lives in `prisma.config.ts`.
+- Prisma 7 no longer accepts `DATABASE_URL` inside `schema.prisma`. Connection string lives in `prisma.config.ts` (loads `.env` via `dotenv/config`; the value is in both `.env` and `.env.local`).
 - Always run `prisma generate` before `next build`. Build script: `"build": "prisma generate && next build"`.
+
+#### Migrations workflow (read before any schema change)
+**Always use `prisma migrate dev` — never `prisma db push`.** `db push` mutates the live DB without writing a migration file, creating drift that a later `migrate dev` can only resolve by offering a **destructive reset**. History was re-baselined on 2026-06-02 to undo exactly that; don't reintroduce it.
+
+Neon can't host the shadow database `migrate dev` needs (the pooled connection can't `CREATE DATABASE`), so spin up a throwaway local Postgres and point `SHADOW_DATABASE_URL` at it. `prisma.config.ts` already wires `datasource.shadowDatabaseUrl = process.env.SHADOW_DATABASE_URL` (unset = ignored at runtime).
+
+```bash
+# one-time-ish: throwaway shadow Postgres (Homebrew postgresql@14)
+initdb -D /tmp/imw-shadow-pg -U postgres --no-locale --encoding=UTF8
+pg_ctl -D /tmp/imw-shadow-pg -o "-p 5433" -l /tmp/shadow-pg.log start
+createdb -p 5433 -U postgres shadow
+
+# then, for any schema change:
+SHADOW_DATABASE_URL="postgresql://postgres@127.0.0.1:5433/shadow" \
+  npx prisma migrate dev --name <change_name>
+
+pg_ctl -D /tmp/imw-shadow-pg stop   # tear down when done
+```
+
+- **Restart the dev server after adding a model/field.** The running Next process caches the generated Prisma client; new models otherwise 500 with `Cannot read properties of undefined (reading 'create')` until you `pkill -f "next dev"` + restart (or re-launch the preview).
+- **Baselining drift without data loss** (if it ever happens again): generate the catch-up SQL with `prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --script` (needs `SHADOW_DATABASE_URL`), drop it into a new `prisma/migrations/<ts>_<name>/migration.sql`, then `prisma migrate resolve --applied <ts>_<name>` so it records as applied **without** re-running against prod. Verify with `migrate diff --from-migrations … --to-config-datasource --exit-code` → "No difference detected".
 
 ### Key AI SDK Notes
 - Use `maxOutputTokens` (not `maxTokens`) in Vercel AI SDK v6.
@@ -274,11 +297,43 @@ components/
 
 ## AI Features
 
-### Title Generation (`/api/entries/[id]/generate-title`)
-- Triggers automatically at ~30 words (debounced 1500ms); **pending ticket to increase threshold by ~25–35 chars** (see Backlog)
+### Shared title-generation helper (`lib/generate-title.ts`)
+All three auto-naming surfaces use this one module. It exports:
+- `generateTitle(content, kind)` — calls Claude, returns a string or null. `kind` is `"journal"` (evocative, friend-like voice) or `"prompt"` (descriptive, file-name-style voice).
+- `countWords(text)` + `MIN_TITLE_WORDS = 10` — callers use these to gate thin drafts before calling `generateTitle`.
+- Always strips stray quotes/fences from Claude's reply.
+- Throws on Anthropic failure; callers catch and treat naming as best-effort.
+
+### Title Generation — main journal (`/api/entries/[id]/generate-title`)
+- Triggers on save when plain text ≥ 10 chars (called from `app/journal/page.tsx`)
 - `id` accepts `"new"` for the composer (no ownership check needed)
 - Composer title input has no placeholder — stays blank until AI populates it
 - User can override at any time; manual titles are never overwritten by AI
+- Gated by `asd_user` plan check (unlike the playground routes below)
+
+### Title Generation — playground prompts (`/chris/api/prompts/[id]/generate-title`)
+- Owner-gated (no plan check — `/chris` is already owner-only)
+- Fires after prompt save and after a content edit while still untitled
+- Uses `"prompt"` voice: descriptive label for what the prompt *does*
+- Displayed in `PromptRow` as bold title above the dimmed content preview
+- Never overwrites a title the user typed manually
+
+### Title Generation — playground journal (`/chris/api/entries/[id]/generate-title`)
+- Owner-gated; mirrors the prompt route but uses `"journal"` voice
+- Fires after entry save (if no manual title supplied) and after an untitled content edit
+- Persists via standard `/api/entries/[id]` PATCH
+
+### Messaging — message translation with editable persona presets (`/chris/messages`)
+Owner-only playground tool for drafting Slack/email/text messages and rewriting them for how they'll *land*. Three-stage flow: **draft → response → finalDraft**, tracked by `Message.status` (`"draft" | "response" | "final"`).
+- **Two orthogonal dimensions:** `channel` (`slack|email|text` — delivery medium, appended as a short note) and **`mode`** (`professional|dating|friends` — the persona/voice).
+- `Message` model: `channel`, `draft` (TipTap JSON), `response` (plain text), `finalDraft` (TipTap JSON), `status`.
+- `MessagePreset` model: one row per `(userId, key)` where `key` is a `MessageMode`. `prompt` is the **owner-editable** system prompt; seeded from `DEFAULT_MODE_PROMPTS` on first `GET /chris/api/message-presets`. Edited via the "✎ edit prompts" modal on the messages page.
+- `lib/translate-message.ts` (server-only — never import into a client component) — `translateMessage(plainText, channel, systemPrompt)`. Caller supplies the preset's prompt; the channel medium-note is appended. Exports `MESSAGE_MODES`, `DEFAULT_MODE_PROMPTS`, `isMessageMode`, channel helpers. **Mode metadata is duplicated in `page.tsx` (`MODES`)** on purpose, so the client never imports this server module.
+- Defaults: *professional* = neurodivergent→neurotypical top-down-processing rewrite for an educated workplace (lead with the headline, make implicit social signals explicit, soften bluntness, no small talk/emoji, preserve meaning); *dating* = warm/genuine/confident messages to women on dating apps; *friends* = casual warm messages. All editable + "reset to default".
+- Routes (owner-gated via `getPlaygroundUserId`, no `asd_user` plan gate): `GET/POST /chris/api/messages`, `PATCH/DELETE /chris/api/messages/[id]`, `POST /chris/api/messages/[id]/translate` (body `{ channel?, mode? }` — loads that mode's preset prompt), `POST /chris/api/messages/reorder`, `GET /chris/api/message-presets` (get-or-seed), `PATCH /chris/api/message-presets/[id]` (`{ prompt? }` or `{ reset: true }`).
+- `status` auto-advances server-side: `translate` sets `response`; saving a non-empty `finalDraft` sets `final`.
+- UI: composer header has the **mode dropdown** (persisted in `localStorage` `chris.messages.mode`) + channel toggle + "edit prompts" button. Feed of collapsible cards; expanded **MessageWorkspace** is the numbered 3-step stepper showing the active mode; "Use as final draft" seeds step 3 (editor remounts via `key`). The **PromptModal** has a tab per mode + textarea + save/reset.
+- Replaced the old "Automations" stub card on the `/chris` landing.
 
 ### Category Classification (`/api/entries/[id]/analyze`)
 - Sends entry content to Claude with the IMW lived experience taxonomy

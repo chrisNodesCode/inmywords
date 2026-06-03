@@ -11,5 +11,10 @@ export default defineConfig({
   },
   datasource: {
     url: process.env["DATABASE_URL"]!,
+    // Shadow DB is only needed for `prisma migrate dev` / `migrate diff
+    // --from-migrations`. Neon's pooled connection can't CREATE DATABASE, so
+    // point this at a throwaway Postgres (local or a separate Neon db) when you
+    // run those commands. Unset in normal app runtime. See CLAUDE.md.
+    shadowDatabaseUrl: process.env["SHADOW_DATABASE_URL"],
   },
 });

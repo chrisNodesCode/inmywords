@@ -1,28 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
-import { generateText } from "ai";
 import { prisma } from "@/lib/prisma";
-import { anthropic, CLAUDE_MODEL } from "@/lib/ai";
+import { generateTitle } from "@/lib/generate-title";
 
 async function getUserId(): Promise<string | null> {
   if (process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === "true") return "dev-user-local";
   const { userId } = await auth();
   return userId;
 }
-
-const TITLE_SYSTEM_PROMPT = `You are helping someone give a name to something they experienced and wrote about.
-
-They've written a journal entry about their life — often about hard moments, sensory experiences, emotional days, or things that were difficult to navigate. Your job is to read what they wrote and suggest a short, evocative title that feels true to their experience.
-
-The title should:
-- Be 8 words or fewer
-- Reflect what actually happened or what they felt — not a diagnostic label
-- Sound like something a thoughtful, caring friend might say, not a clinician
-- Capture the emotional truth or the specific moment
-- Use plain, human language — no jargon, no clinical framing
-- Feel personal and specific, not generic
-
-Return ONLY the title itself — no quotes, no punctuation at the end, nothing else.`;
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -60,14 +45,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   try {
-    const { text } = await generateText({
-      model: anthropic(CLAUDE_MODEL),
-      system: TITLE_SYSTEM_PROMPT,
-      prompt: content.trim(),
-      maxOutputTokens: 60,
-    });
-
-    return NextResponse.json({ title: text.trim() });
+    const title = await generateTitle(content, "journal");
+    return NextResponse.json({ title });
   } catch (err) {
     console.error("Title generation failed:", err);
     return NextResponse.json({ error: "Title generation unavailable" }, { status: 503 });

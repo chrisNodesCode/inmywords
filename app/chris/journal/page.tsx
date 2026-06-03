@@ -209,6 +209,36 @@ export default function JournalPage() {
       setContent("");
       setMood(null);
       setEditorKey((k) => k + 1);
+      // Auto-name in the background when the writer didn't supply a title.
+      if (!entry.title) void autoNameEntry(entry.id);
+    }
+  };
+
+  // Ask Claude to name the entry from its saved content, then persist it — but
+  // only if the entry is still untitled (the writer may have added one). The
+  // generate-title route is owner-gated under /chris; the PATCH reuses the main
+  // entries route, same as manual edits.
+  const autoNameEntry = async (id: string) => {
+    try {
+      const res = await fetch(`/chris/api/entries/${id}/generate-title`, {
+        method: "POST",
+      });
+      if (!res.ok) return;
+      const { title: aiTitle } = await res.json();
+      if (!aiTitle) return;
+
+      const patchRes = await fetch(`/api/entries/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: aiTitle }),
+      });
+      if (!patchRes.ok) return;
+      const updated = await patchRes.json();
+      setEntries((prev) =>
+        prev.map((e) => (e.id === id && !e.title ? updated : e))
+      );
+    } catch {
+      // best-effort — leave the entry untitled on failure
     }
   };
 
@@ -425,8 +455,13 @@ export default function JournalPage() {
               onEdit={expandEdit}
               onCancelEdit={collapseEdit}
               onSaveEdit={async (id, data) => {
+                const existing = entries.find((e) => e.id === id);
                 await patchEntry(id, data);
                 collapseEdit();
+                // Re-name on content edits while still untitled.
+                if (existing && !data.title?.trim() && !existing.title) {
+                  void autoNameEntry(id);
+                }
               }}
               applyReorder={(next) => {
                 setEntries(next);
