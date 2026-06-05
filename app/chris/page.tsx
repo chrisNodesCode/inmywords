@@ -22,6 +22,7 @@ type Module = {
 // playground is meant to hold. Edit freely.
 const MODULES: Module[] = [
   { key: "todos", name: "To-dos", blurb: "Quick capture + daily list", glyph: "✓", href: "/chris/todos" },
+  { key: "calendar", name: "Calendar", blurb: "Month view — to-dos by due date", glyph: "▦", href: "/chris/calendar" },
   { key: "projects", name: "Projects", blurb: "Organize prompts and to-dos", glyph: "◳", href: "/chris/projects" },
   { key: "journal", name: "Journal", blurb: "Write entries — shared with InMyWords", glyph: "✦", href: "/chris/journal" },
   { key: "shopping", name: "Shopping List", blurb: "Items grouped by retailer", glyph: "⟳", href: "/chris/shopping" },

@@ -72,6 +72,20 @@ export function PlaygroundThemeProvider({ children }: { children: React.ReactNod
 
   const accentValue = PG_ACCENTS.find((a) => a.id === accent)?.[mode] ?? "#c9a86a";
 
+  // Mirror the theme attr + accent onto <html> so content rendered through a
+  // portal (e.g. FixedDropdown, which mounts on document.body — outside the
+  // wrapper div below) can still resolve the --pg-* variables. Without this,
+  // portaled popovers/dropdowns lose all their colors.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute("data-pg-theme", mode);
+    root.style.setProperty("--pg-accent", accentValue);
+    return () => {
+      root.removeAttribute("data-pg-theme");
+      root.style.removeProperty("--pg-accent");
+    };
+  }, [mode, accentValue]);
+
   return (
     <ThemeContext.Provider value={{ mode, accent, setMode, toggleMode, setAccent }}>
       <style>{TOKEN_CSS}</style>
