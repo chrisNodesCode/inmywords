@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
@@ -498,6 +498,8 @@ function InlineAmount({
   const [draft, setDraft] = useState(String(magnitude));
   const [dirty, setDirty] = useState(false);
   const [hover, setHover] = useState(false);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const viaEnterRef = useRef(false);
 
   const begin = () => {
     setDraft(String(magnitude));
@@ -506,9 +508,15 @@ function InlineAmount({
   };
   const commit = () => {
     setEditing(false);
-    if (!dirty) return; // opened but untouched → no delink
-    const n = parseFloat(draft.replace(/[^0-9.]/g, ""));
-    if (Number.isFinite(n)) onSet(n);
+    const viaEnter = viaEnterRef.current;
+    viaEnterRef.current = false;
+    if (dirty) {
+      const n = parseFloat(draft.replace(/[^0-9.]/g, "")); // opened-but-untouched → no delink
+      if (Number.isFinite(n)) onSet(n);
+    }
+    // Enter just saves; return focus to the row so a *second* Enter opens the
+    // card. (Click-away blurs don't steal focus.)
+    if (viaEnter) wrapRef.current?.closest<HTMLElement>('[role="button"]')?.focus();
   };
 
   const color = isCredit ? CREDIT_COLOR : DEBIT_COLOR;
@@ -516,6 +524,7 @@ function InlineAmount({
   return (
     <span
       onClick={(e) => e.stopPropagation()}
+      ref={wrapRef}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, minWidth: 0 }}
@@ -528,9 +537,16 @@ function InlineAmount({
             setDraft(e.target.value);
             setDirty(true);
           }}
+          onClick={(e) => e.stopPropagation()}
           onBlur={commit}
           onKeyDown={(e) => {
-            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            // Keep keystrokes inside the input — don't let Enter/Space bubble to
+            // the row, which would open the entry card.
+            e.stopPropagation();
+            if (e.key === "Enter") {
+              viaEnterRef.current = true;
+              (e.target as HTMLInputElement).blur();
+            }
             if (e.key === "Escape") {
               setDirty(false);
               setEditing(false);
