@@ -25,6 +25,7 @@ type Item = {
 type Entry = {
   id: string;
   date: string;
+  paid: boolean;
   amountOverride: number | null; // null = use item.amount (canonical)
   item: {
     id: string;
@@ -214,6 +215,19 @@ export default function BudgetPage() {
     await reloadEntries();
   };
 
+  // Toggle paid status. The PATCH handler adjusts account balances server-side.
+  const togglePaid = async (id: string, paid: boolean) => {
+    // Optimistic update
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, paid } : e)));
+    await fetch(`/chris/api/budget/entries/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paid }),
+    });
+    // Reload both entries and accounts (balances were adjusted server-side)
+    await Promise.all([reloadEntries(), reloadAccounts()]);
+  };
+
   // Set (number) or clear (null → relink to item default) one occurrence's amount.
   const setOverride = async (id: string, amountOverride: number | null) => {
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, amountOverride } : e)));
@@ -400,6 +414,7 @@ export default function BudgetPage() {
               group={g}
               onOpenEntry={(e) => setEntryModal(e)}
               onSetOverride={setOverride}
+              onTogglePaid={togglePaid}
             />
           ))}
         </div>
@@ -446,16 +461,18 @@ export default function BudgetPage() {
 
 // ── Month block ───────────────────────────────────────────────────────────────
 
-const GRID = "92px minmax(0, 1fr) auto 116px 128px";
+const GRID = "28px 92px minmax(0, 1fr) auto 116px 128px";
 
 function MonthBlock({
   group,
   onOpenEntry,
   onSetOverride,
+  onTogglePaid,
 }: {
   group: MonthGroup;
   onOpenEntry: (e: Entry) => void;
   onSetOverride: (id: string, amountOverride: number | null) => void;
+  onTogglePaid: (id: string, paid: boolean) => void;
 }) {
   return (
     <section>
@@ -493,6 +510,7 @@ function MonthBlock({
           color: C.textFaint,
         }}
       >
+        <span /> {/* paid dot */}
         <span>Date</span>
         <span>Item</span>
         <span>Category</span>
@@ -528,10 +546,18 @@ function MonthBlock({
                 padding: "10px 10px",
                 cursor: "pointer",
                 transition: "background 0.12s ease",
+                opacity: e.paid ? 0.55 : 1,
               }}
               onMouseEnter={(ev) => (ev.currentTarget.style.background = C.cardHover)}
               onMouseLeave={(ev) => (ev.currentTarget.style.background = C.card)}
             >
+              <PaidDot
+                paid={e.paid}
+                onToggle={(ev) => {
+                  ev.stopPropagation();
+                  onTogglePaid(e.id, !e.paid);
+                }}
+              />
               <span style={{ fontFamily: MONO, fontSize: 12, color: C.textDim }}>{fmtDay(e.date)}</span>
               <span
                 style={{ fontSize: 13.5, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
@@ -734,6 +760,40 @@ function InlineAmount({
         </>
       )}
     </span>
+  );
+}
+
+// ── Paid indicator dot ────────────────────────────────────────────────────────
+
+function PaidDot({ paid, onToggle }: { paid: boolean; onToggle: (e: React.MouseEvent) => void }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onToggle}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      aria-label={paid ? "Mark as unpaid" : "Mark as paid"}
+      title={paid ? "Paid — click to unmark" : "Mark as paid"}
+      style={{
+        flexShrink: 0,
+        width: 16,
+        height: 16,
+        borderRadius: 999,
+        border: `1.5px solid ${paid ? "var(--pg-accent)" : hover ? "var(--pg-accent)" : C.border}`,
+        background: paid ? "var(--pg-accent)" : "transparent",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        padding: 0,
+        transition: "border-color 0.12s ease, background 0.12s ease",
+      }}
+    >
+      {paid && (
+        <span aria-hidden style={{ fontSize: 9, color: "var(--pg-accent-text)", lineHeight: 1 }}>
+          ✓
+        </span>
+      )}
+    </button>
   );
 }
 

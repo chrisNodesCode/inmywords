@@ -271,6 +271,7 @@ model BudgetEntry {
   // amount (default); a value delinks just this occurrence's amount, so editing
   // the item amount updates every instance EXCEPT overridden ones.
   amountOverride Float?
+  paid      Boolean    @default(false) // manually confirmed transaction occurred
   sortOrder Int        @default(0)
   itemId    String
   item      BudgetItem @relation(fields: [itemId], references: [id], onDelete: Cascade)

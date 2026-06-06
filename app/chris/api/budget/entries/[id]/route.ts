@@ -27,7 +27,7 @@ export async function PATCH(
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
-  const data: { date?: Date; itemId?: string; amountOverride?: number | null } = {};
+  const data: { date?: Date; itemId?: string; amountOverride?: number | null; paid?: boolean } = {};
 
   if (body.date !== undefined) {
     const date = parseDate(body.date);
@@ -58,6 +58,44 @@ export async function PATCH(
         return NextResponse.json({ error: "Invalid amountOverride" }, { status: 400 });
       }
       data.amountOverride = n;
+    }
+  }
+
+  // Paid toggle: adjust account balances atomically when paid status changes.
+  // - SAVINGS category items:  checking −amount, savings +amount
+  // - CREDIT items (income):   checking +amount
+  // - DEBIT items (expenses):  checking −amount
+  // Unmarking paid reverses the above.
+  if (body.paid !== undefined && typeof body.paid === "boolean" && body.paid !== existing.paid) {
+    data.paid = body.paid;
+    const fullEntry = await prisma.budgetEntry.findFirst({
+      where: { id, userId },
+      include: { item: { include: { category: true } } },
+    });
+    if (fullEntry) {
+      const magnitude = fullEntry.amountOverride ?? fullEntry.item.amount;
+      const dir = body.paid ? 1 : -1; // 1=marking paid, -1=unmarking
+      const isSavings = fullEntry.item.category?.name === "SAVINGS";
+      const isCredit = fullEntry.item.category?.kind === "CREDIT";
+
+      if (isSavings) {
+        await prisma.$transaction([
+          prisma.budgetAccount.update({
+            where: { userId_key: { userId, key: "checking" } },
+            data: { balance: { increment: -magnitude * dir } },
+          }),
+          prisma.budgetAccount.update({
+            where: { userId_key: { userId, key: "savings" } },
+            data: { balance: { increment: magnitude * dir } },
+          }),
+        ]);
+      } else {
+        const delta = isCredit ? magnitude * dir : -magnitude * dir;
+        await prisma.budgetAccount.update({
+          where: { userId_key: { userId, key: "checking" } },
+          data: { balance: { increment: delta } },
+        });
+      }
     }
   }
 
