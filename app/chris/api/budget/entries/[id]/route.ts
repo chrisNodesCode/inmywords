@@ -27,7 +27,7 @@ export async function PATCH(
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
-  const data: { date?: Date; itemId?: string } = {};
+  const data: { date?: Date; itemId?: string; amountOverride?: number | null } = {};
 
   if (body.date !== undefined) {
     const date = parseDate(body.date);
@@ -41,6 +41,24 @@ export async function PATCH(
     });
     if (!item) return NextResponse.json({ error: "Invalid itemId" }, { status: 400 });
     data.itemId = item.id;
+  }
+  // amountOverride: a finite number delinks this occurrence's amount; null
+  // re-links it to the item's canonical amount.
+  if (body.amountOverride !== undefined) {
+    if (body.amountOverride === null) {
+      data.amountOverride = null;
+    } else {
+      const n =
+        typeof body.amountOverride === "number"
+          ? body.amountOverride
+          : typeof body.amountOverride === "string"
+            ? parseFloat(body.amountOverride)
+            : NaN;
+      if (!Number.isFinite(n)) {
+        return NextResponse.json({ error: "Invalid amountOverride" }, { status: 400 });
+      }
+      data.amountOverride = n;
+    }
   }
 
   const entry = await prisma.budgetEntry.update({ where: { id }, data, include: entryInclude });

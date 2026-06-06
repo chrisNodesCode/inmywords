@@ -25,6 +25,7 @@ type Item = {
 type Entry = {
   id: string;
   date: string;
+  amountOverride: number | null; // null = use item.amount (canonical)
   item: {
     id: string;
     name: string;
@@ -60,8 +61,13 @@ const fmtMoney = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 const fmtSigned = (n: number) => `${n < 0 ? "−" : "+"}${fmtMoney(Math.abs(n))}`;
 
+// The amount actually used: an overridden occurrence wins over the item default.
+function effectiveAmount(e: Entry): number {
+  return e.amountOverride ?? e.item.amount;
+}
 function signedAmount(e: Entry): number {
-  return e.item.category?.kind === "CREDIT" ? e.item.amount : -e.item.amount;
+  const mag = effectiveAmount(e);
+  return e.item.category?.kind === "CREDIT" ? mag : -mag;
 }
 function kindColor(kind: Kind | undefined | null): string {
   return kind === "CREDIT" ? CREDIT_COLOR : DEBIT_COLOR;
@@ -134,6 +140,17 @@ export default function BudgetPage() {
   };
   const deleteEntry = async (id: string) => {
     await fetch(`/chris/api/budget/entries/${id}`, { method: "DELETE" });
+    await reloadEntries();
+  };
+
+  // Set (number) or clear (null → relink to item default) one occurrence's amount.
+  const setOverride = async (id: string, amountOverride: number | null) => {
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, amountOverride } : e)));
+    await fetch(`/chris/api/budget/entries/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amountOverride }),
+    });
     await reloadEntries();
   };
 
@@ -269,7 +286,12 @@ export default function BudgetPage() {
       ) : (
         <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 26 }}>
           {groups.map((g) => (
-            <MonthBlock key={g.key} group={g} onOpenEntry={(e) => setEntryModal(e)} />
+            <MonthBlock
+              key={g.key}
+              group={g}
+              onOpenEntry={(e) => setEntryModal(e)}
+              onSetOverride={setOverride}
+            />
           ))}
         </div>
       )}
@@ -317,7 +339,15 @@ export default function BudgetPage() {
 
 const GRID = "92px minmax(0, 1fr) auto 116px 128px";
 
-function MonthBlock({ group, onOpenEntry }: { group: MonthGroup; onOpenEntry: (e: Entry) => void }) {
+function MonthBlock({
+  group,
+  onOpenEntry,
+  onSetOverride,
+}: {
+  group: MonthGroup;
+  onOpenEntry: (e: Entry) => void;
+  onSetOverride: (id: string, amountOverride: number | null) => void;
+}) {
   return (
     <section>
       <div
@@ -422,9 +452,15 @@ function MonthBlock({ group, onOpenEntry }: { group: MonthGroup; onOpenEntry: (e
                   <span style={{ fontSize: 11.5, color: C.textFaint, fontStyle: "italic" }}>uncategorized</span>
                 )}
               </span>
-              <span style={{ textAlign: "right", fontFamily: MONO, fontSize: 13, color: isCredit ? CREDIT_COLOR : DEBIT_COLOR }}>
-                {fmtSigned(amt)}
-              </span>
+              <InlineAmount
+                magnitude={effectiveAmount(e)}
+                signed={amt}
+                isCredit={isCredit}
+                isOverride={e.amountOverride != null}
+                canonical={e.item.amount}
+                onSet={(m) => onSetOverride(e.id, m)}
+                onReset={() => onSetOverride(e.id, null)}
+              />
               <span style={{ textAlign: "right", fontFamily: MONO, fontSize: 13, color: running < 0 ? DEBIT_COLOR : C.textDim }}>
                 {fmtMoney(running)}
               </span>
@@ -433,6 +469,146 @@ function MonthBlock({ group, onOpenEntry }: { group: MonthGroup; onOpenEntry: (e
         })}
       </div>
     </section>
+  );
+}
+
+// ── Inline-editable amount cell (per-occurrence override) ────────────────────
+// Clicking the amount edits just this occurrence. Any manual change delinks the
+// value (sets amountOverride) — editing the item's canonical amount then no
+// longer touches this row. The ↺ control relinks it to the item default.
+
+function InlineAmount({
+  magnitude,
+  signed,
+  isCredit,
+  isOverride,
+  canonical,
+  onSet,
+  onReset,
+}: {
+  magnitude: number;
+  signed: number;
+  isCredit: boolean;
+  isOverride: boolean;
+  canonical: number;
+  onSet: (magnitude: number) => void;
+  onReset: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(magnitude));
+  const [dirty, setDirty] = useState(false);
+  const [hover, setHover] = useState(false);
+
+  const begin = () => {
+    setDraft(String(magnitude));
+    setDirty(false);
+    setEditing(true);
+  };
+  const commit = () => {
+    setEditing(false);
+    if (!dirty) return; // opened but untouched → no delink
+    const n = parseFloat(draft.replace(/[^0-9.]/g, ""));
+    if (Number.isFinite(n)) onSet(n);
+  };
+
+  const color = isCredit ? CREDIT_COLOR : DEBIT_COLOR;
+
+  return (
+    <span
+      onClick={(e) => e.stopPropagation()}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5, minWidth: 0 }}
+    >
+      {editing ? (
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setDirty(true);
+          }}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            if (e.key === "Escape") {
+              setDirty(false);
+              setEditing(false);
+            }
+          }}
+          inputMode="decimal"
+          style={{
+            width: 84,
+            textAlign: "right",
+            background: C.bg,
+            border: `1px solid ${C.accent}`,
+            borderRadius: 7,
+            outline: "none",
+            color: C.text,
+            fontFamily: MONO,
+            fontSize: 13,
+            padding: "3px 6px",
+          }}
+        />
+      ) : (
+        <>
+          {isOverride && hover && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onReset();
+              }}
+              title={`Relink to item default (${fmtMoney(canonical)})`}
+              aria-label="Relink to item default"
+              style={{
+                border: "none",
+                background: "transparent",
+                color: C.textFaint,
+                cursor: "pointer",
+                fontSize: 12,
+                lineHeight: 1,
+                padding: 0,
+              }}
+            >
+              ↺
+            </button>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              begin();
+            }}
+            title={
+              isOverride
+                ? `Overridden — item default is ${fmtMoney(canonical)}. Click to edit.`
+                : "Click to override this occurrence's amount"
+            }
+            style={{
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              fontFamily: MONO,
+              fontSize: 13,
+              color,
+              padding: "2px 0",
+              borderBottom: isOverride ? `1px dotted ${color}` : "1px dotted transparent",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            {isOverride && (
+              <span
+                aria-hidden
+                title="Overridden"
+                style={{ width: 5, height: 5, borderRadius: 999, background: C.accent, flexShrink: 0 }}
+              />
+            )}
+            {fmtSigned(signed)}
+          </button>
+        </>
+      )}
+    </span>
   );
 }
 

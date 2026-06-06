@@ -250,6 +250,10 @@ model BudgetEntry {
   id        String     @id @default(cuid())
   userId    String
   date      DateTime // the planned day (forecast, up to ~1yr out)
+  // Per-occurrence amount override. null = use the linked item's canonical
+  // amount (default); a value delinks just this occurrence's amount, so editing
+  // the item amount updates every instance EXCEPT overridden ones.
+  amountOverride Float?
   sortOrder Int        @default(0)
   itemId    String
   item      BudgetItem @relation(fields: [itemId], references: [id], onDelete: Cascade)

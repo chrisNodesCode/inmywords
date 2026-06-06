@@ -50,8 +50,16 @@ export async function POST(req: NextRequest) {
     : null;
   if (!item) return NextResponse.json({ error: "Invalid itemId" }, { status: 400 });
 
+  const ovRaw = body.amountOverride;
+  const amountOverride =
+    typeof ovRaw === "number" && Number.isFinite(ovRaw)
+      ? ovRaw
+      : typeof ovRaw === "string" && Number.isFinite(parseFloat(ovRaw))
+        ? parseFloat(ovRaw)
+        : null;
+
   const entry = await prisma.budgetEntry.create({
-    data: { userId, date, itemId: item.id },
+    data: { userId, date, itemId: item.id, amountOverride },
     include: entryInclude,
   });
   return NextResponse.json({ entry }, { status: 201 });
