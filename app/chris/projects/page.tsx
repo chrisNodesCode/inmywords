@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { SurfaceSwitcher } from "@/app/chris/_lib/SurfaceSwitcher";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
@@ -99,10 +99,7 @@ export default function ProjectsPage() {
           borderBottom: `1px solid ${C.border}`,
         }}
       >
-        <Link href="/chris" style={{ textDecoration: "none", fontFamily: MONO, fontSize: 14 }}>
-          <span style={{ color: C.textFaint }}>~/chris/</span>
-          <span style={{ color: C.text }}>projects</span>
-        </Link>
+        <SurfaceSwitcher />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
             {projects.length} project{projects.length === 1 ? "" : "s"}

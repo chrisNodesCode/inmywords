@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { SurfaceSwitcher } from "@/app/chris/_lib/SurfaceSwitcher";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 import { ThemeControls } from "@/app/chris/_lib/ThemeControls";
@@ -226,10 +226,7 @@ export default function BudgetPage() {
           borderBottom: `1px solid ${C.border}`,
         }}
       >
-        <Link href="/chris" style={{ textDecoration: "none", fontFamily: MONO, fontSize: 14 }}>
-          <span style={{ color: C.textFaint }}>~/chris/</span>
-          <span style={{ color: C.text }}>budget</span>
-        </Link>
+        <SurfaceSwitcher />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
           {!loading && entries.length > 0 && (
             <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>

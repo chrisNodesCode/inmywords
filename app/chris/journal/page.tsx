@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Link from "next/link";
+import { SurfaceSwitcher } from "@/app/chris/_lib/SurfaceSwitcher";
 import { IMWEditor } from "@/components/editor";
 import { parseEntryContent, extractPlainText } from "@/lib/tiptap-content";
 import { useDragReorder } from "@/app/chris/_lib/dragReorder";
@@ -277,10 +278,7 @@ export default function JournalPage() {
             borderBottom: `1px solid ${C.border}`,
           }}
         >
-          <Link href="/chris" style={{ textDecoration: "none", fontFamily: MONO, fontSize: 14 }}>
-            <span style={{ color: C.textFaint }}>~/chris/</span>
-            <span style={{ color: C.text }}>journal</span>
-          </Link>
+          <SurfaceSwitcher />
           <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
             <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
               {filteredEntries.length} entr{filteredEntries.length === 1 ? "y" : "ies"}
