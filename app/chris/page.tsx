@@ -28,6 +28,7 @@ const MODULES: Module[] = [
   { key: "shopping", name: "Shopping List", blurb: "Items grouped by retailer", glyph: "⟳", href: "/chris/shopping" },
   { key: "prompts", name: "Prompts", blurb: "Drafting space for LLM prompts", glyph: "✎", href: "/chris/prompts" },
   { key: "messages", name: "Messaging", blurb: "Draft messages → tune how they land", glyph: "✉", href: "/chris/messages" },
+  { key: "budget", name: "Budget", blurb: "Forecast — debits & credits by month", glyph: "$", href: "/chris/budget" },
 ];
 
 export default function PlaygroundHome() {

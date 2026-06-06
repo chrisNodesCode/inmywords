@@ -203,3 +203,60 @@ model UserPreferences {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
+
+// ── Budget (playground /chris/budget) ────────────────────────────────────────
+// Forecasting budget ported from Airtable (categories → items → calendar).
+// Chain: BudgetCategory 1—* BudgetItem 1—* BudgetEntry(date). The amount lives
+// on the item (running-total anchor); a BudgetEntry is one planned occurrence on
+// a date (the "calendar"). Month is derived from the date — no rollup table.
+
+enum BudgetKind {
+  DEBIT // money out  → subtracts from running total
+  CREDIT // money in  → adds to running total
+}
+
+model BudgetCategory {
+  id        String       @id @default(cuid())
+  userId    String
+  name      String
+  kind      BudgetKind   @default(DEBIT)
+  color     String? // optional hex for UI chips
+  sortOrder Int          @default(0)
+  items     BudgetItem[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+model BudgetItem {
+  id         String          @id @default(cuid())
+  userId     String
+  name       String
+  amount     Float // tracked for running totals (USD)
+  note       String?
+  sortOrder  Int             @default(0)
+  categoryId String?
+  category   BudgetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  entries    BudgetEntry[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model BudgetEntry {
+  id        String     @id @default(cuid())
+  userId    String
+  date      DateTime // the planned day (forecast, up to ~1yr out)
+  sortOrder Int        @default(0)
+  itemId    String
+  item      BudgetItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([itemId])
+  @@index([userId, date])
+}
