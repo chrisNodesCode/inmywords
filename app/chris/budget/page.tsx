@@ -65,10 +65,18 @@ const fmtSigned = (n: number) => `${n < 0 ? "−" : "+"}${fmtMoney(Math.abs(n))}
 function effectiveAmount(e: Entry): number {
   return e.amountOverride ?? e.item.amount;
 }
+// Checking view: credit adds, debit subtracts.
 function signedAmount(e: Entry): number {
   const mag = effectiveAmount(e);
   return e.item.category?.kind === "CREDIT" ? mag : -mag;
 }
+// Savings view: a transfer INTO savings is stored as a checking debit, so the
+// sign flips — a debit grows savings, a credit (withdrawal) shrinks it.
+function savingsDelta(e: Entry): number {
+  const mag = effectiveAmount(e);
+  return e.item.category?.kind === "CREDIT" ? -mag : mag;
+}
+const SAVINGS_CATEGORY = "SAVINGS";
 function kindColor(kind: Kind | undefined | null): string {
   return kind === "CREDIT" ? CREDIT_COLOR : DEBIT_COLOR;
 }
@@ -93,8 +101,42 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+type Account = { id: string; key: string; label: string; balance: number; sortOrder: number };
+
 type Row = { entry: Entry; amt: number; balance: number };
 type MonthGroup = { key: string; rows: Row[]; net: number; endBalance: number };
+
+// Group entries by month and walk a running balance from `start`, using `delta`
+// for each entry's signed effect (differs between the checking & savings views).
+function buildGroups(entries: Entry[], start: number, delta: (e: Entry) => number) {
+  const map = new Map<string, Entry[]>();
+  for (const e of entries) {
+    const k = monthKey(e.date);
+    const arr = map.get(k) ?? [];
+    arr.push(e);
+    map.set(k, arr);
+  }
+  let running = start;
+  const groups: MonthGroup[] = [];
+  for (const key of Array.from(map.keys()).sort()) {
+    const monthEntries = map.get(key)!;
+    let net = 0;
+    const rows: Row[] = monthEntries.map((entry) => {
+      const amt = delta(entry);
+      net += amt;
+      running += amt;
+      return { entry, amt, balance: running };
+    });
+    groups.push({ key, rows, net, endBalance: running });
+  }
+  return { groups, end: running };
+}
+
+const TABS: { key: "calendar" | "savings"; label: string }[] = [
+  { key: "calendar", label: "Calendar" },
+  { key: "savings", label: "Savings" },
+];
+const TAB_KEY = "chris.budget.tab";
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
@@ -102,11 +144,24 @@ export default function BudgetPage() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"calendar" | "savings">("calendar");
 
   // Modals
   const [entryModal, setEntryModal] = useState<Entry | "new" | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const saved = localStorage.getItem(TAB_KEY);
+    if (saved === "calendar" || saved === "savings") setTab(saved);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  const selectTab = (t: "calendar" | "savings") => {
+    setTab(t);
+    localStorage.setItem(TAB_KEY, t);
+  };
 
   const reloadEntries = useCallback(async () => {
     const data = await (await fetch("/chris/api/budget/entries")).json();
@@ -120,13 +175,29 @@ export default function BudgetPage() {
     const data = await (await fetch("/chris/api/budget/categories")).json();
     setCategories(data.categories ?? []);
   }, []);
+  const reloadAccounts = useCallback(async () => {
+    const data = await (await fetch("/chris/api/budget/accounts")).json();
+    setAccounts(data.accounts ?? []);
+  }, []);
 
   useEffect(() => {
     (async () => {
-      await Promise.all([reloadEntries(), reloadItems(), reloadCategories()]);
+      await Promise.all([reloadEntries(), reloadItems(), reloadCategories(), reloadAccounts()]);
       setLoading(false);
     })();
-  }, [reloadEntries, reloadItems, reloadCategories]);
+  }, [reloadEntries, reloadItems, reloadCategories, reloadAccounts]);
+
+  const accountBalance = (key: string) => accounts.find((a) => a.key === key)?.balance ?? 0;
+
+  const saveAccount = async (key: string, balance: number) => {
+    setAccounts((prev) => prev.map((a) => (a.key === key ? { ...a, balance } : a)));
+    await fetch("/chris/api/budget/accounts", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, balance }),
+    });
+    await reloadAccounts();
+  };
 
   // ── Entry mutations ──
   const saveEntry = async (id: string | null, body: { date: string; itemId: string }) => {
@@ -190,29 +261,18 @@ export default function BudgetPage() {
     await Promise.all([reloadCategories(), reloadItems(), reloadEntries()]);
   };
 
-  const { groups, total } = useMemo(() => {
-    const map = new Map<string, Entry[]>();
-    for (const e of entries) {
-      const k = monthKey(e.date);
-      const arr = map.get(k) ?? [];
-      arr.push(e);
-      map.set(k, arr);
+  const checking = accountBalance("checking");
+  const savings = accountBalance("savings");
+
+  const { groups, start, end } = useMemo(() => {
+    if (tab === "savings") {
+      const savingsEntries = entries.filter((e) => e.item.category?.name === SAVINGS_CATEGORY);
+      const { groups, end } = buildGroups(savingsEntries, savings, savingsDelta);
+      return { groups, start: savings, end };
     }
-    let running = 0;
-    const groups: MonthGroup[] = [];
-    for (const key of Array.from(map.keys()).sort()) {
-      const monthEntries = map.get(key)!;
-      let net = 0;
-      const rows: Row[] = monthEntries.map((entry) => {
-        const amt = signedAmount(entry);
-        net += amt;
-        running += amt;
-        return { entry, amt, balance: running };
-      });
-      groups.push({ key, rows, net, endBalance: running });
-    }
-    return { groups, total: running };
-  }, [entries]);
+    const { groups, end } = buildGroups(entries, checking, signedAmount);
+    return { groups, start: checking, end };
+  }, [entries, tab, checking, savings]);
 
   return (
     <main style={{ maxWidth: 880, margin: "0 auto", padding: "0 24px 96px" }}>
@@ -228,10 +288,10 @@ export default function BudgetPage() {
       >
         <SurfaceSwitcher />
         <div style={{ display: "inline-flex", alignItems: "center", gap: 12 }}>
-          {!loading && entries.length > 0 && (
+          {!loading && (
             <span style={{ fontFamily: MONO, fontSize: 12, color: C.textFaint }}>
-              net{" "}
-              <span style={{ color: total < 0 ? DEBIT_COLOR : CREDIT_COLOR }}>{fmtSigned(total)}</span>
+              ending{" "}
+              <span style={{ color: end < 0 ? DEBIT_COLOR : C.text }}>{fmtMoney(end)}</span>
             </span>
           )}
           <ThemeControls />
@@ -268,20 +328,72 @@ export default function BudgetPage() {
         </div>
       </div>
 
+      {/* Account cards */}
+      {!loading && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginTop: 20 }}>
+          {accounts.map((a) => (
+            <AccountCard
+              key={a.key}
+              label={a.label}
+              balance={a.balance}
+              active={(tab === "savings" && a.key === "savings") || (tab === "calendar" && a.key === "checking")}
+              onSave={(v) => saveAccount(a.key, v)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Tabs */}
+      {!loading && (
+        <div style={{ display: "flex", gap: 4, marginTop: 22, borderBottom: `1px solid ${C.border}` }}>
+          {TABS.map((t) => {
+            const on = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                onClick={() => selectTab(t.key)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: on ? C.text : C.textDim,
+                  fontSize: 13.5,
+                  fontWeight: on ? 600 : 400,
+                  padding: "8px 14px",
+                  cursor: "pointer",
+                  borderBottom: `2px solid ${on ? "var(--pg-accent)" : "transparent"}`,
+                  marginBottom: -1,
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {loading ? (
         <div style={{ marginTop: 32 }}>
           <Spinner label="loading…" />
         </div>
-      ) : entries.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "72px 0", color: C.textFaint }}>
+      ) : groups.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "64px 0", color: C.textFaint }}>
           <div style={{ fontSize: 28, marginBottom: 12 }}>$</div>
-          <p style={{ margin: 0, fontSize: 14 }}>No budget entries yet.</p>
-          <p style={{ margin: "6px 0 0", fontSize: 12.5 }}>
-            Add line items in <button onClick={() => setManageOpen(true)} style={linkBtn}>Manage</button>, then add an entry.
-          </p>
+          {tab === "savings" ? (
+            <p style={{ margin: 0, fontSize: 13.5 }}>
+              No savings activity yet. Line items in the <strong>{SAVINGS_CATEGORY}</strong> category show here.
+            </p>
+          ) : (
+            <p style={{ margin: 0, fontSize: 14 }}>
+              No budget entries yet. Add line items in{" "}
+              <button onClick={() => setManageOpen(true)} style={linkBtn}>Manage</button>, then add an entry.
+            </p>
+          )}
         </div>
       ) : (
-        <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 26 }}>
+        <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 26 }}>
+          <div style={{ fontFamily: MONO, fontSize: 11.5, color: C.textFaint, marginBottom: -10 }}>
+            starting balance {fmtMoney(start)}
+          </div>
           {groups.map((g) => (
             <MonthBlock
               key={g.key}
@@ -622,6 +734,109 @@ function InlineAmount({
         </>
       )}
     </span>
+  );
+}
+
+// ── Account card (manually-tracked balance, editable) ────────────────────────
+
+function AccountCard({
+  label,
+  balance,
+  active,
+  onSave,
+}: {
+  label: string;
+  balance: number;
+  active: boolean;
+  onSave: (v: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(balance));
+
+  const begin = () => {
+    setDraft(String(balance));
+    setEditing(true);
+  };
+  const commit = () => {
+    setEditing(false);
+    const n = parseFloat(draft.replace(/[^0-9.-]/g, ""));
+    if (Number.isFinite(n) && n !== balance) onSave(n);
+    else setDraft(String(balance));
+  };
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${active ? "var(--pg-accent)" : C.border}`,
+        borderRadius: 14,
+        background: active ? "color-mix(in srgb, var(--pg-accent) 6%, var(--pg-card))" : C.card,
+        padding: "13px 16px 15px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        transition: "background 0.12s ease, border-color 0.12s ease",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span
+          style={{
+            fontFamily: MONO,
+            fontSize: 10.5,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: active ? "var(--pg-accent)" : C.textFaint,
+          }}
+        >
+          {label}
+        </span>
+        <span style={{ fontFamily: MONO, fontSize: 9.5, color: C.textFaint }}>actual</span>
+      </div>
+      {editing ? (
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            if (e.key === "Escape") {
+              setDraft(String(balance));
+              setEditing(false);
+            }
+          }}
+          inputMode="decimal"
+          style={{
+            width: "100%",
+            background: C.bg,
+            border: `1px solid var(--pg-accent)`,
+            borderRadius: 8,
+            outline: "none",
+            color: C.text,
+            fontFamily: MONO,
+            fontSize: 22,
+            padding: "4px 8px",
+          }}
+        />
+      ) : (
+        <button
+          onClick={begin}
+          title="Edit balance"
+          style={{
+            border: "none",
+            background: "transparent",
+            textAlign: "left",
+            cursor: "pointer",
+            fontFamily: MONO,
+            fontSize: 24,
+            fontWeight: 600,
+            color: balance < 0 ? DEBIT_COLOR : C.text,
+            padding: 0,
+          }}
+        >
+          {fmtMoney(balance)}
+        </button>
+      )}
+    </div>
   );
 }
 

@@ -84,11 +84,30 @@ async function main() {
   }
   console.log(`Created ${catId.size} categories`);
 
+  // 2b) Accounts — the two manually-tracked "CURRENT" rows become editable
+  //     account balances (not line items), and are excluded from the calendar.
+  const ACCOUNTS: { itemName: string; key: string; label: string; sortOrder: number }[] = [
+    { itemName: "CHECKING CURRENT", key: "checking", label: "Checking", sortOrder: 0 },
+    { itemName: "SAVINGS CURRENT", key: "savings", label: "Savings", sortOrder: 1 },
+  ];
+  const accountItemNames = new Set(ACCOUNTS.map((a) => a.itemName));
+  for (const a of ACCOUNTS) {
+    const row = rows.find((r) => r["items"]?.trim() === a.itemName);
+    const balance = row ? parseAmount(row["lookup_amount"]) : 0;
+    await prisma.budgetAccount.upsert({
+      where: { userId_key: { userId: USER_ID, key: a.key } },
+      update: { balance },
+      create: { userId: USER_ID, key: a.key, label: a.label, balance, sortOrder: a.sortOrder },
+    });
+  }
+  console.log(`Set ${ACCOUNTS.length} account balances`);
+
   // 3) Items — distinct `items` name; amount from lookup_amount; link category.
+  //    (The account "CURRENT" rows are excluded — they're accounts now.)
   const itemMeta = new Map<string, { amount: number; category: string }>();
   for (const r of rows) {
     const name = r["items"]?.trim();
-    if (!name) continue;
+    if (!name || accountItemNames.has(name)) continue;
     if (!itemMeta.has(name)) {
       itemMeta.set(name, {
         amount: parseAmount(r["lookup_amount"]),

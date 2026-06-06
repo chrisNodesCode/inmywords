@@ -246,6 +246,23 @@ model BudgetItem {
   @@index([categoryId])
 }
 
+// Manually-tracked actual account balances (no bank API). The "checking"
+// balance is the starting point for the calendar's running total; "savings"
+// seeds the Savings view. Editable via the graphical cards in the UI.
+model BudgetAccount {
+  id        String   @id @default(cuid())
+  userId    String
+  key       String // "checking" | "savings" (room for more later)
+  label     String
+  balance   Float    @default(0)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId])
+}
+
 model BudgetEntry {
   id        String     @id @default(cuid())
   userId    String
