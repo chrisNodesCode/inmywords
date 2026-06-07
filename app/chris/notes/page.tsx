@@ -63,6 +63,7 @@ type Note = {
 // Partial update payload for a note — content/project plus any structured field.
 type NotePatch = {
   content?: string;
+  title?: string | null;
   projectId?: string | null;
   amount?: number | null;
   distance?: number | null;
@@ -136,6 +137,11 @@ export default function NotesPage() {
   const [editorKey, setEditorKey] = useState(0); // bump to remount/reset
   const [deepWrite, setDeepWrite] = useState(false);
   const editorWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Auto-title: on by default (Claude names the note on save). Toggling off
+  // reveals a manual title input and suppresses the auto-name API call.
+  const [autoTitle, setAutoTitle] = useState(true);
+  const [titleDraft, setTitleDraft] = useState("");
 
   // Which feed card is being edited in-place (null = none)
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -233,18 +239,21 @@ export default function NotesPage() {
   const saveNote = async (projectIdOverride?: string | null) => {
     if (isContentEmpty(draftContent)) return;
     const projectId = projectIdOverride !== undefined ? projectIdOverride : activeProjectId;
+    const manualTitle = autoTitle ? undefined : titleDraft.trim() || undefined;
     const res = await fetch("/chris/api/notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: draftContent, projectId }),
+      body: JSON.stringify({ content: draftContent, projectId, ...(manualTitle ? { title: manualTitle } : {}) }),
     });
     if (res.ok) {
       const { note } = await res.json();
       setNotes((prev) => [note, ...prev]);
       setDraftContent("");
+      setTitleDraft("");
       setEditorKey((k) => k + 1);
-      // Auto-name in the background, claude.ai-style. Best-effort; never blocks.
-      if (!note.title) void autoNameNote(note.id);
+      // Auto-name in the background, claude.ai-style — only when auto-title is on
+      // and the note didn't already get a manual title.
+      if (autoTitle && !note.title) void autoNameNote(note.id);
     }
   };
 
@@ -437,6 +446,14 @@ export default function NotesPage() {
               margin: deepWrite ? "0 auto" : 0,
             }}
           >
+            {!autoTitle && (
+              <input
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                placeholder="Title"
+                style={titleInputStyle}
+              />
+            )}
             <IMWEditor
               key={editorKey}
               placeholder="Capture a note — a listing, a link, something to compare later…"
@@ -479,6 +496,7 @@ export default function NotesPage() {
           >
             {deepWrite ? "exit" : "deep write"}
           </button>
+          <AutoTitleToggle on={autoTitle} onChange={setAutoTitle} />
           <div style={{ flex: 1 }} />
           <button
             onClick={() => saveNote()}
@@ -591,8 +609,10 @@ export default function NotesPage() {
                     const existing = notes.find((n) => n.id === id);
                     await patchNote(id, data);
                     collapseEdit();
-                    // Re-name on content edits while still untitled.
-                    if (existing && !existing.title) void autoNameNote(id);
+                    // Re-name on content edits while still untitled — but only
+                    // when the card left auto-title on (it omits `title` from the
+                    // payload; with auto-title off, a manual title is included).
+                    if (!("title" in data) && existing && !existing.title) void autoNameNote(id);
                   }}
                   onAutosave={(id, data) => patchNote(id, data)}
                   onCancelEdit={collapseEdit}
@@ -939,6 +959,73 @@ function NoteRow({
   );
 }
 
+// Manual-title input shown when auto-title is toggled off (composer + card).
+const titleInputStyle: React.CSSProperties = {
+  width: "100%",
+  background: "transparent",
+  border: "none",
+  borderBottom: `1px solid ${C.borderSoft}`,
+  outline: "none",
+  color: C.text,
+  fontSize: 18,
+  fontWeight: 600,
+  padding: "0 0 8px",
+  marginBottom: 10,
+};
+
+// Pill switch toggling Claude auto-naming. On = Claude names the note on save;
+// off = a manual title input is revealed and the auto-name call is suppressed.
+function AutoTitleToggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      onClick={() => onChange(!on)}
+      role="switch"
+      aria-checked={on}
+      title={on ? "Auto-title on — Claude names this note on save" : "Auto-title off — type your own title"}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 7,
+        border: `1px solid ${on ? C.accent : C.border}`,
+        background: on ? `${C.accent}1a` : "transparent",
+        color: on ? C.accent : C.textDim,
+        borderRadius: 999,
+        padding: "5px 11px 5px 9px",
+        fontSize: 12,
+        fontFamily: MONO,
+        cursor: "pointer",
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          position: "relative",
+          width: 26,
+          height: 15,
+          borderRadius: 999,
+          background: on ? C.accent : C.border,
+          flexShrink: 0,
+          transition: "background 0.15s ease",
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: 2,
+            left: on ? 13 : 2,
+            width: 11,
+            height: 11,
+            borderRadius: 999,
+            background: on ? "var(--pg-accent-text)" : C.card,
+            transition: "left 0.15s ease",
+          }}
+        />
+      </span>
+      auto-title
+    </button>
+  );
+}
+
 // ── In-place editing card ────────────────────────────────────────────────────
 
 // Shared styles + label wrapper for the structured-field inputs.
@@ -999,6 +1086,11 @@ function NoteEditingCard({
 }) {
   const [content, setContent] = useState(note.content);
   const [projectId, setProjectId] = useState<string | null>(note.projectId);
+
+  // Auto-title: on by default. Off reveals a manual title input and stops the
+  // auto-name API call from firing when this card saves.
+  const [autoTitle, setAutoTitle] = useState(true);
+  const [titleDraft, setTitleDraft] = useState(note.title ?? "");
 
   // Custom field draft values, keyed by slot. Text/number/currency held as
   // strings; booleans as booleans.
@@ -1078,6 +1170,8 @@ function NoteEditingCard({
     });
 
   // The payload sent on save/autosave — content, project, and all field values.
+  // `title` is only included when auto-title is off (manual mode); omitting it
+  // signals the parent to leave the title alone / run auto-naming.
   const buildPayload = (): NotePatch => ({
     content,
     projectId,
@@ -1091,11 +1185,12 @@ function NoteEditingCard({
     address: strOrNull(address),
     enabledFields: [...enabled],
     customValues: buildCustomValues(),
+    ...(autoTitle ? {} : { title: titleDraft.trim() || null }),
   });
 
-  // Autosave edits; the Save button also collapses the card.
+  // Autosave edits; the Close button also collapses the card.
   useAutosave(
-    [content, projectId, amount, distance, rating, date, phone, email, url, address, [...enabled].join(","), JSON.stringify(customDraft)],
+    [content, projectId, amount, distance, rating, date, phone, email, url, address, [...enabled].join(","), JSON.stringify(customDraft), autoTitle, titleDraft],
     () => onAutosave(buildPayload())
   );
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -1151,6 +1246,14 @@ function NoteEditingCard({
           margin: deepWrite ? "0 auto" : 0,
         }}
       >
+        {!autoTitle && (
+          <input
+            value={titleDraft}
+            onChange={(e) => setTitleDraft(e.target.value)}
+            placeholder="Title"
+            style={titleInputStyle}
+          />
+        )}
         <IMWEditor
           key={note.id}
           initialContent={note.content}
@@ -1411,6 +1514,8 @@ function NoteEditingCard({
         >
           {deepWrite ? "exit" : "deep write"}
         </button>
+
+        <AutoTitleToggle on={autoTitle} onChange={setAutoTitle} />
 
         {/* Project picker */}
         <div style={{ position: "relative" }}>
