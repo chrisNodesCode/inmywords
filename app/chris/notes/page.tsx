@@ -17,8 +17,6 @@ import {
   type CustomFieldDef,
   type CustomValues,
   type CompareConfig,
-  formatNoteValue,
-  formatCustomValue,
   normalizeUrl,
   cleanCustomFields,
   cleanCompareConfig,
@@ -724,7 +722,6 @@ function NoteGroupView({
               key={note.id}
               note={note}
               projects={projects}
-              customFields={groupCustoms}
               dragProps={rowProps(note.id)}
               dragStyle={rowStyle(note.id)}
               onDelete={() => onDelete(note.id)}
@@ -738,85 +735,55 @@ function NoteGroupView({
   );
 }
 
-// Compact read-only chips for whichever structured fields hold a value. Phone /
-// email / link become actionable; the rest are plain text.
-function NoteStats({ note, customFields }: { note: Note; customFields: CustomFieldDef[] }) {
-  const chips = NOTE_FIELDS.map((f) => {
-    const display = formatNoteValue(f.key, note);
-    if (!display) return null;
-    return { key: f.key as string, icon: f.icon, display, label: "" };
-  }).filter(Boolean) as { key: string; icon: string; display: string; label: string }[];
-
-  // Project custom fields with a value, shown as labeled chips.
-  for (const def of customFields) {
-    const display = formatCustomValue(def, note.customValues?.[def.key]);
-    if (display) chips.push({ key: def.key, icon: "", display, label: def.label });
+// Closed-card chips: only the actionable contact fields (phone, email, link),
+// each tappable straight from the card. Other structured/custom values are kept
+// off the closed card to reduce noise — they live in the open editor + Compare.
+function NoteStats({ note }: { note: Note }) {
+  const items: { key: string; href: string; external?: boolean; icon: string; display: string }[] = [];
+  if (note.phone?.trim()) {
+    items.push({ key: "phone", href: `tel:${note.phone.replace(/\s+/g, "")}`, icon: "☎", display: note.phone.trim() });
+  }
+  if (note.email?.trim()) {
+    items.push({ key: "email", href: `mailto:${note.email.trim()}`, icon: "@", display: note.email.trim() });
+  }
+  if (note.url?.trim()) {
+    items.push({ key: "url", href: normalizeUrl(note.url), external: true, icon: "↗", display: note.url.trim() });
   }
 
-  if (chips.length === 0) return null;
-
-  const chipStyle: React.CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 5,
-    border: `1px solid ${C.border}`,
-    background: C.bg,
-    borderRadius: 999,
-    padding: "3px 10px",
-    fontSize: 11.5,
-    color: C.textDim,
-    textDecoration: "none",
-    maxWidth: 240,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  };
+  if (items.length === 0) return null;
 
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-      {chips.map((c) => {
-        // Amount's "$" and rating's stars are already in the formatted value,
-        // so skip the leading icon for those to avoid doubling up.
-        const showIcon = c.key !== "rating" && c.key !== "amount";
-        const iconEl = showIcon ? (
-          <span aria-hidden style={{ color: C.accent, fontSize: 11 }}>
-            {c.icon}
-          </span>
-        ) : null;
-        if (c.key === "url" && note.url) {
-          return (
-            <a key={c.key} href={normalizeUrl(note.url)} target="_blank" rel="noopener noreferrer" onClick={stop} title={note.url} style={{ ...chipStyle, color: C.accent }}>
-              {iconEl}{c.display}
-            </a>
-          );
-        }
-        if (c.key === "phone" && note.phone) {
-          return (
-            <a key={c.key} href={`tel:${note.phone.replace(/\s+/g, "")}`} onClick={stop} style={{ ...chipStyle, color: C.accent }}>
-              {iconEl}{c.display}
-            </a>
-          );
-        }
-        if (c.key === "email" && note.email) {
-          return (
-            <a key={c.key} href={`mailto:${note.email.trim()}`} onClick={stop} style={{ ...chipStyle, color: C.accent }}>
-              {iconEl}{c.display}
-            </a>
-          );
-        }
-        return (
-          <span key={c.key} style={chipStyle} title={c.label ? `${c.label}: ${c.display}` : c.display}>
-            {c.label ? (
-              <span style={{ color: C.textFaint }}>{c.label}</span>
-            ) : (
-              iconEl
-            )}
-            {c.display}
-          </span>
-        );
-      })}
+      {items.map((it) => (
+        <a
+          key={it.key}
+          href={it.href}
+          onClick={stop}
+          title={it.display}
+          {...(it.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            border: `1px solid ${C.border}`,
+            background: C.bg,
+            borderRadius: 999,
+            padding: "3px 10px",
+            fontSize: 11.5,
+            color: C.accent,
+            textDecoration: "none",
+            maxWidth: 260,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span aria-hidden style={{ fontSize: 11 }}>{it.icon}</span>
+          {it.display}
+        </a>
+      ))}
     </div>
   );
 }
@@ -824,7 +791,6 @@ function NoteStats({ note, customFields }: { note: Note; customFields: CustomFie
 function NoteRow({
   note,
   projects,
-  customFields,
   dragProps,
   dragStyle,
   onDelete,
@@ -833,7 +799,6 @@ function NoteRow({
 }: {
   note: Note;
   projects: Project[];
-  customFields: CustomFieldDef[];
   dragProps: React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean };
   dragStyle: React.CSSProperties;
   onDelete: () => void;
@@ -892,7 +857,7 @@ function NoteRow({
         </div>
       </div>
 
-      <NoteStats note={note} customFields={customFields} />
+      <NoteStats note={note} />
 
       <div
         style={{
@@ -1194,9 +1159,11 @@ function NoteEditingCard({
     () => onAutosave(buildPayload())
   );
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [fieldMenuOpen, setFieldMenuOpen] = useState(false);
   const [deepWrite, setDeepWrite] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const projectBtnRef = useRef<HTMLButtonElement>(null);
+  const fieldMenuBtnRef = useRef<HTMLButtonElement>(null);
 
   // Sync deep write with browser fullscreen
   useEffect(() => {
@@ -1265,42 +1232,73 @@ function NoteEditingCard({
         />
       </div>
 
-      {/* Structured fields — toggle row + inputs for whatever's shown */}
+      {/* Structured fields — a multi-select picks which inputs show, then the
+          inputs render below for whatever's selected (or already has a value). */}
       <div style={{ marginTop: 14 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {NOTE_FIELDS.map((f) => {
-            const on = isShown(f.key);
-            return (
-              <button
-                key={f.key}
-                onClick={() => toggleField(f.key)}
-                disabled={hasValue[f.key]}
-                title={
-                  hasValue[f.key]
-                    ? `${f.label} (clear its value to hide)`
-                    : on
-                      ? `Hide ${f.label}`
-                      : `Add ${f.label}`
-                }
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  border: `1px solid ${on ? C.accent : C.border}`,
-                  background: on ? `${C.accent}1a` : "transparent",
-                  color: on ? C.accent : C.textDim,
-                  borderRadius: 999,
-                  padding: "4px 11px",
-                  fontSize: 12,
-                  fontFamily: MONO,
-                  cursor: hasValue[f.key] ? "default" : "pointer",
-                }}
-              >
-                <span aria-hidden style={{ fontSize: 12 }}>{f.icon}</span>
-                {f.label}
-              </button>
-            );
-          })}
+        <div style={{ position: "relative", display: "inline-block" }}>
+          <button
+            ref={fieldMenuBtnRef}
+            onClick={() => setFieldMenuOpen((x) => !x)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              border: `1px solid ${C.border}`,
+              background: "transparent",
+              color: C.textDim,
+              borderRadius: 999,
+              padding: "5px 11px",
+              fontSize: 12,
+              fontFamily: MONO,
+              cursor: "pointer",
+            }}
+          >
+            + add fields
+            {(() => {
+              const n = NOTE_FIELDS.filter((f) => isShown(f.key)).length;
+              return n ? <span style={{ color: C.accent }}>· {n}</span> : null;
+            })()}
+          </button>
+          {fieldMenuOpen && (
+            <FixedDropdown
+              anchorRef={fieldMenuBtnRef}
+              onClose={() => setFieldMenuOpen(false)}
+              width={220}
+              maxHeight={360}
+            >
+              {NOTE_FIELDS.map((f) => {
+                const on = isShown(f.key);
+                const locked = hasValue[f.key];
+                return (
+                  <button
+                    key={f.key}
+                    onClick={() => !locked && toggleField(f.key)}
+                    disabled={locked}
+                    title={locked ? `${f.label} — clear its value to remove` : undefined}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 9,
+                      width: "100%",
+                      textAlign: "left",
+                      border: "none",
+                      borderBottom: `1px solid ${C.borderSoft}`,
+                      background: on ? `${C.accent}14` : "transparent",
+                      color: on ? C.accent : C.textDim,
+                      padding: "9px 12px",
+                      fontSize: 13,
+                      cursor: locked ? "default" : "pointer",
+                      opacity: locked ? 0.7 : 1,
+                    }}
+                  >
+                    <span aria-hidden style={{ width: 14, textAlign: "center" }}>{f.icon}</span>
+                    <span style={{ flex: 1 }}>{f.label}</span>
+                    <span style={{ fontFamily: MONO, fontSize: 12 }}>{on ? "✓" : ""}</span>
+                  </button>
+                );
+              })}
+            </FixedDropdown>
+          )}
         </div>
 
         {NOTE_FIELDS.some((f) => isShown(f.key)) && (
