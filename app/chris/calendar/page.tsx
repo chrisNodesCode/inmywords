@@ -194,6 +194,35 @@ export default function CalendarPage() {
     await fetch(`/chris/api/todos/${id}`, { method: "DELETE" });
   };
 
+  // Weekend mode toggle: when marking done, auto-sort the item to the top of the
+  // completed group (right after the last uncompleted item in that column).
+  const handleWeekendToggle = (t: Todo) => {
+    const becomingCompleted = !t.completed;
+    patchTodo(t.id, { completed: becomingCompleted });
+
+    if (!becomingCompleted) return; // unchecking: no reorder needed
+
+    const dayKey = t.dueDate?.slice(0, 10);
+    if (!dayKey) return;
+
+    const colTodos = todos.filter((x) => x.dueDate && x.dueDate.slice(0, 10) === dayKey);
+    const uncompleted = colTodos.filter((x) => !x.completed && x.id !== t.id);
+    const completed = colTodos.filter((x) => x.completed && x.id !== t.id);
+    const newOrder = [...uncompleted, t, ...completed];
+
+    setTodos((prev) => {
+      const colSet = new Set(colTodos.map((x) => x.id));
+      const others = prev.filter((x) => !colSet.has(x.id));
+      return [...newOrder.map((x) => x.id === t.id ? { ...x, completed: true } : x), ...others];
+    });
+
+    fetch("/chris/api/todos/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: newOrder.map((x) => x.id) }),
+    });
+  };
+
   // Weekend kanban: move a dragged to-do into `targetDay` at `targetIndex`.
   // Reorders within the column and, if the day changed, repoints its dueDate.
   const moveTodo = async (draggedId: string, targetDay: string, targetIndex: number) => {
@@ -317,7 +346,7 @@ export default function CalendarPage() {
                 onSetOver={(over) => setOverCol(over ? key : null)}
                 onAddClick={(el) => openAdd(key, el)}
                 onOpenTodo={(id) => setDetailForId(id)}
-                onToggle={(t) => patchTodo(t.id, { completed: !t.completed })}
+                onToggle={(t) => handleWeekendToggle(t)}
                 onDragStart={(id) => setDragId(id)}
                 onDragEnd={() => {
                   setDragId(null);

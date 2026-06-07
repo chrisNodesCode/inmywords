@@ -688,12 +688,6 @@ function TodoRow({
           </div>
         )}
 
-        {todo.note && (
-          <div style={{ fontSize: 13, color: C.textDim, marginTop: 3, lineHeight: 1.4 }}>
-            {todo.note}
-          </div>
-        )}
-
         {/* Meta row */}
         {(pri || dueInfo || todo.project) && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 7, flexWrap: "wrap" }}>
