@@ -493,7 +493,6 @@ function EntryFeed({
             projects={projects}
             onSave={(data) => onSaveEdit(entry.id, data)}
             onAutosave={(data) => onAutosave(entry.id, data)}
-            onCancel={onCancelEdit}
             onDelete={() => {
               onDelete(entry.id);
               onCancelEdit();
@@ -645,7 +644,6 @@ function EntryEditingCard({
   projects,
   onSave,
   onAutosave,
-  onCancel,
   onDelete,
 }: {
   entry: Entry;
@@ -662,7 +660,6 @@ function EntryEditingCard({
     mood: string | null;
     projectId: string | null;
   }) => void;
-  onCancel: () => void;
   onDelete: () => void;
 }) {
   const [title, setTitle] = useState(entry.title ?? "");
@@ -702,12 +699,6 @@ function EntryEditingCard({
   };
 
   const titleClean = title.trim() || null;
-  const dirty =
-    titleClean !== (entry.title?.trim() || null) ||
-    content !== entry.content ||
-    mood !== entry.mood ||
-    projectId !== entry.projectId;
-  const canSave = dirty && !isContentEmpty(content);
   const projectName =
     projectId ? projects.find((p) => p.id === projectId)?.name ?? "Unassigned" : "Unassigned";
 
@@ -864,7 +855,7 @@ function EntryEditingCard({
           delete
         </button>
         <button
-          onClick={onCancel}
+          onClick={() => onSave({ title: titleClean, content, mood, projectId })}
           style={{
             border: "none",
             background: "transparent",
@@ -875,23 +866,7 @@ function EntryEditingCard({
             padding: "5px 10px",
           }}
         >
-          cancel
-        </button>
-        <button
-          onClick={() => onSave({ title: titleClean, content, mood, projectId })}
-          disabled={!canSave}
-          style={{
-            border: "none",
-            borderRadius: 10,
-            background: canSave ? C.accent : C.border,
-            color: canSave ? C.accentText : C.textFaint,
-            fontWeight: 600,
-            fontSize: 13,
-            padding: "8px 16px",
-            cursor: canSave ? "pointer" : "default",
-          }}
-        >
-          Save
+          Close
         </button>
       </div>
     </div>

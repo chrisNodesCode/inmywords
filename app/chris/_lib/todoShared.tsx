@@ -444,35 +444,20 @@ export function TodoDetailModal({
           </button>
           <div style={{ flex: 1 }} />
           <button
-            onClick={onClose}
-            style={{
-              border: "none",
-              background: "transparent",
-              color: C.textDim,
-              cursor: "pointer",
-              fontFamily: MONO,
-              fontSize: 12,
-              padding: "6px 10px",
-            }}
-          >
-            cancel
-          </button>
-          <button
             onClick={save}
             disabled={saving}
             style={{
               border: "none",
-              borderRadius: 10,
-              background: C.accent,
-              color: "var(--pg-accent-text)",
-              fontWeight: 600,
-              fontSize: 13,
-              padding: "8px 18px",
+              background: "transparent",
+              color: C.textDim,
               cursor: saving ? "default" : "pointer",
+              fontFamily: MONO,
+              fontSize: 12,
+              padding: "6px 10px",
               opacity: saving ? 0.6 : 1,
             }}
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? "Saving…" : "Close"}
           </button>
         </div>
       </div>

@@ -694,7 +694,6 @@ function NoteGroupView({
               customFields={groupCustoms}
               onSave={(data) => onPatchSave(note.id, data)}
               onAutosave={(data) => onAutosave(note.id, data)}
-              onCancel={onCancelEdit}
               onDelete={() => {
                 onDelete(note.id);
                 onCancelEdit();
@@ -989,7 +988,6 @@ function NoteEditingCard({
   customFields,
   onSave,
   onAutosave,
-  onCancel,
   onDelete,
 }: {
   note: Note;
@@ -997,7 +995,6 @@ function NoteEditingCard({
   customFields: CustomFieldDef[];
   onSave: (data: NotePatch) => Promise<void>;
   onAutosave: (data: NotePatch) => void;
-  onCancel: () => void;
   onDelete: () => void;
 }) {
   const [content, setContent] = useState(note.content);
@@ -1129,27 +1126,6 @@ function NoteEditingCard({
     }
   };
 
-  const fieldsDirty =
-    numOrNull(amount) !== note.amount ||
-    numOrNull(distance) !== note.distance ||
-    rating !== note.rating ||
-    (date || null) !== (note.date ? note.date.slice(0, 10) : null) ||
-    strOrNull(phone) !== note.phone ||
-    strOrNull(email) !== note.email ||
-    strOrNull(url) !== note.url ||
-    strOrNull(address) !== note.address ||
-    [...enabled].sort().join(",") !== [...note.enabledFields].sort().join(",");
-  const customDirty =
-    JSON.stringify(buildCustomValues()) !==
-    JSON.stringify(
-      Object.fromEntries(
-        customFields
-          .map((d) => [d.key, note.customValues?.[d.key]])
-          .filter(([, v]) => v !== undefined && v !== null && v !== "")
-      )
-    );
-  const dirty = content !== note.content || projectId !== note.projectId || fieldsDirty || customDirty;
-  const canSave = dirty && !isContentEmpty(content);
   const projectName =
     projectId ? projects.find((p) => p.id === projectId)?.name ?? "Unassigned" : "Unassigned";
 
@@ -1486,7 +1462,7 @@ function NoteEditingCard({
           delete
         </button>
         <button
-          onClick={onCancel}
+          onClick={() => onSave(buildPayload())}
           style={{
             border: "none",
             background: "transparent",
@@ -1497,23 +1473,7 @@ function NoteEditingCard({
             padding: "5px 10px",
           }}
         >
-          cancel
-        </button>
-        <button
-          onClick={() => onSave(buildPayload())}
-          disabled={!canSave}
-          style={{
-            border: "none",
-            borderRadius: 10,
-            background: canSave ? C.accent : C.border,
-            color: canSave ? C.accentText : C.textFaint,
-            fontWeight: 600,
-            fontSize: 13,
-            padding: "8px 16px",
-            cursor: canSave ? "pointer" : "default",
-          }}
-        >
-          Save
+          Close
         </button>
       </div>
     </div>

@@ -646,7 +646,6 @@ function PromptGroupView({
               projects={projects}
               onSave={(data) => onPatchSave(prompt.id, data)}
               onAutosave={(data) => onAutosave(prompt.id, data)}
-              onCancel={onCancelEdit}
               onDelete={() => {
                 onDelete(prompt.id);
                 onCancelEdit();
@@ -891,14 +890,12 @@ function PromptEditingCard({
   projects,
   onSave,
   onAutosave,
-  onCancel,
   onDelete,
 }: {
   prompt: Prompt;
   projects: Project[];
   onSave: (data: { content: string; projectId: string | null; status?: PromptStatus }) => Promise<void>;
   onAutosave: (data: { content: string; projectId: string | null; status?: PromptStatus }) => void;
-  onCancel: () => void;
   onDelete: () => void;
 }) {
   const [content, setContent] = useState(prompt.content);
@@ -937,9 +934,6 @@ function PromptEditingCard({
     }
   };
 
-  const dirty =
-    content !== prompt.content || projectId !== prompt.projectId || status !== prompt.status;
-  const canSave = dirty && !isContentEmpty(content);
   const editStatusInfo = PROMPT_STATUSES.find((s) => s.value === status) ?? PROMPT_STATUSES[0];
   const projectName =
     projectId ? projects.find((p) => p.id === projectId)?.name ?? "Unassigned" : "Unassigned";
@@ -1110,7 +1104,7 @@ function PromptEditingCard({
           delete
         </button>
         <button
-          onClick={onCancel}
+          onClick={() => onSave({ content, projectId, status })}
           style={{
             border: "none",
             background: "transparent",
@@ -1121,23 +1115,7 @@ function PromptEditingCard({
             padding: "5px 10px",
           }}
         >
-          cancel
-        </button>
-        <button
-          onClick={() => onSave({ content, projectId, status })}
-          disabled={!canSave}
-          style={{
-            border: "none",
-            borderRadius: 10,
-            background: canSave ? C.accent : C.border,
-            color: canSave ? C.accentText : C.textFaint,
-            fontWeight: 600,
-            fontSize: 13,
-            padding: "8px 16px",
-            cursor: canSave ? "pointer" : "default",
-          }}
-        >
-          Save
+          Close
         </button>
       </div>
     </div>
