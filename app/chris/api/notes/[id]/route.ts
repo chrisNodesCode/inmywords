@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getPlaygroundUserId } from "@/lib/playground-auth";
-import { buildNoteFieldData } from "../fields";
+import { buildNoteFieldData, buildCustomValues } from "../fields";
 
 export async function PATCH(
   req: NextRequest,
@@ -37,6 +37,12 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid field value" }, { status: 400 });
   }
   Object.assign(data, fieldData);
+
+  if ("customValues" in body) {
+    const cv = buildCustomValues(body.customValues);
+    if (cv === false) return NextResponse.json({ error: "Invalid customValues" }, { status: 400 });
+    data.customValues = cv;
+  }
 
   const note = await prisma.note.update({
     where: { id },

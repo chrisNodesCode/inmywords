@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getPlaygroundUserId } from "@/lib/playground-auth";
-import { cleanFieldKeys } from "@/app/chris/_lib/noteFields";
+import {
+  cleanFieldKeys,
+  cleanCustomFields,
+  cleanCompareConfig,
+  compareFieldsForProject,
+} from "@/app/chris/_lib/noteFields";
 
 export async function PATCH(
   req: NextRequest,
@@ -15,7 +20,7 @@ export async function PATCH(
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
-  const data: { name?: string; noteFields?: string[] } = {};
+  const data: Record<string, unknown> = {};
 
   if ("name" in body) {
     const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -24,6 +29,19 @@ export async function PATCH(
   }
   if ("noteFields" in body) {
     data.noteFields = cleanFieldKeys(body.noteFields);
+  }
+
+  // Custom fields can change here; compute the resulting set so we can validate
+  // the compare config against the fields that will exist after this update.
+  const nextCustoms =
+    "customFields" in body ? cleanCustomFields(body.customFields) : cleanCustomFields(existing.customFields);
+  if ("customFields" in body) {
+    data.customFields = nextCustoms;
+  }
+  if ("compareConfig" in body) {
+    const valid = new Set(compareFieldsForProject(nextCustoms).map((f) => f.key));
+    valid.add("title");
+    data.compareConfig = cleanCompareConfig(body.compareConfig, valid);
   }
 
   const project = await prisma.project.update({ where: { id }, data });

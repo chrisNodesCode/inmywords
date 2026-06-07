@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getPlaygroundUserId } from "@/lib/playground-auth";
-import { buildNoteFieldData } from "./fields";
+import { buildNoteFieldData, buildCustomValues } from "./fields";
 import { cleanFieldKeys } from "@/app/chris/_lib/noteFields";
 
 async function resolveProjectId(
@@ -51,6 +51,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid field value" }, { status: 400 });
   }
 
+  let customValues: Record<string, string | number | boolean> | null = null;
+  if ("customValues" in body) {
+    const cv = buildCustomValues(body.customValues);
+    if (cv === false) return NextResponse.json({ error: "Invalid customValues" }, { status: 400 });
+    customValues = cv;
+  }
+
   // New notes inherit the parent project's field template, unless the caller
   // explicitly supplied enabledFields.
   if (!("enabledFields" in body) && projectId) {
@@ -62,7 +69,14 @@ export async function POST(req: NextRequest) {
   }
 
   const note = await prisma.note.create({
-    data: { userId, content, projectId, title, ...fieldData },
+    data: {
+      userId,
+      content,
+      projectId,
+      title,
+      ...fieldData,
+      ...(customValues !== null ? { customValues } : {}),
+    },
     include: { project: { select: { id: true, name: true } } },
   });
   return NextResponse.json({ note }, { status: 201 });

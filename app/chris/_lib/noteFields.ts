@@ -109,3 +109,148 @@ export function formatNoteValue(key: NoteFieldKey, v: NoteFieldValues): string |
 export function normalizeUrl(u: string): string {
   return /^https?:\/\//i.test(u) ? u : `https://${u}`;
 }
+
+// ── Custom fields (per-project) ──────────────────────────────────────────────
+// Each project may define up to 3 custom fields, stored as defs on the Project
+// (label + type per slot) with values living on each Note (customValues JSON,
+// keyed by slot). Slots are stable so values survive label/type renames.
+
+export const CUSTOM_FIELD_SLOTS = ["c1", "c2", "c3"] as const;
+export type CustomSlot = (typeof CUSTOM_FIELD_SLOTS)[number];
+export const MAX_CUSTOM_FIELDS = CUSTOM_FIELD_SLOTS.length;
+
+export type CustomFieldType = "text" | "number" | "currency" | "boolean";
+export const CUSTOM_FIELD_TYPES: { value: CustomFieldType; label: string }[] = [
+  { value: "text", label: "Text" },
+  { value: "number", label: "Number" },
+  { value: "currency", label: "Currency" },
+  { value: "boolean", label: "Yes / No" },
+];
+export function isCustomFieldType(v: unknown): v is CustomFieldType {
+  return v === "text" || v === "number" || v === "currency" || v === "boolean";
+}
+
+export type CustomFieldDef = { key: CustomSlot; label: string; type: CustomFieldType };
+export type CustomValues = Record<string, string | number | boolean | null>;
+
+// Validate/normalize an arbitrary value into a clean list of custom field defs
+// (drops blanks, caps at MAX, dedupes slots, keeps slot order).
+export function cleanCustomFields(value: unknown): CustomFieldDef[] {
+  if (!Array.isArray(value)) return [];
+  const bySlot = new Map<CustomSlot, CustomFieldDef>();
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const r = raw as Record<string, unknown>;
+    const key = r.key;
+    const label = typeof r.label === "string" ? r.label.trim() : "";
+    const type = r.type;
+    if (
+      typeof key === "string" &&
+      (CUSTOM_FIELD_SLOTS as readonly string[]).includes(key) &&
+      label &&
+      isCustomFieldType(type)
+    ) {
+      bySlot.set(key as CustomSlot, { key: key as CustomSlot, label, type });
+    }
+  }
+  return CUSTOM_FIELD_SLOTS.filter((s) => bySlot.has(s)).map((s) => bySlot.get(s)!);
+}
+
+// Sanitize a Note's customValues to only the known slots, coercing by the
+// project's field types. Returns a plain object suitable for storage.
+export function cleanCustomValues(
+  value: unknown,
+  defs: CustomFieldDef[]
+): CustomValues {
+  const out: CustomValues = {};
+  const src = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  for (const def of defs) {
+    const raw = src[def.key];
+    if (raw === undefined || raw === null || raw === "") continue;
+    if (def.type === "boolean") {
+      out[def.key] = raw === true || raw === "true";
+    } else if (def.type === "number" || def.type === "currency") {
+      const n = typeof raw === "number" ? raw : Number(raw);
+      if (Number.isFinite(n)) out[def.key] = n;
+    } else {
+      out[def.key] = String(raw);
+    }
+  }
+  return out;
+}
+
+export function formatCustomValue(def: CustomFieldDef, raw: unknown): string | null {
+  if (raw === undefined || raw === null || raw === "") return null;
+  switch (def.type) {
+    case "currency": {
+      const n = typeof raw === "number" ? raw : Number(raw);
+      if (!Number.isFinite(n)) return null;
+      const frac = Number.isInteger(n) ? 0 : 2;
+      return `$${n.toLocaleString("en-US", { minimumFractionDigits: frac, maximumFractionDigits: 2 })}`;
+    }
+    case "number": {
+      const n = typeof raw === "number" ? raw : Number(raw);
+      return Number.isFinite(n) ? n.toLocaleString("en-US") : null;
+    }
+    case "boolean":
+      return raw === true || raw === "true" ? "Yes" : "No";
+    default:
+      return String(raw).trim() || null;
+  }
+}
+
+// ── Combined field spec (built-in + a project's custom) ───────────────────────
+// Used by the Compare tab and editor to enumerate every comparable/displayable
+// field for a given project.
+
+export type CompareField = {
+  key: string; // built-in NoteFieldKey or custom slot (c1/c2/c3)
+  label: string;
+  custom: boolean;
+  // for sorting: numeric kinds sort numerically
+  numeric: boolean;
+};
+
+const BUILTIN_NUMERIC: Record<NoteFieldKey, boolean> = {
+  amount: true,
+  distance: true,
+  rating: true,
+  date: true,
+  phone: false,
+  email: false,
+  url: false,
+  address: false,
+};
+
+export function compareFieldsForProject(customs: CustomFieldDef[]): CompareField[] {
+  const builtin: CompareField[] = NOTE_FIELDS.map((f) => ({
+    key: f.key,
+    label: f.label,
+    custom: false,
+    numeric: BUILTIN_NUMERIC[f.key],
+  }));
+  const custom: CompareField[] = customs.map((c) => ({
+    key: c.key,
+    label: c.label,
+    custom: true,
+    numeric: c.type === "number" || c.type === "currency",
+  }));
+  return [...builtin, ...custom];
+}
+
+// Saved compare config shape.
+export type CompareConfig = {
+  fields: string[];
+  sortBy: string | null;
+  sortDir: "asc" | "desc";
+};
+
+export function cleanCompareConfig(value: unknown, valid: Set<string>): CompareConfig {
+  const v = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const fields = Array.isArray(v.fields)
+    ? v.fields.filter((f): f is string => typeof f === "string" && valid.has(f))
+    : [];
+  const sortBy = typeof v.sortBy === "string" && valid.has(v.sortBy) ? v.sortBy : null;
+  const sortDir = v.sortDir === "desc" ? "desc" : "asc";
+  return { fields, sortBy, sortDir };
+}

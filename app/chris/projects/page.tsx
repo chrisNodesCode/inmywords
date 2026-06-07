@@ -7,13 +7,25 @@ import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 import { ThemeControls } from "@/app/chris/_lib/ThemeControls";
 import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
-import { NOTE_FIELDS, type NoteFieldKey, cleanFieldKeys } from "@/app/chris/_lib/noteFields";
+import {
+  NOTE_FIELDS,
+  type NoteFieldKey,
+  type CustomFieldDef,
+  type CustomFieldType,
+  type CustomSlot,
+  CUSTOM_FIELD_SLOTS,
+  CUSTOM_FIELD_TYPES,
+  MAX_CUSTOM_FIELDS,
+  cleanFieldKeys,
+  cleanCustomFields,
+} from "@/app/chris/_lib/noteFields";
 
 type Project = {
   id: string;
   name: string;
   sortOrder: number;
   noteFields: string[];
+  customFields: CustomFieldDef[];
   createdAt: string;
   updatedAt: string;
   _count: { prompts: number; todos: number; notes: number };
@@ -33,6 +45,15 @@ const C = {
 };
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace';
 
+const sectionLabel: React.CSSProperties = {
+  fontFamily: MONO,
+  fontSize: 10,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  color: "var(--pg-text-faint)",
+  margin: "0 0 8px",
+};
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +65,13 @@ export default function ProjectsPage() {
       try {
         const res = await fetch("/chris/api/projects");
         const data = await res.json();
-        setProjects(data.projects ?? []);
+        setProjects(
+          (data.projects ?? []).map((p: Project) => ({
+            ...p,
+            noteFields: Array.isArray(p.noteFields) ? p.noteFields : [],
+            customFields: cleanCustomFields(p.customFields),
+          }))
+        );
       } finally {
         setLoading(false);
       }
@@ -61,7 +88,10 @@ export default function ProjectsPage() {
     });
     if (res.ok) {
       const { project } = await res.json();
-      setProjects((prev) => [...prev, { ...project, _count: { prompts: 0, todos: 0, notes: 0 } }]);
+      setProjects((prev) => [
+        ...prev,
+        { ...project, customFields: cleanCustomFields(project.customFields), _count: { prompts: 0, todos: 0, notes: 0 } },
+      ]);
       setDraft("");
       inputRef.current?.focus();
     }
@@ -73,6 +103,15 @@ export default function ProjectsPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ noteFields: fields }),
+    });
+  };
+
+  const setCustomFieldDefs = async (id: string, defs: CustomFieldDef[]) => {
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, customFields: defs } : p)));
+    await fetch(`/chris/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customFields: defs }),
     });
   };
 
@@ -195,6 +234,7 @@ export default function ProjectsPage() {
             onRename={renameProject}
             onDelete={deleteProject}
             onSetNoteFields={setNoteFields}
+            onSetCustomFields={setCustomFieldDefs}
           />
         )}
       </section>
@@ -208,12 +248,14 @@ function ProjectsDragList({
   onRename,
   onDelete,
   onSetNoteFields,
+  onSetCustomFields,
 }: {
   projects: Project[];
   applyReorder: (next: Project[]) => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
   onSetNoteFields: (id: string, fields: NoteFieldKey[]) => void;
+  onSetCustomFields: (id: string, defs: CustomFieldDef[]) => void;
 }) {
   const { rowProps, rowStyle } = useDragReorder(projects, applyReorder);
   return (
@@ -227,6 +269,7 @@ function ProjectsDragList({
           onRename={(name) => onRename(p.id, name)}
           onDelete={() => onDelete(p.id)}
           onSetNoteFields={(fields) => onSetNoteFields(p.id, fields)}
+          onSetCustomFields={(defs) => onSetCustomFields(p.id, defs)}
         />
       ))}
     </div>
@@ -240,6 +283,7 @@ function ProjectRow({
   onRename,
   onDelete,
   onSetNoteFields,
+  onSetCustomFields,
 }: {
   project: Project;
   dragProps: React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean };
@@ -247,6 +291,7 @@ function ProjectRow({
   onRename: (name: string) => void;
   onDelete: () => void;
   onSetNoteFields: (fields: NoteFieldKey[]) => void;
+  onSetCustomFields: (defs: CustomFieldDef[]) => void;
 }) {
   const [hover, setHover] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -260,6 +305,23 @@ function ProjectRow({
     if (set.has(k)) set.delete(k);
     else set.add(k);
     onSetNoteFields(cleanFieldKeys([...set]));
+  };
+
+  // ── Custom field defs (up to 3 slots) ──
+  const customs = project.customFields;
+  const usedSlots = new Set(customs.map((c) => c.key));
+  const nextSlot = CUSTOM_FIELD_SLOTS.find((s) => !usedSlots.has(s));
+  const addCustomField = () => {
+    if (!nextSlot || customs.length >= MAX_CUSTOM_FIELDS) return;
+    onSetCustomFields([...customs, { key: nextSlot, label: "", type: "text" }]);
+  };
+  const updateCustomField = (key: CustomSlot, patch: Partial<CustomFieldDef>) => {
+    onSetCustomFields(
+      customs.map((c) => (c.key === key ? { ...c, ...patch } : c))
+    );
+  };
+  const removeCustomField = (key: CustomSlot) => {
+    onSetCustomFields(customs.filter((c) => c.key !== key));
   };
 
   const commit = () => {
@@ -336,11 +398,11 @@ function ProjectRow({
       <button
         ref={fieldsBtnRef}
         onClick={() => setFieldsOpen((x) => !x)}
-        title="Set which structured fields new notes in this project start with"
+        title="Configure the note fields + custom fields for this project"
         style={{
-          border: `1px solid ${template.length ? C.accent : C.border}`,
-          background: template.length ? `${C.accent}1a` : "transparent",
-          color: template.length ? C.accent : C.textDim,
+          border: `1px solid ${template.length || customs.length ? C.accent : C.border}`,
+          background: template.length || customs.length ? `${C.accent}1a` : "transparent",
+          color: template.length || customs.length ? C.accent : C.textDim,
           borderRadius: 999,
           padding: "4px 11px",
           fontSize: 11.5,
@@ -349,28 +411,17 @@ function ProjectRow({
           whiteSpace: "nowrap",
         }}
       >
-        fields{template.length ? ` · ${template.length}` : ""}
+        fields{template.length || customs.length ? ` · ${template.length + customs.length}` : ""}
       </button>
       {fieldsOpen && (
         <FixedDropdown
           anchorRef={fieldsBtnRef}
           onClose={() => setFieldsOpen(false)}
-          width={240}
-          maxHeight={360}
+          width={288}
+          maxHeight={460}
         >
           <div style={{ padding: "10px 12px" }}>
-            <p
-              style={{
-                fontFamily: MONO,
-                fontSize: 10,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                color: C.textFaint,
-                margin: "0 0 8px",
-              }}
-            >
-              Note template
-            </p>
+            <p style={sectionLabel}>Note template</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {NOTE_FIELDS.map((f) => {
                 const on = template.includes(f.key);
@@ -399,6 +450,98 @@ function ProjectRow({
                   </button>
                 );
               })}
+            </div>
+
+            {/* Custom fields */}
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", margin: "16px 0 8px" }}>
+              <p style={{ ...sectionLabel, margin: 0 }}>Custom fields</p>
+              <span style={{ fontFamily: MONO, fontSize: 10, color: C.textFaint }}>
+                {customs.length}/{MAX_CUSTOM_FIELDS}
+              </span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {customs.map((cf) => (
+                <div
+                  key={cf.key}
+                  style={{
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                    padding: 8,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                  }}
+                >
+                  <input
+                    value={cf.label}
+                    onChange={(e) => updateCustomField(cf.key, { label: e.target.value })}
+                    placeholder="Field label (e.g. Sq Ft)"
+                    style={{
+                      width: "100%",
+                      background: "var(--pg-bg)",
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 7,
+                      outline: "none",
+                      color: C.text,
+                      fontSize: 13,
+                      padding: "6px 9px",
+                    }}
+                  />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <select
+                      value={cf.type}
+                      onChange={(e) => updateCustomField(cf.key, { type: e.target.value as CustomFieldType })}
+                      style={{
+                        flex: 1,
+                        background: "var(--pg-bg)",
+                        border: `1px solid ${C.border}`,
+                        borderRadius: 7,
+                        color: C.text,
+                        fontSize: 12.5,
+                        padding: "6px 8px",
+                        cursor: "pointer",
+                        outline: "none",
+                        colorScheme: "dark",
+                      }}
+                    >
+                      {CUSTOM_FIELD_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => removeCustomField(cf.key)}
+                      title="Remove custom field"
+                      style={{
+                        border: `1px solid ${C.border}`,
+                        background: "transparent",
+                        color: C.danger,
+                        borderRadius: 7,
+                        padding: "0 10px",
+                        fontSize: 13,
+                        cursor: "pointer",
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {customs.length < MAX_CUSTOM_FIELDS && (
+                <button
+                  onClick={addCustomField}
+                  style={{
+                    border: `1px dashed ${C.border}`,
+                    background: "transparent",
+                    color: C.textDim,
+                    borderRadius: 8,
+                    padding: "8px 10px",
+                    fontSize: 12.5,
+                    cursor: "pointer",
+                  }}
+                >
+                  + add custom field
+                </button>
+              )}
             </div>
           </div>
         </FixedDropdown>

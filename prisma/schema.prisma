@@ -81,6 +81,12 @@ model Project {
   // Default set of structured Note field keys applied to new notes created in
   // this project (the per-project "template"). See app/chris/_lib/noteFields.
   noteFields String[]
+  // Up to 3 project-specific custom field definitions, each a slot:
+  // { key: "c1"|"c2"|"c3", label: string, type: "text"|"number"|"currency"|"boolean" }.
+  customFields Json?
+  // Saved comparison config for the Compare tab:
+  // { fields: string[], sortBy: string|null, sortDir: "asc"|"desc" }.
+  compareConfig Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -139,6 +145,11 @@ model Note {
   // parent project's `noteFields` template. A field also displays when it holds
   // a value, regardless of this list.
   enabledFields String[]
+
+  // Values for the parent project's custom fields, keyed by slot (c1/c2/c3).
+  // Shape: { c1?: string|number|boolean, c2?: ..., c3?: ... }. The label/type
+  // for each slot lives on Project.customFields.
+  customValues Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

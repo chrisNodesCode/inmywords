@@ -77,3 +77,22 @@ export function buildNoteFieldData(body: Record<string, unknown>): NoteFieldData
 
   return data;
 }
+
+// Sanitize a customValues object to a plain record with only c1/c2/c3 slots and
+// primitive values. We don't know the project's field types here, so we keep
+// the value's primitive shape (number/boolean/string) and let the project's
+// defs drive display/coercion. Returns null only when present-but-not-an-object.
+export function buildCustomValues(value: unknown): Record<string, string | number | boolean> | null | false {
+  if (value === null) return null;
+  if (typeof value !== "object" || Array.isArray(value)) return false;
+  const out: Record<string, string | number | boolean> = {};
+  const src = value as Record<string, unknown>;
+  for (const slot of ["c1", "c2", "c3"]) {
+    const v = src[slot];
+    if (v === undefined || v === null || v === "") continue;
+    if (typeof v === "number" && Number.isFinite(v)) out[slot] = v;
+    else if (typeof v === "boolean") out[slot] = v;
+    else if (typeof v === "string") out[slot] = v;
+  }
+  return out;
+}

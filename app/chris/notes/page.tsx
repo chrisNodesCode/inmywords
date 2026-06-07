@@ -14,9 +14,17 @@ import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
 import {
   NOTE_FIELDS,
   type NoteFieldKey,
+  type CustomFieldDef,
+  type CustomValues,
+  type CompareConfig,
   formatNoteValue,
+  formatCustomValue,
   normalizeUrl,
+  cleanCustomFields,
+  cleanCompareConfig,
+  compareFieldsForProject,
 } from "@/app/chris/_lib/noteFields";
+import { ComparePanel } from "@/app/chris/notes/ComparePanel";
 
 // Filter constants
 const ALL_PROJECTS = "__all__";
@@ -27,6 +35,9 @@ const UNASSIGNED_PROJECT = "__unassigned__";
 type Project = {
   id: string;
   name: string;
+  noteFields: string[];
+  customFields: CustomFieldDef[];
+  compareConfig: CompareConfig | null;
 };
 
 type Note = {
@@ -44,6 +55,7 @@ type Note = {
   url: string | null;
   address: string | null;
   enabledFields: string[];
+  customValues: CustomValues | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -61,6 +73,7 @@ type NotePatch = {
   url?: string | null;
   address?: string | null;
   enabledFields?: string[];
+  customValues?: CustomValues;
 };
 
 // ── Palette ──────────────────────────────────────────────────────────────────
@@ -116,6 +129,7 @@ export default function NotesPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"notes" | "compare">("notes");
 
   // Editor state
   const [draftContent, setDraftContent] = useState("");
@@ -157,10 +171,23 @@ export default function NotesPage() {
         ]);
         const pd = await pr.json();
         const nd = await nr.json();
-        const loadedProjects: Project[] = (pd.projects ?? []).map((p: { id: string; name: string }) => ({
-          id: p.id,
-          name: p.name,
-        }));
+        const loadedProjects: Project[] = (pd.projects ?? []).map(
+          (p: { id: string; name: string; noteFields?: string[]; customFields?: unknown; compareConfig?: unknown }) => ({
+            id: p.id,
+            name: p.name,
+            noteFields: Array.isArray(p.noteFields) ? p.noteFields : [],
+            customFields: cleanCustomFields(p.customFields),
+            compareConfig: p.compareConfig
+              ? cleanCompareConfig(
+                  p.compareConfig,
+                  new Set([
+                    ...compareFieldsForProject(cleanCustomFields(p.customFields)).map((f) => f.key),
+                    "title",
+                  ])
+                )
+              : null,
+          })
+        );
         setProjects(loadedProjects);
         setNotes(nd.notes ?? []);
 
@@ -296,6 +323,18 @@ export default function NotesPage() {
     });
   };
 
+  // Persist a project's compare config (from the Compare tab).
+  const saveCompareConfig = async (projectId: string, config: CompareConfig) => {
+    setProjects((prev) =>
+      prev.map((p) => (p.id === projectId ? { ...p, compareConfig: config } : p))
+    );
+    await fetch(`/chris/api/projects/${projectId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ compareConfig: config }),
+    });
+  };
+
   // ── Derived: filter then group notes by project ───────────────────────────
 
   const grouped = useMemo(() => {
@@ -349,8 +388,37 @@ export default function NotesPage() {
         </header>
       )}
 
+      {/* Tabs */}
+      {!deepWrite && (
+        <div style={{ display: "flex", gap: 4, marginTop: 18 }}>
+          {(["notes", "compare"] as const).map((t) => {
+            const on = tab === t;
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: on ? C.text : C.textFaint,
+                  borderBottom: `2px solid ${on ? C.accent : "transparent"}`,
+                  borderRadius: 0,
+                  padding: "6px 12px",
+                  fontSize: 13.5,
+                  fontWeight: on ? 600 : 500,
+                  cursor: "pointer",
+                  textTransform: "capitalize",
+                }}
+              >
+                {t}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Composer — hidden while editing an existing note in-place */}
-      {editingId === null && (
+      {tab === "notes" && editingId === null && (
       <section style={{ marginTop: deepWrite ? 0 : 28 }}>
         <div
           ref={editorWrapperRef}
@@ -486,7 +554,7 @@ export default function NotesPage() {
       )}
 
       {/* Feed */}
-      {!deepWrite && (
+      {tab === "notes" && !deepWrite && (
         <section style={{ marginTop: 32 }}>
           {loading ? (
             <Spinner label="loading…" />
@@ -537,6 +605,28 @@ export default function NotesPage() {
           )}
         </section>
       )}
+
+      {/* Compare tab */}
+      {tab === "compare" && !deepWrite && (
+        <section style={{ marginTop: 24 }}>
+          {loading ? (
+            <Spinner label="loading…" />
+          ) : (
+            <ComparePanel
+              projects={projects}
+              notes={notes}
+              onSaveConfig={saveCompareConfig}
+              onOpenNote={(id) => {
+                setTab("notes");
+                setProjectFilter(
+                  notes.find((n) => n.id === id)?.projectId ?? ALL_PROJECTS
+                );
+                expandEdit(id);
+              }}
+            />
+          )}
+        </section>
+      )}
     </main>
   );
 }
@@ -575,6 +665,8 @@ function NoteGroupView({
   const { rowProps, rowStyle } = useDragReorder(group.items, (next) =>
     applyGroupReorder(next.map((n) => n.id))
   );
+  // Custom field defs for this group's project (Unassigned has none).
+  const groupCustoms = projects.find((p) => p.id === group.id)?.customFields ?? [];
   return (
     <div>
       <div
@@ -599,6 +691,7 @@ function NoteGroupView({
               key={note.id}
               note={note}
               projects={projects}
+              customFields={groupCustoms}
               onSave={(data) => onPatchSave(note.id, data)}
               onAutosave={(data) => onAutosave(note.id, data)}
               onCancel={onCancelEdit}
@@ -612,6 +705,7 @@ function NoteGroupView({
               key={note.id}
               note={note}
               projects={projects}
+              customFields={groupCustoms}
               dragProps={rowProps(note.id)}
               dragStyle={rowStyle(note.id)}
               onDelete={() => onDelete(note.id)}
@@ -627,12 +721,18 @@ function NoteGroupView({
 
 // Compact read-only chips for whichever structured fields hold a value. Phone /
 // email / link become actionable; the rest are plain text.
-function NoteStats({ note }: { note: Note }) {
+function NoteStats({ note, customFields }: { note: Note; customFields: CustomFieldDef[] }) {
   const chips = NOTE_FIELDS.map((f) => {
     const display = formatNoteValue(f.key, note);
     if (!display) return null;
-    return { key: f.key, icon: f.icon, display };
-  }).filter(Boolean) as { key: NoteFieldKey; icon: string; display: string }[];
+    return { key: f.key as string, icon: f.icon, display, label: "" };
+  }).filter(Boolean) as { key: string; icon: string; display: string; label: string }[];
+
+  // Project custom fields with a value, shown as labeled chips.
+  for (const def of customFields) {
+    const display = formatCustomValue(def, note.customValues?.[def.key]);
+    if (display) chips.push({ key: def.key, icon: "", display, label: def.label });
+  }
 
   if (chips.length === 0) return null;
 
@@ -688,8 +788,13 @@ function NoteStats({ note }: { note: Note }) {
           );
         }
         return (
-          <span key={c.key} style={chipStyle} title={c.display}>
-            {iconEl}{c.display}
+          <span key={c.key} style={chipStyle} title={c.label ? `${c.label}: ${c.display}` : c.display}>
+            {c.label ? (
+              <span style={{ color: C.textFaint }}>{c.label}</span>
+            ) : (
+              iconEl
+            )}
+            {c.display}
           </span>
         );
       })}
@@ -700,6 +805,7 @@ function NoteStats({ note }: { note: Note }) {
 function NoteRow({
   note,
   projects,
+  customFields,
   dragProps,
   dragStyle,
   onDelete,
@@ -708,6 +814,7 @@ function NoteRow({
 }: {
   note: Note;
   projects: Project[];
+  customFields: CustomFieldDef[];
   dragProps: React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean };
   dragStyle: React.CSSProperties;
   onDelete: () => void;
@@ -766,7 +873,7 @@ function NoteRow({
         </div>
       </div>
 
-      <NoteStats note={note} />
+      <NoteStats note={note} customFields={customFields} />
 
       <div
         style={{
@@ -879,6 +986,7 @@ function FieldShell({ label, children }: { label: string; children: React.ReactN
 function NoteEditingCard({
   note,
   projects,
+  customFields,
   onSave,
   onAutosave,
   onCancel,
@@ -886,6 +994,7 @@ function NoteEditingCard({
 }: {
   note: Note;
   projects: Project[];
+  customFields: CustomFieldDef[];
   onSave: (data: NotePatch) => Promise<void>;
   onAutosave: (data: NotePatch) => void;
   onCancel: () => void;
@@ -893,6 +1002,42 @@ function NoteEditingCard({
 }) {
   const [content, setContent] = useState(note.content);
   const [projectId, setProjectId] = useState<string | null>(note.projectId);
+
+  // Custom field draft values, keyed by slot. Text/number/currency held as
+  // strings; booleans as booleans.
+  const [customDraft, setCustomDraft] = useState<Record<string, string | boolean>>(() => {
+    const init: Record<string, string | boolean> = {};
+    for (const def of customFields) {
+      const v = note.customValues?.[def.key];
+      if (v === undefined || v === null) continue;
+      init[def.key] = def.type === "boolean" ? Boolean(v) : String(v);
+    }
+    return init;
+  });
+  const setCustom = (slot: string, value: string | boolean) =>
+    setCustomDraft((prev) => ({ ...prev, [slot]: value }));
+
+  // Resolve the draft into a storage-ready customValues object.
+  const buildCustomValues = (): CustomValues => {
+    const out: CustomValues = {};
+    for (const def of customFields) {
+      const raw = customDraft[def.key];
+      if (def.type === "boolean") {
+        if (raw === true) out[def.key] = true;
+        else if (raw === false) out[def.key] = false;
+      } else if (def.type === "number" || def.type === "currency") {
+        const s = typeof raw === "string" ? raw.trim() : "";
+        if (s !== "") {
+          const n = Number(s);
+          if (Number.isFinite(n)) out[def.key] = n;
+        }
+      } else {
+        const s = typeof raw === "string" ? raw.trim() : "";
+        if (s !== "") out[def.key] = s;
+      }
+    }
+    return out;
+  };
 
   // Structured fields — numbers/date kept as strings while editing, parsed on save.
   const [amount, setAmount] = useState(note.amount != null ? String(note.amount) : "");
@@ -948,11 +1093,12 @@ function NoteEditingCard({
     url: strOrNull(url),
     address: strOrNull(address),
     enabledFields: [...enabled],
+    customValues: buildCustomValues(),
   });
 
   // Autosave edits; the Save button also collapses the card.
   useAutosave(
-    [content, projectId, amount, distance, rating, date, phone, email, url, address, [...enabled].join(",")],
+    [content, projectId, amount, distance, rating, date, phone, email, url, address, [...enabled].join(","), JSON.stringify(customDraft)],
     () => onAutosave(buildPayload())
   );
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -993,7 +1139,16 @@ function NoteEditingCard({
     strOrNull(url) !== note.url ||
     strOrNull(address) !== note.address ||
     [...enabled].sort().join(",") !== [...note.enabledFields].sort().join(",");
-  const dirty = content !== note.content || projectId !== note.projectId || fieldsDirty;
+  const customDirty =
+    JSON.stringify(buildCustomValues()) !==
+    JSON.stringify(
+      Object.fromEntries(
+        customFields
+          .map((d) => [d.key, note.customValues?.[d.key]])
+          .filter(([, v]) => v !== undefined && v !== null && v !== "")
+      )
+    );
+  const dirty = content !== note.content || projectId !== note.projectId || fieldsDirty || customDirty;
   const canSave = dirty && !isContentEmpty(content);
   const projectName =
     projectId ? projects.find((p) => p.id === projectId)?.name ?? "Unassigned" : "Unassigned";
@@ -1185,6 +1340,65 @@ function NoteEditingCard({
                 />
               </FieldShell>
             )}
+          </div>
+        )}
+
+        {/* Project custom fields — always shown for notes in this project */}
+        {customFields.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              gap: 12,
+              marginTop: 14,
+            }}
+          >
+            {customFields.map((def) => {
+              const raw = customDraft[def.key];
+              if (def.type === "boolean") {
+                const val = raw === true;
+                return (
+                  <FieldShell key={def.key} label={def.label}>
+                    <button
+                      onClick={() => setCustom(def.key, !val)}
+                      role="switch"
+                      aria-checked={val}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                        height: 38,
+                        border: `1px solid ${val ? C.accent : C.border}`,
+                        background: val ? `${C.accent}1a` : "transparent",
+                        color: val ? C.accent : C.textDim,
+                        borderRadius: 9,
+                        padding: "0 12px",
+                        fontSize: 13,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {val ? "Yes" : "No"}
+                    </button>
+                  </FieldShell>
+                );
+              }
+              const isNum = def.type === "number" || def.type === "currency";
+              return (
+                <FieldShell key={def.key} label={def.label}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, ...fieldInputBox }}>
+                    {def.type === "currency" && <span style={{ color: C.textFaint }}>$</span>}
+                    <input
+                      type={isNum ? "number" : "text"}
+                      inputMode={isNum ? "decimal" : undefined}
+                      value={typeof raw === "string" ? raw : ""}
+                      onChange={(e) => setCustom(def.key, e.target.value)}
+                      placeholder={isNum ? "0" : ""}
+                      style={bareInput}
+                    />
+                  </div>
+                </FieldShell>
+              );
+            })}
           </div>
         )}
       </div>
