@@ -6,14 +6,17 @@ import { useDragReorder } from "@/app/chris/_lib/dragReorder";
 import { Spinner } from "@/app/chris/_lib/Spinner";
 import { FullscreenButton } from "@/app/chris/_lib/FullscreenButton";
 import { ThemeControls } from "@/app/chris/_lib/ThemeControls";
+import { FixedDropdown } from "@/app/chris/_lib/FixedDropdown";
+import { NOTE_FIELDS, type NoteFieldKey, cleanFieldKeys } from "@/app/chris/_lib/noteFields";
 
 type Project = {
   id: string;
   name: string;
   sortOrder: number;
+  noteFields: string[];
   createdAt: string;
   updatedAt: string;
-  _count: { prompts: number; todos: number };
+  _count: { prompts: number; todos: number; notes: number };
 };
 
 const C = {
@@ -58,10 +61,19 @@ export default function ProjectsPage() {
     });
     if (res.ok) {
       const { project } = await res.json();
-      setProjects((prev) => [...prev, { ...project, _count: { prompts: 0, todos: 0 } }]);
+      setProjects((prev) => [...prev, { ...project, _count: { prompts: 0, todos: 0, notes: 0 } }]);
       setDraft("");
       inputRef.current?.focus();
     }
+  };
+
+  const setNoteFields = async (id: string, fields: NoteFieldKey[]) => {
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, noteFields: fields } : p)));
+    await fetch(`/chris/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ noteFields: fields }),
+    });
   };
 
   const renameProject = async (id: string, name: string) => {
@@ -78,7 +90,7 @@ export default function ProjectsPage() {
   const deleteProject = async (id: string) => {
     const p = projects.find((x) => x.id === id);
     if (!p) return;
-    const linked = p._count.prompts + p._count.todos;
+    const linked = p._count.prompts + p._count.todos + p._count.notes;
     const msg =
       linked > 0
         ? `Delete "${p.name}"? ${linked} linked item${linked === 1 ? "" : "s"} will be unlinked (not deleted).`
@@ -182,6 +194,7 @@ export default function ProjectsPage() {
             }}
             onRename={renameProject}
             onDelete={deleteProject}
+            onSetNoteFields={setNoteFields}
           />
         )}
       </section>
@@ -194,11 +207,13 @@ function ProjectsDragList({
   applyReorder,
   onRename,
   onDelete,
+  onSetNoteFields,
 }: {
   projects: Project[];
   applyReorder: (next: Project[]) => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
+  onSetNoteFields: (id: string, fields: NoteFieldKey[]) => void;
 }) {
   const { rowProps, rowStyle } = useDragReorder(projects, applyReorder);
   return (
@@ -211,6 +226,7 @@ function ProjectsDragList({
           dragStyle={rowStyle(p.id)}
           onRename={(name) => onRename(p.id, name)}
           onDelete={() => onDelete(p.id)}
+          onSetNoteFields={(fields) => onSetNoteFields(p.id, fields)}
         />
       ))}
     </div>
@@ -223,16 +239,28 @@ function ProjectRow({
   dragStyle,
   onRename,
   onDelete,
+  onSetNoteFields,
 }: {
   project: Project;
   dragProps: React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean };
   dragStyle: React.CSSProperties;
   onRename: (name: string) => void;
   onDelete: () => void;
+  onSetNoteFields: (fields: NoteFieldKey[]) => void;
 }) {
   const [hover, setHover] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(project.name);
+  const [fieldsOpen, setFieldsOpen] = useState(false);
+  const fieldsBtnRef = useRef<HTMLButtonElement>(null);
+
+  const template = cleanFieldKeys(project.noteFields);
+  const toggleTemplateField = (k: NoteFieldKey) => {
+    const set = new Set(template);
+    if (set.has(k)) set.delete(k);
+    else set.add(k);
+    onSetNoteFields(cleanFieldKeys([...set]));
+  };
 
   const commit = () => {
     const v = draft.trim();
@@ -299,9 +327,82 @@ function ProjectRow({
           whiteSpace: "nowrap",
         }}
       >
-        {project._count.prompts} prompt{project._count.prompts === 1 ? "" : "s"} ·{" "}
-        {project._count.todos} todo{project._count.todos === 1 ? "" : "s"}
+        {project._count.notes} note{project._count.notes === 1 ? "" : "s"} ·{" "}
+        {project._count.todos} todo{project._count.todos === 1 ? "" : "s"} ·{" "}
+        {project._count.prompts} prompt{project._count.prompts === 1 ? "" : "s"}
       </span>
+
+      {/* Note-field template editor */}
+      <button
+        ref={fieldsBtnRef}
+        onClick={() => setFieldsOpen((x) => !x)}
+        title="Set which structured fields new notes in this project start with"
+        style={{
+          border: `1px solid ${template.length ? C.accent : C.border}`,
+          background: template.length ? `${C.accent}1a` : "transparent",
+          color: template.length ? C.accent : C.textDim,
+          borderRadius: 999,
+          padding: "4px 11px",
+          fontSize: 11.5,
+          fontFamily: MONO,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+        }}
+      >
+        fields{template.length ? ` · ${template.length}` : ""}
+      </button>
+      {fieldsOpen && (
+        <FixedDropdown
+          anchorRef={fieldsBtnRef}
+          onClose={() => setFieldsOpen(false)}
+          width={240}
+          maxHeight={360}
+        >
+          <div style={{ padding: "10px 12px" }}>
+            <p
+              style={{
+                fontFamily: MONO,
+                fontSize: 10,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: C.textFaint,
+                margin: "0 0 8px",
+              }}
+            >
+              Note template
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {NOTE_FIELDS.map((f) => {
+                const on = template.includes(f.key);
+                return (
+                  <button
+                    key={f.key}
+                    onClick={() => toggleTemplateField(f.key)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      width: "100%",
+                      textAlign: "left",
+                      border: `1px solid ${on ? C.accent : C.border}`,
+                      background: on ? `${C.accent}1a` : "transparent",
+                      color: on ? C.accent : C.textDim,
+                      borderRadius: 8,
+                      padding: "7px 10px",
+                      fontSize: 13,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span aria-hidden style={{ width: 14, textAlign: "center" }}>{f.icon}</span>
+                    <span style={{ flex: 1 }}>{f.label}</span>
+                    <span style={{ fontFamily: MONO, fontSize: 12 }}>{on ? "✓" : ""}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </FixedDropdown>
+      )}
 
       <button
         onClick={onDelete}

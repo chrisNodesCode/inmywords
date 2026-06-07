@@ -8,6 +8,7 @@ export const SURFACES: Surface[] = [
   { name: "calendar", href: "/chris/calendar" },
   { name: "projects", href: "/chris/projects" },
   { name: "journal", href: "/chris/journal" },
+  { name: "notes", href: "/chris/notes" },
   { name: "shopping", href: "/chris/shopping" },
   { name: "prompts", href: "/chris/prompts" },
   { name: "messages", href: "/chris/messages" },

@@ -25,6 +25,7 @@ const MODULES: Module[] = [
   { key: "calendar", name: "Calendar", blurb: "Month view — to-dos by due date", glyph: "▦", href: "/chris/calendar" },
   { key: "projects", name: "Projects", blurb: "Organize prompts and to-dos", glyph: "◳", href: "/chris/projects" },
   { key: "journal", name: "Journal", blurb: "Write entries — shared with InMyWords", glyph: "✦", href: "/chris/journal" },
+  { key: "notes", name: "Notes", blurb: "Reference notes grouped by project", glyph: "❏", href: "/chris/notes" },
   { key: "shopping", name: "Shopping List", blurb: "Items grouped by retailer", glyph: "⟳", href: "/chris/shopping" },
   { key: "prompts", name: "Prompts", blurb: "Drafting space for LLM prompts", glyph: "✎", href: "/chris/prompts" },
   { key: "messages", name: "Messaging", blurb: "Draft messages → tune how they land", glyph: "✉", href: "/chris/messages" },

@@ -78,6 +78,9 @@ model Project {
   userId    String
   name      String
   sortOrder Int      @default(0)
+  // Default set of structured Note field keys applied to new notes created in
+  // this project (the per-project "template"). See app/chris/_lib/noteFields.
+  noteFields String[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -85,6 +88,7 @@ model Project {
   todos    Todo[]
   entries  JournalEntry[]
   messages Message[]
+  notes    Note[]
 
   @@index([userId])
 }
@@ -99,6 +103,43 @@ model Prompt {
   title     String?
   content   String   // TipTap JSON
   status    String   @default("draft")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([projectId])
+}
+
+// Playground Notes — freeform research/reference notes (e.g. apartment listings
+// to compare later). Content is TipTap JSON (same as JournalEntry/Prompt) so we
+// can reuse the IMWEditor. Organized by project; no status/actionable concept —
+// these are reference material, not to-dos.
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  sortOrder Int      @default(0)
+  projectId String?
+  title     String?
+  content   String   // TipTap JSON
+
+  // Optional structured data for building comparison views later. Each is
+  // nullable and only surfaced when toggled on (enabledFields) or non-empty.
+  amount   Float? // currency (USD)
+  distance Float? // miles
+  rating   Int? // 1–5 stars
+  date     DateTime? // a relevant date (availability, visit, deadline…)
+  phone    String?
+  email    String?
+  url      String?
+  address  String? // physical address
+
+  // Which optional fields are shown/active on this note. New notes inherit the
+  // parent project's `noteFields` template. A field also displays when it holds
+  // a value, regardless of this list.
+  enabledFields String[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

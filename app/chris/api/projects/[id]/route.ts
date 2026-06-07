@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getPlaygroundUserId } from "@/lib/playground-auth";
+import { cleanFieldKeys } from "@/app/chris/_lib/noteFields";
 
 export async function PATCH(
   req: NextRequest,
@@ -14,10 +15,18 @@ export async function PATCH(
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));
-  const name = typeof body.name === "string" ? body.name.trim() : "";
-  if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
+  const data: { name?: string; noteFields?: string[] } = {};
 
-  const project = await prisma.project.update({ where: { id }, data: { name } });
+  if ("name" in body) {
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    if (!name) return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    data.name = name;
+  }
+  if ("noteFields" in body) {
+    data.noteFields = cleanFieldKeys(body.noteFields);
+  }
+
+  const project = await prisma.project.update({ where: { id }, data });
   return NextResponse.json({ project });
 }
 

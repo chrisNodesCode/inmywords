@@ -9,6 +9,7 @@ type ReorderModel =
   | "shoppingList"
   | "project"
   | "prompt"
+  | "note"
   | "message"
   | "journalEntry";
 
